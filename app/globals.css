@@ -1,0 +1,198 @@
+@import "tailwindcss";
+
+/* ─────────────────────────────────────────────
+   TCG Community Market — Design System
+   Minimalistic · Dark Mode First · Notion-style
+───────────────────────────────────────────── */
+
+@theme inline {
+  /* Core palette */
+  --color-bg:        #0f0f0f;
+  --color-surface:   #1a1a1a;
+  --color-surface-2: #222222;
+  --color-border:    #2a2a2a;
+  --color-border-2:  #333333;
+  --color-text:      #f0f0f0;
+  --color-muted:     #888888;
+  --color-subtle:    #555555;
+  --color-blue:      #3b82f6;
+  --color-blue-dim:  #1d4ed8;
+  --color-blue-glow: rgba(59,130,246,0.15);
+  --color-nm:  #22c55e;
+  --color-lp:  #84cc16;
+  --color-mp:  #eab308;
+  --color-hp:  #f97316;
+  --color-dmg: #ef4444;
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, monospace;
+}
+
+:root {
+  /* Core palette (also as plain CSS vars for JS/inline style access) */
+  --color-bg:        #0f0f0f;
+  --color-surface:   #1a1a1a;
+  --color-surface-2: #222222;
+  --color-border:    #2a2a2a;
+  --color-border-2:  #333333;
+
+  /* Text */
+  --color-text:      #f0f0f0;
+  --color-muted:     #888888;
+  --color-subtle:    #555555;
+
+  /* Accent blue */
+  --color-blue:      #3b82f6;
+  --color-blue-dim:  #1d4ed8;
+  --color-blue-glow: rgba(59,130,246,0.15);
+
+  /* Condition colors */
+  --color-nm:  #22c55e;
+  --color-lp:  #84cc16;
+  --color-mp:  #eab308;
+  --color-hp:  #f97316;
+  --color-dmg: #ef4444;
+
+  /* Font */
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, monospace;
+}
+
+/* Base reset */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html {
+  color-scheme: dark;
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-bg);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-border-2);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-muted);
+}
+
+/* Focus ring */
+*:focus-visible {
+  outline: 2px solid var(--color-blue);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Input base */
+input, textarea, select {
+  background-color: var(--color-surface);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  transition: border-color 0.15s ease;
+  width: 100%;
+}
+input::placeholder, textarea::placeholder {
+  color: var(--color-subtle);
+}
+input:focus, textarea:focus, select:focus {
+  outline: none;
+  border-color: var(--color-blue);
+}
+
+/* Button base */
+button {
+  cursor: pointer;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  border-radius: 8px;
+  border: none;
+  transition: background-color 0.15s ease, opacity 0.15s ease;
+}
+
+/* Utility: card surface */
+.card {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+}
+.card:hover {
+  border-color: var(--color-border-2);
+}
+
+/* Divider */
+.divider {
+  border: none;
+  border-top: 1px solid var(--color-border);
+}
+
+/* Skeleton shimmer */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--color-surface) 25%,
+    var(--color-surface-2) 50%,
+    var(--color-surface) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 6px;
+}
+
+/* Badge */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* Condition badges */
+.badge-nm  { background: rgba(34,197,94,0.15);  color: var(--color-nm); }
+.badge-lp  { background: rgba(132,204,22,0.15); color: var(--color-lp); }
+.badge-mp  { background: rgba(234,179,8,0.15);  color: var(--color-mp); }
+.badge-hp  { background: rgba(249,115,22,0.15); color: var(--color-hp); }
+.badge-dmg { background: rgba(239,68,68,0.15);  color: var(--color-dmg); }
+
+/* Fade-in animation */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.fade-in {
+  animation: fadeIn 0.3s ease forwards;
+}
+
+/* Card hover preview pop-in */
+@keyframes cardPreviewFadeIn {
+  from { opacity: 0; transform: scale(0.93); }
+  to   { opacity: 1; transform: scale(1); }
+}

@@ -1,0 +1,867 @@
+'use client'
+
+import { useState, useEffect, useCallback, useRef, Suspense } from 'react'
+import { useRouter } from 'next/navigation'
+import Link from 'next/link'
+import { createClient } from '@/lib/supabase/client'
+import type { Listing, CardCondition, ScryfallCard } from '@/types'
+import { useCardHover, HoverCardImage } from '@/components/CardHoverPreview'
+
+type SortOption = 'newest' | 'oldest' | 'price_asc' | 'price_desc' | 'most_viewed'
+
+const CONDITIONS: CardCondition[] = ['NM', 'LP', 'MP', 'HP', 'DMG']
+const CONDITION_LABELS: Record<CardCondition, string> = {
+  NM: 'Near Mint',
+  LP: 'Lightly Played',
+  MP: 'Moderately Played',
+  HP: 'Heavily Played',
+  DMG: 'Damaged',
+}
+const CONDITION_COLORS: Record<CardCondition, string> = {
+  NM: 'var(--color-nm)',
+  LP: 'var(--color-lp)',
+  MP: 'var(--color-mp)',
+  HP: 'var(--color-hp)',
+  DMG: 'var(--color-dmg)',
+}
+
+function formatDate(dateStr: string) {
+  return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+}
+
+/* ─── Page ────────────────────────────────────────────────────────────── */
+
+function MyListingsContent() {
+  const supabase = createClient()
+  const router = useRouter()
+
+  const [userId, setUserId] = useState<string | null>(null)
+  const [query, setQuery] = useState('')
+  const [sort, setSort] = useState<SortOption>('newest')
+  const [conditions, setConditions] = useState<Set<CardCondition>>(new Set())
+  const [minPrice, setMinPrice] = useState('')
+  const [maxPrice, setMaxPrice] = useState('')
+  const [listings, setListings] = useState<Listing[]>([])
+  const [loading, setLoading] = useState(true)
+  const [filtersOpen, setFiltersOpen] = useState(false)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+  const [editingId, setEditingId] = useState<string | null>(null)
+
+  // Auth guard
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      if (!data.user) {
+        router.replace('/auth/login?redirect=/my-listings')
+      } else {
+        setUserId(data.user.id)
+      }
+    })
+  }, [])
+
+  const fetchListings = useCallback(async () => {
+    if (!userId) return
+    setLoading(true)
+
+    let q = supabase
+      .from('listings')
+      .select('*')
+      .eq('user_id', userId)
+
+    if (query.trim()) q = q.ilike('card_name', `%${query.trim()}%`)
+    if (conditions.size > 0) q = q.in('condition', Array.from(conditions))
+    if (minPrice) q = q.gte('price', parseFloat(minPrice))
+    if (maxPrice) q = q.lte('price', parseFloat(maxPrice))
+
+    switch (sort) {
+      case 'newest':      q = q.order('created_at', { ascending: false }); break
+      case 'oldest':      q = q.order('created_at', { ascending: true });  break
+      case 'price_asc':   q = q.order('price', { ascending: true });       break
+      case 'price_desc':  q = q.order('price', { ascending: false });      break
+      case 'most_viewed': q = q.order('views', { ascending: false });      break
+    }
+
+    const { data } = await q
+    setListings((data as Listing[]) ?? [])
+    setLoading(false)
+  }, [userId, query, sort, conditions, minPrice, maxPrice])
+
+  useEffect(() => {
+    if (userId) fetchListings()
+  }, [fetchListings, userId])
+
+  const toggleCondition = (c: CardCondition) => {
+    setConditions(prev => {
+      const next = new Set(prev)
+      next.has(c) ? next.delete(c) : next.add(c)
+      return next
+    })
+  }
+
+  const handleDelete = async (id: string) => {
+    setDeletingId(id)
+    await supabase.from('listings').delete().eq('id', id)
+    setListings(prev => prev.filter(l => l.id !== id))
+    setDeletingId(null)
+    setConfirmDeleteId(null)
+  }
+
+  const handleSave = (updated: Listing) => {
+    setListings(prev => prev.map(l => l.id === updated.id ? updated : l))
+    setEditingId(null)
+  }
+
+  const activeFilterCount = conditions.size + (minPrice ? 1 : 0) + (maxPrice ? 1 : 0)
+
+  if (!userId && !loading) return null
+
+  return (
+    <div style={{ maxWidth: '1280px', margin: '0 auto', padding: '32px 1.5rem 80px' }}>
+
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '28px', gap: '16px', flexWrap: 'wrap' }}>
+        <div>
+          <h1 style={{ fontSize: '28px', fontWeight: 800, color: 'var(--color-text)', letterSpacing: '-0.03em', marginBottom: '4px' }}>
+            My Listings
+          </h1>
+          <p style={{ fontSize: '13px', color: 'var(--color-muted)' }}>
+            Manage the cards you have listed for sale
+          </p>
+        </div>
+        <Link href="/sell" style={{
+          display: 'inline-flex', alignItems: 'center', gap: '6px',
+          padding: '10px 16px', background: 'var(--color-blue)', color: '#fff',
+          borderRadius: '9px', fontSize: '13px', fontWeight: 600,
+          textDecoration: 'none', flexShrink: 0,
+        }}>
+          <PlusIcon /> New listing
+        </Link>
+      </div>
+
+      {/* Search + controls */}
+      <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', flexWrap: 'wrap' }}>
+        <div style={{
+          flex: 1, minWidth: '220px', display: 'flex',
+          background: 'var(--color-surface)', border: '1px solid var(--color-border)',
+          borderRadius: '9px', overflow: 'hidden',
+        }}>
+          <div style={{ padding: '0 12px', display: 'flex', alignItems: 'center', color: 'var(--color-subtle)' }}>
+            <SearchIcon />
+          </div>
+          <input
+            type="text"
+            placeholder="Search your listings…"
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            style={{ flex: 1, border: 'none', borderRadius: 0, padding: '10px 0', background: 'transparent', fontSize: '14px' }}
+          />
+          {query && (
+            <button onClick={() => setQuery('')} style={{ padding: '0 12px', background: 'transparent', color: 'var(--color-subtle)', border: 'none', fontSize: '16px', cursor: 'pointer' }}>
+              ×
+            </button>
+          )}
+        </div>
+
+        <select value={sort} onChange={e => setSort(e.target.value as SortOption)}
+          style={{ padding: '10px 12px', borderRadius: '9px', minWidth: '160px', fontSize: '13px', cursor: 'pointer' }}>
+          <option value="newest">Newest first</option>
+          <option value="oldest">Oldest first</option>
+          <option value="price_asc">Price: Low → High</option>
+          <option value="price_desc">Price: High → Low</option>
+          <option value="most_viewed">Most viewed</option>
+        </select>
+
+        <button onClick={() => setFiltersOpen(v => !v)} style={{
+          display: 'flex', alignItems: 'center', gap: '6px',
+          padding: '10px 14px', borderRadius: '9px',
+          background: filtersOpen ? 'var(--color-blue-glow)' : 'var(--color-surface)',
+          border: `1px solid ${filtersOpen ? 'rgba(59,130,246,0.35)' : 'var(--color-border)'}`,
+          color: filtersOpen ? 'var(--color-blue)' : 'var(--color-muted)',
+          fontSize: '13px', fontWeight: 500, transition: 'all 0.15s ease',
+        }}>
+          <FilterIcon />
+          Filters
+          {activeFilterCount > 0 && (
+            <span style={{ background: 'var(--color-blue)', color: '#fff', borderRadius: '10px', padding: '1px 6px', fontSize: '11px', fontWeight: 700 }}>
+              {activeFilterCount}
+            </span>
+          )}
+        </button>
+      </div>
+
+      {/* Filter panel */}
+      {filtersOpen && (
+        <div style={{
+          background: 'var(--color-surface)', border: '1px solid var(--color-border)',
+          borderRadius: '12px', padding: '20px 24px', marginBottom: '20px',
+          display: 'flex', gap: '32px', flexWrap: 'wrap',
+        }}>
+          <div>
+            <p style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-muted)', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Condition</p>
+            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+              {CONDITIONS.map(c => (
+                <button key={c} onClick={() => toggleCondition(c)} style={{
+                  padding: '5px 11px', borderRadius: '7px',
+                  border: `1px solid ${conditions.has(c) ? 'var(--color-blue)' : 'var(--color-border)'}`,
+                  background: conditions.has(c) ? 'var(--color-blue-glow)' : 'transparent',
+                  color: conditions.has(c) ? 'var(--color-blue)' : 'var(--color-muted)',
+                  fontSize: '12px', fontWeight: conditions.has(c) ? 600 : 400, transition: 'all 0.15s ease',
+                }}>
+                  {c} <span style={{ opacity: 0.6 }}>· {CONDITION_LABELS[c]}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <p style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-muted)', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Price Range (₱)</p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <input type="number" placeholder="Min ₱" value={minPrice} onChange={e => setMinPrice(e.target.value)}
+                style={{ width: '90px', padding: '7px 10px', fontSize: '13px' }} min="0" step="1" />
+              <span style={{ color: 'var(--color-subtle)', fontSize: '12px' }}>to</span>
+              <input type="number" placeholder="Max ₱" value={maxPrice} onChange={e => setMaxPrice(e.target.value)}
+                style={{ width: '90px', padding: '7px 10px', fontSize: '13px' }} min="0" step="1" />
+            </div>
+          </div>
+
+          {activeFilterCount > 0 && (
+            <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+              <button onClick={() => { setConditions(new Set()); setMinPrice(''); setMaxPrice('') }}
+                style={{ background: 'transparent', color: 'var(--color-muted)', fontSize: '12px', padding: '7px 12px', border: '1px solid var(--color-border)', borderRadius: '7px' }}>
+                Clear filters
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Results */}
+      {loading ? (
+        <SkeletonGrid />
+      ) : listings.length === 0 ? (
+        <div style={{ padding: '64px 24px', textAlign: 'center', background: 'var(--color-surface)', borderRadius: '12px', border: '1px solid var(--color-border)' }}>
+          {query || activeFilterCount > 0 ? (
+            <>
+              <p style={{ fontSize: '15px', color: 'var(--color-muted)', marginBottom: '8px' }}>No listings match your search.</p>
+              <p style={{ fontSize: '13px', color: 'var(--color-subtle)' }}>Try a different search or clear your filters.</p>
+            </>
+          ) : (
+            <>
+              <p style={{ fontSize: '15px', color: 'var(--color-muted)', marginBottom: '12px' }}>You haven't listed any cards yet.</p>
+              <Link href="/sell" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '10px 18px', background: 'var(--color-blue)', color: '#fff', borderRadius: '9px', fontSize: '13px', fontWeight: 600, textDecoration: 'none' }}>
+                <PlusIcon /> List your first card
+              </Link>
+            </>
+          )}
+        </div>
+      ) : (
+        <>
+          <p style={{ fontSize: '12px', color: 'var(--color-subtle)', marginBottom: '16px' }}>
+            {listings.length} listing{listings.length !== 1 ? 's' : ''}
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {listings.map(listing => (
+              <ListingRow
+                key={listing.id}
+                listing={listing}
+                isEditing={editingId === listing.id}
+                confirmingDelete={confirmDeleteId === listing.id}
+                deleting={deletingId === listing.id}
+                onEdit={() => { setEditingId(listing.id); setConfirmDeleteId(null) }}
+                onCancelEdit={() => setEditingId(null)}
+                onSave={handleSave}
+                onRequestDelete={() => { setConfirmDeleteId(listing.id); setEditingId(null) }}
+                onCancelDelete={() => setConfirmDeleteId(null)}
+                onConfirmDelete={() => handleDelete(listing.id)}
+              />
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
+/* ─── Listing Row ─────────────────────────────────────────────────────── */
+
+function ListingRow({
+  listing, isEditing, confirmingDelete, deleting,
+  onEdit, onCancelEdit, onSave,
+  onRequestDelete, onCancelDelete, onConfirmDelete,
+}: {
+  listing: Listing
+  isEditing: boolean
+  confirmingDelete: boolean
+  deleting: boolean
+  onEdit: () => void
+  onCancelEdit: () => void
+  onSave: (updated: Listing) => void
+  onRequestDelete: () => void
+  onCancelDelete: () => void
+  onConfirmDelete: () => void
+}) {
+  const condition = listing.condition as CardCondition
+  const conditionColor = CONDITION_COLORS[condition] ?? 'var(--color-muted)'
+  const { onMouseMove, onMouseLeave: onPreviewLeave, preview } = useCardHover(listing.card_image_uri)
+
+  return (
+    <div style={{
+      background: 'var(--color-surface)',
+      border: `1px solid ${confirmingDelete ? 'rgba(239,68,68,0.35)' : isEditing ? 'rgba(59,130,246,0.35)' : 'var(--color-border)'}`,
+      borderRadius: '12px',
+      overflow: 'hidden',
+      transition: 'border-color 0.15s ease',
+    }}>
+
+      {/* Row summary */}
+      <div style={{ display: 'grid', gridTemplateColumns: '56px 1fr auto', gap: '16px', alignItems: 'center', padding: '14px 18px' }}>
+
+        {/* Thumbnail */}
+        <div
+          onMouseMove={onMouseMove}
+          onMouseLeave={onPreviewLeave}
+          style={{ width: '56px', height: '56px', borderRadius: '8px', overflow: 'hidden', background: 'var(--color-surface-2)', flexShrink: 0, border: '1px solid var(--color-border)' }}
+        >
+          {preview}
+          {listing.card_image_uri ? (
+            <img src={listing.card_image_uri} alt={listing.card_name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          ) : (
+            <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <CardPlaceholderIcon />
+            </div>
+          )}
+        </div>
+
+        {/* Info */}
+        <div style={{ minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '4px' }}>
+            <Link href={`/listing/${listing.id}`}
+              style={{ fontSize: '15px', fontWeight: 700, color: 'var(--color-text)', textDecoration: 'none', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '260px' }}>
+              {listing.card_name}
+            </Link>
+            <span style={{ fontSize: '11px', fontWeight: 600, color: conditionColor, background: `${conditionColor}18`, border: `1px solid ${conditionColor}40`, borderRadius: '5px', padding: '1px 6px', flexShrink: 0 }}>
+              {condition}
+            </span>
+          </div>
+          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+            {listing.card_set_name && <span style={{ fontSize: '12px', color: 'var(--color-muted)' }}>{listing.card_set_name}</span>}
+            <span style={{ fontSize: '12px', color: 'var(--color-subtle)' }}>{listing.quantity} available</span>
+            <span style={{ fontSize: '12px', color: 'var(--color-subtle)' }}>{listing.views} view{listing.views !== 1 ? 's' : ''}</span>
+            <span style={{ fontSize: '12px', color: 'var(--color-subtle)' }}>Listed {formatDate(listing.created_at)}</span>
+          </div>
+        </div>
+
+        {/* Right: price + actions */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexShrink: 0 }}>
+          <span style={{ fontSize: '17px', fontWeight: 800, color: 'var(--color-text)', letterSpacing: '-0.02em' }}>
+            ₱{listing.price.toLocaleString('en-PH')}
+          </span>
+
+          {confirmingDelete ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '12px', color: '#ef4444' }}>Delete?</span>
+              <button onClick={onConfirmDelete} disabled={deleting} style={{
+                padding: '5px 10px', borderRadius: '6px', background: '#ef4444', color: '#fff',
+                border: 'none', fontSize: '12px', fontWeight: 600,
+                cursor: deleting ? 'not-allowed' : 'pointer', opacity: deleting ? 0.6 : 1,
+              }}>
+                {deleting ? '…' : 'Yes, delete'}
+              </button>
+              <button onClick={onCancelDelete} style={{ padding: '5px 10px', borderRadius: '6px', background: 'transparent', color: 'var(--color-muted)', border: '1px solid var(--color-border)', fontSize: '12px', cursor: 'pointer' }}>
+                Cancel
+              </button>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Link href={`/listing/${listing.id}`} title="View listing" style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                width: '32px', height: '32px', borderRadius: '7px',
+                background: 'var(--color-surface-2)', border: '1px solid var(--color-border)',
+                color: 'var(--color-muted)', textDecoration: 'none',
+              }}>
+                <EyeIcon />
+              </Link>
+              <button onClick={onEdit} title="Edit listing" style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                width: '32px', height: '32px', borderRadius: '7px',
+                background: isEditing ? 'var(--color-blue-glow)' : 'var(--color-surface-2)',
+                border: `1px solid ${isEditing ? 'rgba(59,130,246,0.4)' : 'var(--color-border)'}`,
+                color: isEditing ? 'var(--color-blue)' : 'var(--color-muted)',
+                cursor: 'pointer', transition: 'all 0.15s ease',
+              }}>
+                <PencilIcon />
+              </button>
+              <button onClick={onRequestDelete} title="Delete listing" style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                width: '32px', height: '32px', borderRadius: '7px',
+                background: 'var(--color-surface-2)', border: '1px solid var(--color-border)',
+                color: 'var(--color-muted)', cursor: 'pointer', transition: 'all 0.15s ease',
+              }}
+                onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = '#ef4444'; (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(239,68,68,0.4)' }}
+                onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--color-muted)'; (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--color-border)' }}
+              >
+                <TrashIcon />
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Inline edit panel */}
+      {isEditing && (
+        <EditPanel
+          listing={listing}
+          onSave={onSave}
+          onCancel={onCancelEdit}
+        />
+      )}
+    </div>
+  )
+}
+
+/* ─── Edit Panel ──────────────────────────────────────────────────────── */
+
+type PrintingOption = {
+  id: string
+  set: string
+  set_name: string
+  image_uri: string | null
+  rarity: string
+  released_at: string
+  collector_number: string
+}
+
+function EditPanel({ listing, onSave, onCancel }: {
+  listing: Listing
+  onSave: (updated: Listing) => void
+  onCancel: () => void
+}) {
+  const supabase = createClient()
+
+  const [printings, setPrintings] = useState<PrintingOption[]>([])
+  const [printingsLoading, setPrintingsLoading] = useState(true)
+  const [selectedPrinting, setSelectedPrinting] = useState<PrintingOption | null>(null)
+
+  const [condition, setCondition] = useState<CardCondition>(listing.condition)
+  const [isFoil, setIsFoil] = useState(listing.is_foil ?? false)
+  const [price, setPrice] = useState(listing.price.toString())
+  const [quantity, setQuantity] = useState(listing.quantity.toString())
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+
+  // fetch all printings of this card from Scryfall
+  useEffect(() => {
+    async function fetchPrintings() {
+      setPrintingsLoading(true)
+      try {
+        const res = await fetch(
+          `https://api.scryfall.com/cards/search?q=!"${encodeURIComponent(listing.card_name)}"&unique=prints&order=released`,
+        )
+        const data = await res.json()
+        if (data.data) {
+          const opts: PrintingOption[] = data.data.map((c: ScryfallCard) => ({
+            id: c.id,
+            set: c.set,
+            set_name: c.set_name,
+            image_uri: c.image_uris?.normal ?? c.card_faces?.[0]?.image_uris?.normal ?? null,
+            rarity: c.rarity,
+            released_at: c.released_at,
+            collector_number: c.collector_number,
+          }))
+          setPrintings(opts)
+          // pre-select current printing
+          const current = opts.find(o => o.id === listing.card_id) ?? null
+          setSelectedPrinting(current)
+        }
+      } catch {
+        // silently fail — user can still edit price + qty
+      }
+      setPrintingsLoading(false)
+    }
+    fetchPrintings()
+  }, [listing.card_id, listing.card_name])
+
+  const selectedUsdPrice = (() => {
+    // we don't have the USD price cached; multiplier buttons use the selected printing's Scryfall data
+    // so we fetch it lazily when a printing is selected — see applyMultiplier
+    return null
+  })()
+
+  // map of printing id -> { usd, usdFoil }
+  const usdCache = useRef<Record<string, { usd: string | null; usdFoil: string | null }>>({})
+  const [currentUsd, setCurrentUsd] = useState<string | null>(null)
+  const [currentUsdFoil, setCurrentUsdFoil] = useState<string | null>(null)
+
+  const selectPrinting = async (p: PrintingOption) => {
+    setSelectedPrinting(p)
+    if (usdCache.current[p.id] !== undefined) {
+      setCurrentUsd(usdCache.current[p.id].usd)
+      setCurrentUsdFoil(usdCache.current[p.id].usdFoil)
+      return
+    }
+    try {
+      const res = await fetch(`https://api.scryfall.com/cards/${p.id}`)
+      const data = await res.json()
+      const usd = data.prices?.usd ?? null
+      const usdFoil = data.prices?.usd_foil ?? null
+      usdCache.current[p.id] = { usd, usdFoil }
+      setCurrentUsd(usd)
+      setCurrentUsdFoil(usdFoil)
+    } catch {
+      usdCache.current[p.id] = { usd: null, usdFoil: null }
+      setCurrentUsd(null)
+      setCurrentUsdFoil(null)
+    }
+  }
+
+  // Pre-fetch USD for the current card on mount
+  useEffect(() => {
+    if (listing.card_id) {
+      fetch(`https://api.scryfall.com/cards/${listing.card_id}`)
+        .then(r => r.json())
+        .then(d => {
+          const usd = d.prices?.usd ?? null
+          const usdFoil = d.prices?.usd_foil ?? null
+          usdCache.current[listing.card_id] = { usd, usdFoil }
+          setCurrentUsd(usd)
+          setCurrentUsdFoil(usdFoil)
+        })
+        .catch(() => {})
+    }
+  }, [listing.card_id])
+
+  const applyMultiplier = (rate: number) => {
+    const base = isFoil ? (currentUsdFoil ?? currentUsd) : currentUsd
+    if (!base) return
+    setPrice(Math.ceil(parseFloat(base) * rate).toString())
+  }
+
+  const handleSave = async () => {
+    const parsedPrice = parseInt(price, 10)
+    const parsedQty = parseInt(quantity, 10)
+    if (!parsedPrice || parsedPrice < 1) { setError('Enter a valid price.'); return }
+    if (!parsedQty || parsedQty < 1) { setError('Enter a valid quantity.'); return }
+
+    setSaving(true)
+    setError('')
+
+    const patch: Record<string, unknown> = {
+      price: parsedPrice,
+      quantity: parsedQty,
+      condition,
+      is_foil: isFoil,
+    }
+
+    if (selectedPrinting && selectedPrinting.id !== listing.card_id) {
+      patch.card_id = selectedPrinting.id
+      patch.card_set = selectedPrinting.set
+      patch.card_set_name = selectedPrinting.set_name
+      patch.card_image_uri = selectedPrinting.image_uri
+      patch.card_rarity = selectedPrinting.rarity
+    }
+
+    const { data, error: dbErr } = await supabase
+      .from('listings')
+      .update(patch)
+      .eq('id', listing.id)
+      .select()
+      .single()
+
+    if (dbErr) {
+      setError('Failed to save. Please try again.')
+      setSaving(false)
+      return
+    }
+
+    onSave(data as Listing)
+  }
+
+  return (
+    <div style={{
+      borderTop: '1px solid var(--color-border)',
+      padding: '24px',
+      background: 'var(--color-surface-2)',
+    }}>
+      <p style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-blue)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '20px' }}>
+        Edit Listing
+      </p>
+
+      <div style={{ display: 'flex', gap: '32px', flexWrap: 'wrap', alignItems: 'flex-start' }}>
+
+        {/* Printing picker */}
+        <div style={{ flex: '1 1 360px', minWidth: 0 }}>
+          <p style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '10px' }}>
+            Card Printing
+          </p>
+
+          {printingsLoading ? (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(60px, 1fr))', gap: '8px' }}>
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="skeleton" style={{ aspectRatio: '3/4', borderRadius: '6px' }} />
+              ))}
+            </div>
+          ) : printings.length === 0 ? (
+            <p style={{ fontSize: '13px', color: 'var(--color-muted)' }}>No printings found.</p>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(62px, 1fr))', gap: '8px', maxHeight: '280px', overflowY: 'auto', paddingRight: '4px' }}>
+              {printings.map(p => {
+                const isSelected = selectedPrinting?.id === p.id
+                return (
+                  <button
+                    key={p.id}
+                    onClick={() => selectPrinting(p)}
+                    title={`${p.set_name} (${p.set.toUpperCase()}) · ${p.rarity}`}
+                    style={{
+                      padding: 0,
+                      border: `2px solid ${isSelected ? 'var(--color-blue)' : 'transparent'}`,
+                      borderRadius: '8px',
+                      overflow: 'hidden',
+                      background: isSelected ? 'var(--color-blue-glow)' : 'var(--color-surface)',
+                      cursor: 'pointer',
+                      outline: 'none',
+                      boxShadow: isSelected ? '0 0 0 1px rgba(59,130,246,0.3)' : 'none',
+                      transition: 'border-color 0.12s ease',
+                      display: 'flex',
+                      flexDirection: 'column',
+                    }}
+                  >
+                    {p.image_uri ? (
+                      <HoverCardImage src={p.image_uri} alt={p.set_name} style={{ width: '100%', aspectRatio: '3/4', objectFit: 'cover', display: 'block' }} />
+                    ) : (
+                      <div style={{ width: '100%', aspectRatio: '3/4', background: 'var(--color-surface-2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <CardPlaceholderIcon />
+                      </div>
+                    )}
+                    <div style={{ padding: '3px 4px', textAlign: 'center' }}>
+                      <p style={{ fontSize: '9px', fontWeight: 600, color: isSelected ? 'var(--color-blue)' : 'var(--color-muted)', textTransform: 'uppercase', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {p.set.toUpperCase()}
+                      </p>
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+          )}
+
+          {selectedPrinting && (
+            <p style={{ fontSize: '12px', color: 'var(--color-muted)', marginTop: '10px' }}>
+              Selected: <span style={{ color: 'var(--color-text)', fontWeight: 600 }}>{selectedPrinting.set_name}</span>
+              <span style={{ color: 'var(--color-subtle)' }}> · {selectedPrinting.set.toUpperCase()} · #{selectedPrinting.collector_number}</span>
+            </p>
+          )}
+        </div>
+
+        {/* Condition + Price + Quantity */}
+        <div style={{ flex: '0 0 auto', display: 'flex', flexDirection: 'column', gap: '20px', minWidth: '220px' }}>
+
+          {/* Condition */}
+          <div>
+            <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '8px' }}>
+              Condition
+            </label>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              {CONDITIONS.map(c => {
+                const isSelected = condition === c
+                const color = CONDITION_COLORS[c]
+                return (
+                  <button
+                    key={c}
+                    onClick={() => setCondition(c)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '10px',
+                      padding: '8px 12px',
+                      borderRadius: '8px',
+                      border: `1px solid ${isSelected ? color : 'var(--color-border)'}`,
+                      background: isSelected ? `${color}12` : 'transparent',
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                      transition: 'all 0.12s ease',
+                    }}
+                  >
+                    <span style={{
+                      fontSize: '11px', fontWeight: 700,
+                      color: isSelected ? color : 'var(--color-subtle)',
+                      background: isSelected ? `${color}20` : 'var(--color-surface)',
+                      border: `1px solid ${isSelected ? `${color}60` : 'var(--color-border)'}`,
+                      borderRadius: '4px', padding: '1px 6px',
+                      minWidth: '36px', textAlign: 'center',
+                    }}>
+                      {c}
+                    </span>
+                    <span style={{ fontSize: '13px', color: isSelected ? 'var(--color-text)' : 'var(--color-muted)', fontWeight: isSelected ? 500 : 400 }}>
+                      {CONDITION_LABELS[c]}
+                    </span>
+                    {isSelected && (
+                      <span style={{ marginLeft: 'auto', color: color }}>
+                        <CheckIcon />
+                      </span>
+                    )}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* Foil */}
+          <div>
+            <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '8px' }}>
+              Foil
+            </label>
+            <button onClick={() => setIsFoil(v => !v)} style={{
+              display: 'flex', alignItems: 'center', gap: '7px', padding: '8px 14px', borderRadius: '8px',
+              border: `1px solid ${isFoil ? 'rgba(234,179,8,0.5)' : 'var(--color-border)'}`,
+              background: isFoil ? 'rgba(234,179,8,0.08)' : 'transparent',
+              color: isFoil ? '#fbbf24' : 'var(--color-muted)', fontSize: '13px', fontWeight: 600,
+              cursor: 'pointer', transition: 'all 0.15s ease',
+            }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill={isFoil ? '#fbbf24' : 'none'} stroke={isFoil ? '#fbbf24' : 'currentColor'} strokeWidth={2}><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
+              {isFoil ? 'Foil ✓' : 'Non-foil'}
+            </button>
+          </div>
+
+          {/* Price */}
+          <div>
+            <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '8px' }}>
+              Price
+            </label>
+            <div style={{ display: 'flex', alignItems: 'center', background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: '8px', overflow: 'hidden' }}>
+              <span style={{ padding: '0 10px', fontSize: '14px', color: 'var(--color-muted)', borderRight: '1px solid var(--color-border)' }}>₱</span>
+              <input
+                type="number"
+                value={price}
+                onChange={e => setPrice(e.target.value)}
+                min="1"
+                step="1"
+                style={{ flex: 1, border: 'none', borderRadius: 0, padding: '10px 10px', fontSize: '15px', fontWeight: 700, background: 'transparent', width: '120px' }}
+              />
+            </div>
+
+            {/* Multiplier buttons */}
+            {(() => {
+              const base = isFoil ? (currentUsdFoil ?? currentUsd) : currentUsd
+              return base ? (
+                <div style={{ marginTop: '8px' }}>
+                  <p style={{ fontSize: '11px', color: 'var(--color-subtle)', marginBottom: '6px' }}>
+                    Scryfall{isFoil ? ' foil' : ''} USD: <span style={{ color: 'var(--color-muted)' }}>${base}</span> — suggest PHP:
+                  </p>
+                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                    {[30, 40, 50].map(rate => (
+                      <button key={rate} onClick={() => applyMultiplier(rate)} style={{
+                        padding: '4px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 600,
+                        background: 'var(--color-surface)', border: '1px solid var(--color-border)',
+                        color: 'var(--color-muted)', cursor: 'pointer', transition: 'all 0.12s ease',
+                      }}
+                        onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--color-blue)'; (e.currentTarget as HTMLButtonElement).style.color = 'var(--color-blue)' }}
+                        onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--color-border)'; (e.currentTarget as HTMLButtonElement).style.color = 'var(--color-muted)' }}
+                      >
+                        ×{rate} <span style={{ opacity: 0.7 }}>₱{Math.ceil(parseFloat(base) * rate).toLocaleString('en-PH')}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : null
+            })()}
+          </div>
+
+          {/* Quantity */}
+          <div>
+            <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '8px' }}>
+              Quantity
+            </label>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <button
+                onClick={() => setQuantity(q => String(Math.max(1, parseInt(q || '1') - 1)))}
+                style={{ width: '32px', height: '38px', borderRadius: '7px', background: 'var(--color-surface)', border: '1px solid var(--color-border)', color: 'var(--color-muted)', fontSize: '16px', cursor: 'pointer' }}
+              >−</button>
+              <input
+                type="number"
+                value={quantity}
+                onChange={e => setQuantity(e.target.value)}
+                min="1"
+                step="1"
+                style={{ width: '64px', padding: '9px 10px', fontSize: '15px', fontWeight: 700, textAlign: 'center', borderRadius: '7px' }}
+              />
+              <button
+                onClick={() => setQuantity(q => String(parseInt(q || '1') + 1))}
+                style={{ width: '32px', height: '38px', borderRadius: '7px', background: 'var(--color-surface)', border: '1px solid var(--color-border)', color: 'var(--color-muted)', fontSize: '16px', cursor: 'pointer' }}
+              >+</button>
+            </div>
+          </div>
+
+          {/* Error */}
+          {error && <p style={{ fontSize: '13px', color: '#ef4444' }}>{error}</p>}
+
+          {/* Save / Cancel */}
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button onClick={handleSave} disabled={saving} style={{
+              flex: 1, padding: '10px 16px', background: 'var(--color-blue)', color: '#fff',
+              border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: 600,
+              cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.7 : 1,
+            }}>
+              {saving ? 'Saving…' : 'Save changes'}
+            </button>
+            <button onClick={onCancel} style={{
+              padding: '10px 14px', background: 'transparent',
+              border: '1px solid var(--color-border)', borderRadius: '8px',
+              color: 'var(--color-muted)', fontSize: '13px', cursor: 'pointer',
+            }}>
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/* ─── Skeleton ────────────────────────────────────────────────────────── */
+
+function SkeletonGrid() {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+      {Array.from({ length: 5 }).map((_, i) => (
+        <div key={i} style={{ display: 'grid', gridTemplateColumns: '56px 1fr auto', gap: '16px', alignItems: 'center', padding: '14px 18px', background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: '12px' }}>
+          <div className="skeleton" style={{ width: '56px', height: '56px', borderRadius: '8px' }} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <div className="skeleton" style={{ height: '15px', width: '200px' }} />
+            <div className="skeleton" style={{ height: '12px', width: '140px' }} />
+          </div>
+          <div className="skeleton" style={{ height: '20px', width: '70px' }} />
+        </div>
+      ))}
+    </div>
+  )
+}
+
+/* ─── Icons ───────────────────────────────────────────────────────────── */
+
+function SearchIcon() {
+  return <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
+}
+function FilterIcon() {
+  return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><line x1="4" y1="6" x2="20" y2="6" /><line x1="8" y1="12" x2="16" y2="12" /><line x1="11" y1="18" x2="13" y2="18" /></svg>
+}
+function PlusIcon() {
+  return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+}
+function EyeIcon() {
+  return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></svg>
+}
+function PencilIcon() {
+  return <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
+}
+function TrashIcon() {
+  return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14H6L5 6" /><path d="M10 11v6M14 11v6" /><path d="M9 6V4h6v2" /></svg>
+}
+function CardPlaceholderIcon() {
+  return <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} style={{ color: 'var(--color-subtle)' }}><rect x="3" y="3" width="18" height="18" rx="3" /><path d="M3 9h18" /></svg>
+}
+function CheckIcon() {
+  return <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><polyline points="20 6 9 17 4 12" /></svg>
+}
+
+export default function MyListingsPage() {
+  return <Suspense><MyListingsContent /></Suspense>
+}
