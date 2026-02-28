@@ -14,6 +14,7 @@ async function getLatestListings(): Promise<Listing[]> {
     const { data } = await supabase
       .from('listings')
       .select('*, profiles(username, avatar_url)')
+      .eq('status', 'listed')
       .order('created_at', { ascending: false })
       .limit(54) // fetch extra so grouping still fills 3 rows (~18 unique cards)
     return (data as Listing[]) ?? []
@@ -28,6 +29,7 @@ async function getHotListings(): Promise<Listing[]> {
     const { data } = await supabase
       .from('listings')
       .select('*, profiles(username, avatar_url)')
+      .eq('status', 'listed')
       .order('views', { ascending: false })
       .order('created_at', { ascending: false })
       .limit(36) // fetch extra so grouping still fills 2 rows (~12 unique cards)

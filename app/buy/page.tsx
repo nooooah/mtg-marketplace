@@ -102,6 +102,7 @@ function BuyPageContent() {
     let q = supabase
       .from('listings')
       .select('*, profiles(username, avatar_url)')
+      .eq('status', 'listed')
 
     if (query.trim()) {
       q = q.ilike('card_name', `%${query.trim()}%`)

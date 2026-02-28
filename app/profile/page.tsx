@@ -68,7 +68,7 @@ function ProfileContent({ userId, initialProfile }: { userId: string; initialPro
   const [listingsLoading, setListingsLoading] = useState(true)
 
   useEffect(() => {
-    supabase.from('listings').select('*').eq('user_id', userId).order('created_at', { ascending: false })
+    supabase.from('listings').select('*').eq('user_id', userId).eq('status', 'listed').order('created_at', { ascending: false })
       .then(({ data }) => { setListings((data ?? []) as Listing[]); setListingsLoading(false) })
   }, [userId])
 

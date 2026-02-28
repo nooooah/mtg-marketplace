@@ -26,6 +26,7 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
     .from('listings')
     .select('*, profiles(id, username, avatar_url, bio, created_at)')
     .eq('id', id)
+    .eq('status', 'listed')
     .single()
 
   if (!listing) notFound()
