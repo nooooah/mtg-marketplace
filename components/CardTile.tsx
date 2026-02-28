@@ -106,13 +106,12 @@ export default function CardTile({ listing, noPreview = false, compact = false, 
             </div>
           )}
 
-          {/* Bottom overlay: foil left, condition right */}
-          <div style={{
-            position: 'absolute', bottom: '8px', left: '8px', right: '8px',
-            display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end',
-            pointerEvents: 'none',
-          }}>
-            {listing.is_foil ? (
+          {/* Bottom overlay: foil badge only */}
+          {listing.is_foil && (
+            <div style={{
+              position: 'absolute', bottom: '8px', left: '8px',
+              pointerEvents: 'none',
+            }}>
               <span style={{
                 display: 'inline-flex', alignItems: 'center', gap: '3px',
                 fontSize: '9px', fontWeight: 800, letterSpacing: '0.04em',
@@ -122,11 +121,8 @@ export default function CardTile({ listing, noPreview = false, compact = false, 
               }}>
                 ✦ FOIL
               </span>
-            ) : <span />}
-            <span className={`badge badge-${condition.toLowerCase()}`}>
-              {condition}
-            </span>
-          </div>
+            </div>
+          )}
         </div>
 
         {/* Card details */}
@@ -159,51 +155,53 @@ export default function CardTile({ listing, noPreview = false, compact = false, 
             </p>
           )}
 
-          {/* Seller name — hidden in compact */}
+          {/* Sold by — hidden in compact */}
           {!compact && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginTop: '1px' }}>
-              <div style={{
-                width: '16px', height: '16px', borderRadius: '50%',
-                background: 'var(--color-blue)', display: 'flex',
-                alignItems: 'center', justifyContent: 'center',
-                fontSize: '8px', fontWeight: 700, color: '#fff', flexShrink: 0,
-              }}>
-                {sellerInitial}
-              </div>
-              <span style={{
-                fontSize: '11px', color: 'var(--color-subtle)',
-                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-              }}>
+            <p style={{
+              fontSize: '11px', color: 'var(--color-subtle)',
+              margin: 0, marginTop: '1px',
+              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            }}>
+              Sold by <span style={{ color: 'var(--color-muted)', fontWeight: 500 }}>
                 {listing.profiles?.username ?? 'Seller'}
               </span>
-            </div>
+            </p>
           )}
 
-          {/* Footer: price left, qty + age right */}
+          {/* Footer rows */}
           <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
             marginTop: 'auto',
             paddingTop: compact ? '6px' : '8px',
             borderTop: '1px solid var(--color-border)',
+            display: 'flex', flexDirection: 'column', gap: '3px',
           }}>
-            <span style={{
-              fontWeight: 700,
-              fontSize: compact ? '13px' : '15px',
-              color: 'var(--color-text)',
-            }}>
-              ₱{listing.price.toLocaleString('en-PH')}
-            </span>
+            {/* Row 1: price + condition */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={{
+                fontWeight: 700,
+                fontSize: compact ? '13px' : '15px',
+                color: 'var(--color-text)',
+              }}>
+                ₱{listing.price.toLocaleString('en-PH')}
+              </span>
+              <span className={`badge badge-${listing.condition.toLowerCase()}`} style={{ fontSize: compact ? '9px' : undefined }}>
+                {listing.condition}
+              </span>
+            </div>
 
-            <span style={{
-              fontSize: compact ? '9px' : '10px',
-              color: 'var(--color-subtle)',
-              textAlign: 'right',
-              lineHeight: 1.4,
-            }}>
-              ×{listing.quantity} · {daysAgo(listing.created_at)}
-            </span>
+            {/* Row 2: quantity + days ago */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={{
+                fontSize: compact ? '9px' : '10px',
+                color: listing.quantity === 1 ? '#f97316' : 'var(--color-subtle)',
+                fontWeight: listing.quantity === 1 ? 600 : 400,
+              }}>
+                {listing.quantity === 1 ? 'Last one' : `${listing.quantity} available`}
+              </span>
+              <span style={{ fontSize: compact ? '9px' : '10px', color: 'var(--color-subtle)' }}>
+                {daysAgo(listing.created_at)}
+              </span>
+            </div>
           </div>
         </div>
       </div>
