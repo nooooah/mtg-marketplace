@@ -7,14 +7,14 @@ import type { Listing } from '@/types'
 
 export const revalidate = 60
 
-async function getFeaturedListings(): Promise<Listing[]> {
+async function getLatestListings(): Promise<Listing[]> {
   try {
     const supabase = await createClient()
     const { data } = await supabase
       .from('listings')
       .select('*, profiles(username, avatar_url)')
       .order('created_at', { ascending: false })
-      .limit(8)
+      .limit(54) // fetch extra so grouping still fills 3 rows (~18 unique cards)
     return (data as Listing[]) ?? []
   } catch {
     return []
@@ -29,7 +29,7 @@ async function getHotListings(): Promise<Listing[]> {
       .select('*, profiles(username, avatar_url)')
       .order('views', { ascending: false })
       .order('created_at', { ascending: false })
-      .limit(8)
+      .limit(36) // fetch extra so grouping still fills 2 rows (~12 unique cards)
     return (data as Listing[]) ?? []
   } catch {
     return []
@@ -37,8 +37,8 @@ async function getHotListings(): Promise<Listing[]> {
 }
 
 export default async function HomePage() {
-  const [featured, hot] = await Promise.all([
-    getFeaturedListings(),
+  const [latest, hot] = await Promise.all([
+    getLatestListings(),
     getHotListings(),
   ])
 
@@ -50,16 +50,16 @@ export default async function HomePage() {
         <EventsBanner />
       </section>
 
-      {/* Featured Listings */}
+      {/* Latest Listings */}
       <section style={{ marginBottom: '56px' }}>
-        <SectionHeader label="Featured Listings" description="Freshly listed cards from the community" href="/buy" linkLabel="Browse all" />
-        <ListingGrid listings={featured} emptyLabel="No listings yet — be the first to list a card!" />
+        <SectionHeader label="Latest Listings" description="Freshly listed cards from the community" href="/buy" linkLabel="Browse all" />
+        <ListingGrid listings={latest} maxCards={18} emptyLabel="No listings yet — be the first to list a card!" />
       </section>
 
       {/* Hot Right Now */}
       <section style={{ marginBottom: '80px' }}>
         <SectionHeader label="Hot Right Now" description="Most viewed and recently active listings" href="/buy?sort=hot" linkLabel="See more" />
-        <ListingGrid listings={hot} emptyLabel="Nothing trending yet. Check back soon." />
+        <ListingGrid listings={hot} maxCards={12} emptyLabel="Nothing trending yet. Check back soon." />
       </section>
     </div>
   )
@@ -77,7 +77,7 @@ function SectionHeader({ label, description, href, linkLabel }: { label: string;
   )
 }
 
-function ListingGrid({ listings, emptyLabel }: { listings: Listing[]; emptyLabel: string }) {
+function ListingGrid({ listings, maxCards, emptyLabel }: { listings: Listing[]; maxCards: number; emptyLabel: string }) {
   if (listings.length === 0) {
     return (
       <div style={{ padding: '48px 24px', textAlign: 'center', background: 'var(--color-surface)', borderRadius: '12px', border: '1px solid var(--color-border)', color: 'var(--color-muted)', fontSize: '14px' }}>
@@ -85,7 +85,7 @@ function ListingGrid({ listings, emptyLabel }: { listings: Listing[]; emptyLabel
       </div>
     )
   }
-  const grouped = groupListings(listings)
+  const grouped = groupListings(listings).slice(0, maxCards)
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '16px' }}>
       {grouped.map(listing => (
