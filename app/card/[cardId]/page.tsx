@@ -167,23 +167,25 @@ export default async function CardPage({ params }: { params: Promise<{ cardId: s
         .cdp-price-cta { display: flex; align-items: center; justify-content: space-between; padding: 18px 24px; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 14px; flex-wrap: wrap; gap: 12px; }
 
         @media (max-width: 700px) {
-          .cdp-wrap { padding: 16px 1rem 60px; }
+          .cdp-wrap { padding: 16px 1rem 60px; overflow-x: hidden; }
           /* Single column: image col first, then right col */
-          .cdp-layout { grid-template-columns: 1fr; gap: 20px; }
-          /* Stack image + ref prices vertically, full width */
-          .cdp-img-col { position: static; flex-direction: column; align-items: stretch; gap: 12px; }
-          /* Image takes full width, capped nicely */
-          .cdp-img-main { width: 100%; max-width: 280px; margin: 0 auto; flex-shrink: 0; border-radius: 12px !important; }
-          /* Side area (ref prices) sits below the image */
-          .cdp-img-side { width: 100%; }
+          .cdp-layout { grid-template-columns: 1fr; gap: 20px; min-width: 0; }
+          /* Stack image + ref prices vertically, centered */
+          .cdp-img-col { position: static; flex-direction: column; align-items: center; gap: 12px; }
+          /* Image centered, capped width */
+          .cdp-img-main { width: 100%; max-width: 260px; flex-shrink: 0; border-radius: 12px !important; }
+          /* Side area (ref prices) matches image width */
+          .cdp-img-side { width: 100%; max-width: 260px; }
           .cdp-img-back { display: none; }
-          .cdp-ref-prices { width: 100%; }
+          .cdp-ref-prices { width: 100%; box-sizing: border-box; }
           .cdp-h1 { font-size: 22px; margin: 0 0 6px; }
+          /* min-width:0 prevents grid children from overflowing */
+          .cdp-right { gap: 20px; min-width: 0; overflow: hidden; }
           .cdp-stats { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 8px; }
-          .cdp-legality { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 5px; }
-          .cdp-printings { grid-template-columns: repeat(auto-fill, minmax(85px, 1fr)); gap: 8px; }
+          /* Force 2-col legality so it never overflows */
+          .cdp-legality { grid-template-columns: repeat(2, 1fr); gap: 5px; }
+          .cdp-printings { grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 8px; }
           .cdp-price-cta { padding: 14px 16px; flex-direction: column; align-items: flex-start; }
-          .cdp-right { gap: 20px; }
         }
       `}</style>
 
