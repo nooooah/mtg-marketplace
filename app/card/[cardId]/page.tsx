@@ -222,52 +222,6 @@ export default async function CardPage({ params }: { params: Promise<{ cardId: s
             </div>
           )}
 
-          {/* All Printings */}
-          {printings.length > 0 && (
-            <div>
-              <p style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 12px' }}>
-                All Printings · {printings.length} versions
-              </p>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                {printings.map((p: any) => {
-                  const pImg = p.image_uris?.small ?? p.card_faces?.[0]?.image_uris?.small
-                  const isCurrent = p.id === cardId
-                  return (
-                    <Link
-                      key={p.id}
-                      href={`/card/${p.id}`}
-                      style={{ textDecoration: 'none' }}
-                    >
-                      <div style={{
-                        borderRadius: '10px', overflow: 'hidden',
-                        border: `1.5px solid ${isCurrent ? 'var(--color-blue)' : 'var(--color-border)'}`,
-                        background: isCurrent ? 'var(--color-blue-glow)' : 'var(--color-surface)',
-                        transition: 'border-color 0.15s ease',
-                        display: 'flex', flexDirection: 'column',
-                      }}>
-                        {pImg && (
-                          <img src={pImg} alt={p.set_name} style={{ width: '100%', display: 'block' }} />
-                        )}
-                        <div style={{ padding: '6px 8px' }}>
-                          <p style={{
-                            fontSize: '10px', fontWeight: 600,
-                            color: isCurrent ? 'var(--color-blue)' : 'var(--color-text)',
-                            margin: '0 0 2px', lineHeight: 1.3,
-                            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                          }}>
-                            {p.set_name}
-                          </p>
-                          <p style={{ fontSize: '9px', color: 'var(--color-muted)', margin: 0 }}>
-                            #{p.collector_number} · {p.set?.toUpperCase()}
-                          </p>
-                        </div>
-                      </div>
-                    </Link>
-                  )
-                })}
-              </div>
-            </div>
-          )}
         </div>
 
         {/* ── RIGHT COLUMN ───────────────────────────────────────────────────── */}
@@ -443,6 +397,47 @@ export default async function CardPage({ params }: { params: Promise<{ cardId: s
             </div>
             <CardListingsSection listings={listings} cardId={cardId} />
           </div>
+
+          {/* All Printings */}
+          {printings.length > 0 && (
+            <div>
+              <p style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 12px' }}>
+                All Printings · {printings.length} version{printings.length !== 1 ? 's' : ''}
+              </p>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))', gap: '10px' }}>
+                {printings.map((p: any) => {
+                  const pImg = p.image_uris?.small ?? p.card_faces?.[0]?.image_uris?.small
+                  const isCurrent = p.id === cardId
+                  return (
+                    <Link key={p.id} href={`/card/${p.id}`} style={{ textDecoration: 'none' }}>
+                      <div style={{
+                        borderRadius: '10px', overflow: 'hidden',
+                        border: `1.5px solid ${isCurrent ? 'var(--color-blue)' : 'var(--color-border)'}`,
+                        background: isCurrent ? 'var(--color-blue-glow)' : 'var(--color-surface)',
+                        transition: 'border-color 0.15s ease, transform 0.15s ease',
+                        display: 'flex', flexDirection: 'column',
+                      }}>
+                        {pImg && <img src={pImg} alt={p.set_name} style={{ width: '100%', display: 'block' }} />}
+                        <div style={{ padding: '6px 8px' }}>
+                          <p style={{
+                            fontSize: '10px', fontWeight: 600,
+                            color: isCurrent ? 'var(--color-blue)' : 'var(--color-text)',
+                            margin: '0 0 2px', lineHeight: 1.3,
+                            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                          }}>
+                            {p.set_name}
+                          </p>
+                          <p style={{ fontSize: '9px', color: 'var(--color-muted)', margin: 0 }}>
+                            #{p.collector_number} · {p.set?.toUpperCase()}
+                          </p>
+                        </div>
+                      </div>
+                    </Link>
+                  )
+                })}
+              </div>
+            </div>
+          )}
 
         </div>
       </div>
