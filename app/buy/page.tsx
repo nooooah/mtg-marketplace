@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, Suspense } from 'react'
+import { useState, useEffect, useCallback, useRef, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import CardTile from '@/components/CardTile'
@@ -9,6 +9,15 @@ import type { Listing, CardCondition } from '@/types'
 
 type SortOption = 'newest' | 'oldest' | 'price_asc' | 'price_desc' | 'hot'
 
+interface ScryfallSuggestion {
+  id: string
+  name: string
+  set_name: string
+  set: string
+  image_uris?: { small: string }
+  card_faces?: { image_uris?: { small: string } }[]
+}
+
 const CONDITIONS: CardCondition[] = ['NM', 'LP', 'MP', 'HP', 'DMG']
 const CONDITION_LABELS: Record<CardCondition, string> = {
   NM: 'Near Mint',
@@ -16,6 +25,15 @@ const CONDITION_LABELS: Record<CardCondition, string> = {
   MP: 'Moderately Played',
   HP: 'Heavily Played',
   DMG: 'Damaged',
+}
+
+function useDebounce<T>(value: T, delay: number): T {
+  const [debounced, setDebounced] = useState(value)
+  useEffect(() => {
+    const t = setTimeout(() => setDebounced(value), delay)
+    return () => clearTimeout(t)
+  }, [value, delay])
+  return debounced
 }
 
 function BuyPageContent() {
@@ -34,6 +52,50 @@ function BuyPageContent() {
   const [listings, setListings] = useState<Listing[]>([])
   const [loading, setLoading] = useState(true)
   const [filtersOpen, setFiltersOpen] = useState(false)
+
+  // Scryfall suggestions
+  const [suggestions, setSuggestions] = useState<ScryfallSuggestion[]>([])
+  const [suggFocused, setSuggFocused] = useState(false)
+  const [suggLoading, setSuggLoading] = useState(false)
+  const [activeIdx, setActiveIdx] = useState(-1)
+  const searchWrapRef = useRef<HTMLDivElement>(null)
+  const abortRef = useRef<AbortController | null>(null)
+  const debouncedQuery = useDebounce(query, 280)
+
+  const showDropdown = suggFocused && (suggestions.length > 0 || suggLoading) && query.trim().length > 1
+
+  // Fetch Scryfall suggestions
+  useEffect(() => {
+    const q = debouncedQuery.trim()
+    if (q.length < 2) { setSuggestions([]); setSuggLoading(false); return }
+    abortRef.current?.abort()
+    const ctrl = new AbortController()
+    abortRef.current = ctrl
+    setSuggLoading(true)
+    fetch(`https://api.scryfall.com/cards/search?q=${encodeURIComponent(q)}&order=name&unique=cards&page=1`, { signal: ctrl.signal })
+      .then(r => r.json())
+      .then(data => { setSuggestions((data.data ?? []).slice(0, 6) as ScryfallSuggestion[]); setSuggLoading(false) })
+      .catch(() => { setSuggLoading(false) })
+  }, [debouncedQuery])
+
+  // Close on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (searchWrapRef.current && !searchWrapRef.current.contains(e.target as Node)) {
+        setSuggFocused(false); setActiveIdx(-1)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
+  const commitSuggestion = (card: ScryfallSuggestion) => {
+    setQuery(card.name)
+    setSuggestions([])
+    setSuggFocused(false)
+    setActiveIdx(-1)
+    // fetchListings will trigger via useEffect
+  }
 
   const fetchListings = useCallback(async () => {
     setLoading(true)
@@ -75,9 +137,20 @@ function BuyPageContent() {
     })
   }
 
-  const handleSearch = (e: React.FormEvent) => {
+  const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    setSuggestions([]); setSuggFocused(false)
     fetchListings()
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (!showDropdown) return
+    if (e.key === 'ArrowDown') { e.preventDefault(); setActiveIdx(i => Math.min(i + 1, suggestions.length - 1)) }
+    if (e.key === 'ArrowUp')   { e.preventDefault(); setActiveIdx(i => Math.max(i - 1, -1)) }
+    if (e.key === 'Escape')    { setSuggFocused(false); setActiveIdx(-1) }
+    if (e.key === 'Enter' && activeIdx >= 0 && suggestions[activeIdx]) {
+      e.preventDefault(); commitSuggestion(suggestions[activeIdx])
+    }
   }
 
   const activeFilterCount = conditions.size + (minPrice ? 1 : 0) + (maxPrice ? 1 : 0)
@@ -96,31 +169,75 @@ function BuyPageContent() {
       </div>
 
       {/* Search + controls bar */}
-      <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', flexWrap: 'wrap' }}>
-        {/* Search */}
-        <form
-          onSubmit={handleSearch}
-          style={{
-            flex: 1,
-            minWidth: '220px',
-            display: 'flex',
-            background: 'var(--color-surface)',
-            border: '1px solid var(--color-border)',
-            borderRadius: '9px',
-            overflow: 'hidden',
-          }}
-        >
-          <div style={{ padding: '0 12px', display: 'flex', alignItems: 'center', color: 'var(--color-subtle)' }}>
-            <SearchIcon />
-          </div>
-          <input
-            type="text"
-            placeholder="Search card name…"
-            value={query}
-            onChange={e => setQuery(e.target.value)}
-            style={{ flex: 1, border: 'none', borderRadius: 0, padding: '10px 0', background: 'transparent', fontSize: '14px' }}
-          />
-        </form>
+      <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', flexWrap: 'wrap', alignItems: 'flex-start' }}>
+        {/* Search with suggestions */}
+        <div ref={searchWrapRef} style={{ flex: 1, minWidth: '220px', position: 'relative' }}>
+          <form
+            onSubmit={handleSearchSubmit}
+            style={{
+              display: 'flex',
+              background: 'var(--color-surface)',
+              border: `1px solid ${suggFocused ? 'var(--color-border-2)' : 'var(--color-border)'}`,
+              borderRadius: showDropdown ? '9px 9px 0 0' : '9px',
+              overflow: 'hidden',
+              transition: 'border-color 0.15s ease',
+            }}
+          >
+            <div style={{ padding: '0 12px', display: 'flex', alignItems: 'center', color: 'var(--color-subtle)', flexShrink: 0 }}>
+              {suggLoading ? <SpinnerIcon /> : <SearchIcon />}
+            </div>
+            <input
+              type="text"
+              placeholder="Search card name…"
+              value={query}
+              onChange={e => { setQuery(e.target.value); setActiveIdx(-1) }}
+              onFocus={() => setSuggFocused(true)}
+              onKeyDown={handleKeyDown}
+              autoComplete="off"
+              style={{ flex: 1, border: 'none', borderRadius: 0, padding: '10px 0', background: 'transparent', fontSize: '14px' }}
+            />
+            {query && (
+              <button type="button" onClick={() => { setQuery(''); setSuggestions([]) }}
+                style={{ padding: '0 12px', background: 'transparent', border: 'none', color: 'var(--color-subtle)', display: 'flex', alignItems: 'center' }}>
+                <XIcon />
+              </button>
+            )}
+          </form>
+
+          {showDropdown && (
+            <div style={{
+              position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 50,
+              background: 'var(--color-surface)', border: '1px solid var(--color-border-2)',
+              borderTop: 'none', borderRadius: '0 0 10px 10px',
+              boxShadow: '0 12px 32px rgba(0,0,0,0.45)', overflow: 'hidden',
+            }}>
+              {suggestions.map((card, i) => {
+                const img = card.image_uris?.small ?? card.card_faces?.[0]?.image_uris?.small
+                return (
+                  <button key={card.id} type="button"
+                    onMouseDown={() => commitSuggestion(card)}
+                    onMouseEnter={() => setActiveIdx(i)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: '10px',
+                      width: '100%', padding: '8px 14px', textAlign: 'left',
+                      background: i === activeIdx ? 'var(--color-surface-2)' : 'transparent',
+                      border: 'none', borderBottom: i < suggestions.length - 1 ? '1px solid var(--color-border)' : 'none',
+                      cursor: 'pointer', transition: 'background 0.1s ease',
+                    }}>
+                    {img
+                      ? <img src={img} alt="" style={{ width: '28px', height: '39px', borderRadius: '3px', objectFit: 'cover', flexShrink: 0 }} />
+                      : <div style={{ width: '28px', height: '39px', borderRadius: '3px', background: 'var(--color-surface-2)', flexShrink: 0 }} />
+                    }
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 0 }}>
+                      <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{card.name}</span>
+                      <span style={{ fontSize: '11px', color: 'var(--color-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{card.set_name} · {card.set.toUpperCase()}</span>
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+          )}
+        </div>
 
         {/* Sort */}
         <select
@@ -306,6 +423,17 @@ function SearchIcon() {
 }
 function FilterIcon() {
   return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><line x1="4" y1="6" x2="20" y2="6" /><line x1="8" y1="12" x2="16" y2="12" /><line x1="11" y1="18" x2="13" y2="18" /></svg>
+}
+function SpinnerIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} style={{ animation: 'spin 0.7s linear infinite' }}>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      <path d="M12 2a10 10 0 0 1 10 10" strokeLinecap="round" />
+    </svg>
+  )
+}
+function XIcon() {
+  return <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
 }
 
 export default function BuyPage() {

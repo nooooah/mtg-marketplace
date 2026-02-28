@@ -140,9 +140,10 @@ function SingleCardForm({ userId }: { userId: string }) {
     setSelectedCard(card); setCardQuery(card.name); setScryfallResults([]); setPrice('')
   }
   const applyMultiplier = (rate: number) => {
+    // Use Manabox (CardMarket EUR) price, fall back to USD
     const basePrice = isFoil
-      ? (selectedCard?.prices?.usd_foil ?? selectedCard?.prices?.usd)
-      : selectedCard?.prices?.usd
+      ? (selectedCard?.prices?.eur_foil ?? selectedCard?.prices?.eur ?? selectedCard?.prices?.usd_foil ?? selectedCard?.prices?.usd)
+      : (selectedCard?.prices?.eur ?? selectedCard?.prices?.usd)
     if (!basePrice) return
     setPrice(String(Math.ceil(parseFloat(basePrice) * rate)))
   }
@@ -214,8 +215,12 @@ function SingleCardForm({ userId }: { userId: string }) {
                 <p style={{ fontWeight: 700, color: 'var(--color-text)', fontSize: '15px', margin: '0 0 3px' }}>{selectedCard.name}</p>
                 <p style={{ fontSize: '12px', color: 'var(--color-muted)', margin: '0 0 4px' }}>{selectedCard.set_name} · {selectedCard.set.toUpperCase()} #{selectedCard.collector_number}</p>
                 <p style={{ fontSize: '12px', color: 'var(--color-subtle)', margin: 0, textTransform: 'capitalize' }}>{selectedCard.rarity} · {selectedCard.type_line}</p>
-                {selectedCard.prices?.usd && (
-                  <p style={{ fontSize: '11px', color: 'var(--color-muted)', margin: '4px 0 0' }}>Market: <strong style={{ color: 'var(--color-text)' }}>${selectedCard.prices.usd}</strong></p>
+                {(selectedCard.prices?.eur || selectedCard.prices?.usd) && (
+                  <p style={{ fontSize: '11px', color: 'var(--color-muted)', margin: '4px 0 0' }}>
+                    Manabox: <strong style={{ color: 'var(--color-text)' }}>
+                      {selectedCard.prices.eur ? `€${selectedCard.prices.eur}` : `$${selectedCard.prices.usd}`}
+                    </strong>
+                  </p>
                 )}
               </div>
               <button type="button" onClick={clearCard}
@@ -272,20 +277,25 @@ function SingleCardForm({ userId }: { userId: string }) {
               <input type="number" placeholder="0" value={price} onChange={e => setPrice(e.target.value)} required min="1" step="1" style={{ paddingLeft: '24px' }} />
             </div>
             {(() => {
+              const baseEur = isFoil
+                ? (selectedCard?.prices?.eur_foil ?? selectedCard?.prices?.eur)
+                : selectedCard?.prices?.eur
               const baseUsd = isFoil
                 ? (selectedCard?.prices?.usd_foil ?? selectedCard?.prices?.usd)
                 : selectedCard?.prices?.usd
-              return baseUsd ? (
+              const base = baseEur ?? baseUsd
+              const symbol = baseEur ? '€' : '$'
+              return base ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '2px' }}>
                   <p style={{ fontSize: '11px', color: 'var(--color-muted)', margin: 0 }}>
-                    Market{isFoil ? ' (foil)' : ''}: <strong style={{ color: 'var(--color-text)' }}>${baseUsd} USD</strong> — suggest PHP:
+                    Manabox{isFoil ? ' foil' : ''}: <strong style={{ color: 'var(--color-text)' }}>{symbol}{base}</strong> — suggest PHP:
                   </p>
-                  <div style={{ display: 'flex', gap: '6px' }}>
-                    {[30, 40, 50].map(rate => (
+                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                    {(baseEur ? [55, 60, 65] : [30, 40, 50]).map(rate => (
                       <button key={rate} type="button" onClick={() => applyMultiplier(rate)} style={{ padding: '4px 10px', borderRadius: '6px', border: '1px solid var(--color-border)', background: 'var(--color-surface-2)', color: 'var(--color-muted)', fontSize: '12px', fontWeight: 500, cursor: 'pointer', transition: 'all 0.15s ease' }}
                         onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--color-blue)'; e.currentTarget.style.color = 'var(--color-blue)' }}
                         onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--color-border)'; e.currentTarget.style.color = 'var(--color-muted)' }}>
-                        ×{rate} <span style={{ opacity: 0.7 }}>≈ ₱{Math.ceil(parseFloat(baseUsd) * rate).toLocaleString()}</span>
+                        ×{rate} <span style={{ opacity: 0.7 }}>≈ ₱{Math.ceil(parseFloat(base) * rate).toLocaleString()}</span>
                       </button>
                     ))}
                   </div>

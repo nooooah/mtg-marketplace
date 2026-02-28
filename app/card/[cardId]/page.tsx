@@ -144,9 +144,9 @@ export default async function CardPage({ params }: { params: Promise<{ cardId: s
   const legalFormats = mainFormats.filter(f => legalities[f] === 'legal')
   const illegalFormats = mainFormats.filter(f => legalities[f] && legalities[f] !== 'legal')
 
-  // Scryfall reference prices
-  const refUsd = card.prices?.usd ? `$${card.prices.usd}` : null
-  const refFoil = card.prices?.usd_foil ? `$${card.prices.usd_foil}` : null
+  // Manabox reference prices (CardMarket EUR via Scryfall)
+  const refUsd = card.prices?.eur ? `€${card.prices.eur}` : (card.prices?.usd ? `$${card.prices.usd}` : null)
+  const refFoil = card.prices?.eur_foil ? `€${card.prices.eur_foil}` : (card.prices?.usd_foil ? `$${card.prices.usd_foil}` : null)
 
   const rarityStyle = RARITY_STYLE[card.rarity] ?? RARITY_STYLE.common
 
@@ -167,18 +167,22 @@ export default async function CardPage({ params }: { params: Promise<{ cardId: s
         .cdp-price-cta { display: flex; align-items: center; justify-content: space-between; padding: 18px 24px; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 14px; flex-wrap: wrap; gap: 12px; }
 
         @media (max-width: 700px) {
-          .cdp-wrap { padding: 20px 1rem 60px; }
+          .cdp-wrap { padding: 16px 1rem 60px; }
+          /* Single column: image col first, then right col */
           .cdp-layout { grid-template-columns: 1fr; gap: 20px; }
-          .cdp-img-col { position: static; flex-direction: row; align-items: flex-start; gap: 14px; }
-          .cdp-img-main { width: 130px; flex-shrink: 0; }
-          .cdp-img-side { flex: 1; display: flex; flex-direction: column; gap: 10px; justify-content: flex-end; }
+          /* Stack image + ref prices vertically, full width */
+          .cdp-img-col { position: static; flex-direction: column; align-items: stretch; gap: 12px; }
+          /* Image takes full width, capped nicely */
+          .cdp-img-main { width: 100%; max-width: 280px; margin: 0 auto; flex-shrink: 0; border-radius: 12px !important; }
+          /* Side area (ref prices) sits below the image */
+          .cdp-img-side { width: 100%; }
           .cdp-img-back { display: none; }
           .cdp-ref-prices { width: 100%; }
-          .cdp-h1 { font-size: 20px; margin: 0 0 6px; }
+          .cdp-h1 { font-size: 22px; margin: 0 0 6px; }
           .cdp-stats { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 8px; }
           .cdp-legality { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 5px; }
           .cdp-printings { grid-template-columns: repeat(auto-fill, minmax(85px, 1fr)); gap: 8px; }
-          .cdp-price-cta { padding: 14px 16px; }
+          .cdp-price-cta { padding: 14px 16px; flex-direction: column; align-items: flex-start; }
           .cdp-right { gap: 20px; }
         }
       `}</style>
@@ -224,7 +228,7 @@ export default async function CardPage({ params }: { params: Promise<{ cardId: s
               {(refUsd || refFoil) && (
                 <div className="cdp-ref-prices" style={{ padding: '14px 16px', background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: '12px' }}>
                   <p style={{ fontSize: '10px', fontWeight: 700, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 10px' }}>
-                    Scryfall Prices
+                    Manabox Prices
                   </p>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '7px' }}>
                     {refUsd && (
@@ -241,7 +245,7 @@ export default async function CardPage({ params }: { params: Promise<{ cardId: s
                     )}
                   </div>
                   <p style={{ fontSize: '9px', color: 'var(--color-subtle)', margin: '10px 0 0', lineHeight: 1.5 }}>
-                    USD · Local listings in ₱
+                    EUR (CardMarket) · Local listings in ₱
                   </p>
                 </div>
               )}

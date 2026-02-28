@@ -72,6 +72,8 @@ export interface ScryfallCard {
   prices: {
     usd: string | null
     usd_foil: string | null
+    eur: string | null
+    eur_foil: string | null
   }
   collector_number: string
   released_at: string

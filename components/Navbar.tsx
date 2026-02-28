@@ -250,7 +250,7 @@ function NavSearchBar() {
     setSuggestions([])
     setFocused(false)
     setActiveIdx(-1)
-    router.push(`/card/${card.id}`)
+    router.push(`/buy?q=${encodeURIComponent(card.name)}`)
   }, [router])
 
   const handleSubmit = (e: React.FormEvent) => {
