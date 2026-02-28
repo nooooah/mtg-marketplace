@@ -93,7 +93,7 @@ function ListingGrid({ listings, maxCards, emptyLabel }: { listings: Listing[]; 
   }
   const grouped = groupListings(listings).slice(0, maxCards)
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px' }}>
+    <div className="card-grid">
       {grouped.map(listing => (
         <CardTile
           key={listing.card_id}

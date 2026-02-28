@@ -382,7 +382,7 @@ function BuyPageContent() {
                     <span style={{ color: 'var(--color-subtle)' }}> ({listings.length} listing{listings.length !== 1 ? 's' : ''})</span>
                   )}
                 </p>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px' }}>
+                <div className="card-grid">
                   {grouped.map(listing => (
                     <CardTile
                       key={listing.card_id}
@@ -403,7 +403,7 @@ function BuyPageContent() {
 
 function SkeletonGrid() {
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px' }}>
+    <div className="card-grid">
       {Array.from({ length: 8 }).map((_, i) => (
         <div key={i} style={{ borderRadius: '12px', overflow: 'hidden', background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
           <div className="skeleton" style={{ aspectRatio: '3/4' }} />

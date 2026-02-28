@@ -281,6 +281,18 @@ button {
   }
 }
 
+/* ── Responsive card grid ────────────────────── */
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 16px;
+}
+@media (max-width: 600px) {
+  .card-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
 /* ── Prevent horizontal overflow site-wide ──── */
 html, body {
   overflow-x: hidden;
