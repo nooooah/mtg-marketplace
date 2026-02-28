@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, useRef, Suspense } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef, Suspense } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
@@ -8,6 +8,7 @@ import type { Listing, CardCondition, ScryfallCard } from '@/types'
 import { useCardHover, HoverCardImage } from '@/components/CardHoverPreview'
 
 type SortOption = 'newest' | 'oldest' | 'price_asc' | 'price_desc' | 'most_viewed'
+type ListingStatus = 'listed' | 'unlisted' | 'sold'
 
 const CONDITIONS: CardCondition[] = ['NM', 'LP', 'MP', 'HP', 'DMG']
 const CONDITION_LABELS: Record<CardCondition, string> = {
@@ -23,6 +24,18 @@ const CONDITION_COLORS: Record<CardCondition, string> = {
   MP: 'var(--color-mp)',
   HP: 'var(--color-hp)',
   DMG: 'var(--color-dmg)',
+}
+
+const STATUS_LABELS: Record<ListingStatus, string> = {
+  listed: 'Listed',
+  unlisted: 'Unlisted',
+  sold: 'Sold',
+}
+
+const BULK_ACTIONS: Record<ListingStatus, ListingStatus[]> = {
+  listed:   ['unlisted', 'sold'],
+  unlisted: ['listed',   'sold'],
+  sold:     ['listed', 'unlisted'],
 }
 
 function formatDate(dateStr: string) {
@@ -48,6 +61,11 @@ function MyListingsContent() {
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
 
+  // Status tabs + bulk selection
+  const [activeTab, setActiveTab] = useState<ListingStatus>('listed')
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [bulkLoading, setBulkLoading] = useState(false)
+
   // Auth guard
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -59,6 +77,7 @@ function MyListingsContent() {
     })
   }, [])
 
+  // Fetch ALL listings (all statuses), filter client-side for instant tab switching
   const fetchListings = useCallback(async () => {
     if (!userId) return
     setLoading(true)
@@ -90,6 +109,21 @@ function MyListingsContent() {
     if (userId) fetchListings()
   }, [fetchListings, userId])
 
+  // Computed
+  const tabCounts = useMemo(() => ({
+    listed:   listings.filter(l => (l.status ?? 'listed') === 'listed').length,
+    unlisted: listings.filter(l => l.status === 'unlisted').length,
+    sold:     listings.filter(l => l.status === 'sold').length,
+  }), [listings])
+
+  const displayedListings = useMemo(() =>
+    listings.filter(l => (l.status ?? 'listed') === activeTab),
+    [listings, activeTab]
+  )
+
+  const allSelected = selectedIds.size > 0 && selectedIds.size === displayedListings.length
+  const someSelected = selectedIds.size > 0 && !allSelected
+
   const toggleCondition = (c: CardCondition) => {
     setConditions(prev => {
       const next = new Set(prev)
@@ -97,6 +131,38 @@ function MyListingsContent() {
       return next
     })
   }
+
+  const switchTab = (tab: ListingStatus) => {
+    setActiveTab(tab)
+    setSelectedIds(new Set())
+    setEditingId(null)
+    setConfirmDeleteId(null)
+  }
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
+
+  const toggleSelectAll = () => {
+    if (allSelected || someSelected) {
+      setSelectedIds(new Set())
+    } else {
+      setSelectedIds(new Set(displayedListings.map(l => l.id)))
+    }
+  }
+
+  // Update status for a set of ids (single or bulk)
+  const handleStatusChange = useCallback(async (ids: string[], newStatus: ListingStatus) => {
+    setBulkLoading(true)
+    await supabase.from('listings').update({ status: newStatus }).in('id', ids)
+    setListings(prev => prev.map(l => ids.includes(l.id) ? { ...l, status: newStatus } : l))
+    setSelectedIds(new Set())
+    setBulkLoading(false)
+  }, [supabase])
 
   const handleDelete = async (id: string) => {
     setDeletingId(id)
@@ -116,10 +182,10 @@ function MyListingsContent() {
   if (!userId && !loading) return null
 
   return (
-    <div style={{ maxWidth: '1280px', margin: '0 auto', padding: '32px 1.5rem 80px' }}>
+    <div style={{ maxWidth: '1280px', margin: '0 auto', padding: '32px 1.5rem 120px' }}>
 
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '28px', gap: '16px', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '24px', gap: '16px', flexWrap: 'wrap' }}>
         <div>
           <h1 style={{ fontSize: '28px', fontWeight: 800, color: 'var(--color-text)', letterSpacing: '-0.03em', marginBottom: '4px' }}>
             My Listings
@@ -136,6 +202,51 @@ function MyListingsContent() {
         }}>
           <PlusIcon /> New listing
         </Link>
+      </div>
+
+      {/* Status Tabs */}
+      <div style={{
+        display: 'flex', gap: '2px',
+        borderBottom: '1px solid var(--color-border)',
+        marginBottom: '20px',
+      }}>
+        {(['listed', 'unlisted', 'sold'] as ListingStatus[]).map(tab => {
+          const isActive = activeTab === tab
+          return (
+            <button
+              key={tab}
+              onClick={() => switchTab(tab)}
+              style={{
+                padding: '10px 16px',
+                background: 'transparent',
+                border: 'none',
+                borderBottom: `2px solid ${isActive ? 'var(--color-blue)' : 'transparent'}`,
+                color: isActive ? 'var(--color-blue)' : 'var(--color-muted)',
+                fontSize: '13px',
+                fontWeight: isActive ? 600 : 400,
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+                marginBottom: '-1px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+              }}
+            >
+              {STATUS_LABELS[tab]}
+              <span style={{
+                fontSize: '11px',
+                fontWeight: 600,
+                padding: '1px 6px',
+                borderRadius: '10px',
+                background: isActive ? 'var(--color-blue-glow)' : 'var(--color-surface-2)',
+                color: isActive ? 'var(--color-blue)' : 'var(--color-subtle)',
+                border: `1px solid ${isActive ? 'rgba(59,130,246,0.25)' : 'var(--color-border)'}`,
+              }}>
+                {tabCounts[tab]}
+              </span>
+            </button>
+          )
+        })}
       </div>
 
       {/* Search + controls */}
@@ -238,32 +349,68 @@ function MyListingsContent() {
       {/* Results */}
       {loading ? (
         <SkeletonGrid />
-      ) : listings.length === 0 ? (
+      ) : displayedListings.length === 0 ? (
         <div style={{ padding: '64px 24px', textAlign: 'center', background: 'var(--color-surface)', borderRadius: '12px', border: '1px solid var(--color-border)' }}>
           {query || activeFilterCount > 0 ? (
             <>
               <p style={{ fontSize: '15px', color: 'var(--color-muted)', marginBottom: '8px' }}>No listings match your search.</p>
               <p style={{ fontSize: '13px', color: 'var(--color-subtle)' }}>Try a different search or clear your filters.</p>
             </>
-          ) : (
+          ) : activeTab === 'listed' ? (
             <>
               <p style={{ fontSize: '15px', color: 'var(--color-muted)', marginBottom: '12px' }}>You haven't listed any cards yet.</p>
               <Link href="/sell" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '10px 18px', background: 'var(--color-blue)', color: '#fff', borderRadius: '9px', fontSize: '13px', fontWeight: 600, textDecoration: 'none' }}>
                 <PlusIcon /> List your first card
               </Link>
             </>
+          ) : activeTab === 'unlisted' ? (
+            <p style={{ fontSize: '15px', color: 'var(--color-muted)' }}>No unlisted cards. Move listed cards here to hide them from buyers.</p>
+          ) : (
+            <p style={{ fontSize: '15px', color: 'var(--color-muted)' }}>No sold cards yet. Mark listings as sold when you complete a sale.</p>
           )}
         </div>
       ) : (
         <>
-          <p style={{ fontSize: '12px', color: 'var(--color-subtle)', marginBottom: '16px' }}>
-            {listings.length} listing{listings.length !== 1 ? 's' : ''}
-          </p>
+          {/* List header: count + select all */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+            {/* Select-all checkbox */}
+            <button
+              onClick={toggleSelectAll}
+              title={allSelected ? 'Deselect all' : 'Select all'}
+              style={{
+                width: '20px', height: '20px', flexShrink: 0,
+                border: `2px solid ${allSelected || someSelected ? 'var(--color-blue)' : 'var(--color-border)'}`,
+                borderRadius: '5px',
+                background: allSelected ? 'var(--color-blue)' : 'transparent',
+                cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                position: 'relative',
+                transition: 'all 0.12s ease',
+              }}
+            >
+              {allSelected && (
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={3}><polyline points="20 6 9 17 4 12" /></svg>
+              )}
+              {someSelected && !allSelected && (
+                <div style={{ width: '10px', height: '2px', background: 'var(--color-blue)', borderRadius: '1px' }} />
+              )}
+            </button>
+            <p style={{ fontSize: '12px', color: 'var(--color-subtle)' }}>
+              {selectedIds.size > 0
+                ? <span style={{ color: 'var(--color-blue)', fontWeight: 600 }}>{selectedIds.size} selected</span>
+                : <>{displayedListings.length} listing{displayedListings.length !== 1 ? 's' : ''}</>
+              }
+            </p>
+          </div>
+
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            {listings.map(listing => (
+            {displayedListings.map(listing => (
               <ListingRow
                 key={listing.id}
                 listing={listing}
+                activeTab={activeTab}
+                checked={selectedIds.has(listing.id)}
+                onCheck={() => toggleSelect(listing.id)}
                 isEditing={editingId === listing.id}
                 confirmingDelete={confirmDeleteId === listing.id}
                 deleting={deletingId === listing.id}
@@ -273,10 +420,60 @@ function MyListingsContent() {
                 onRequestDelete={() => { setConfirmDeleteId(listing.id); setEditingId(null) }}
                 onCancelDelete={() => setConfirmDeleteId(null)}
                 onConfirmDelete={() => handleDelete(listing.id)}
+                onStatusChange={(status) => handleStatusChange([listing.id], status)}
               />
             ))}
           </div>
         </>
+      )}
+
+      {/* Bulk action bar */}
+      {selectedIds.size > 0 && (
+        <div style={{
+          position: 'fixed', bottom: '24px', left: '50%', transform: 'translateX(-50%)',
+          display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', justifyContent: 'center',
+          background: 'var(--color-surface)',
+          border: '1px solid var(--color-border-2)',
+          borderRadius: '14px',
+          padding: '10px 14px',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.35)',
+          zIndex: 100,
+          maxWidth: 'calc(100vw - 32px)',
+        }}>
+          <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text)', paddingRight: '4px' }}>
+            {selectedIds.size} selected
+          </span>
+          <div style={{ width: '1px', height: '18px', background: 'var(--color-border)', margin: '0 4px' }} />
+          {BULK_ACTIONS[activeTab].map(targetStatus => (
+            <button
+              key={targetStatus}
+              onClick={() => handleStatusChange(Array.from(selectedIds), targetStatus)}
+              disabled={bulkLoading}
+              style={{
+                padding: '7px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: 600,
+                border: '1px solid var(--color-border)',
+                background: targetStatus === 'sold' ? 'rgba(16,185,129,0.1)' : targetStatus === 'unlisted' ? 'var(--color-surface-2)' : 'var(--color-blue-glow)',
+                color: targetStatus === 'sold' ? '#10b981' : targetStatus === 'unlisted' ? 'var(--color-muted)' : 'var(--color-blue)',
+                cursor: bulkLoading ? 'not-allowed' : 'pointer',
+                opacity: bulkLoading ? 0.6 : 1,
+                transition: 'all 0.12s ease',
+              }}
+            >
+              {targetStatus === 'listed' ? 'Relist' : targetStatus === 'unlisted' ? 'Unlist' : 'Mark as Sold'}
+            </button>
+          ))}
+          <div style={{ width: '1px', height: '18px', background: 'var(--color-border)', margin: '0 4px' }} />
+          <button
+            onClick={() => setSelectedIds(new Set())}
+            style={{
+              padding: '7px 12px', borderRadius: '8px', fontSize: '12px',
+              background: 'transparent', border: '1px solid var(--color-border)',
+              color: 'var(--color-subtle)', cursor: 'pointer',
+            }}
+          >
+            Cancel
+          </button>
+        </div>
       )}
     </div>
   )
@@ -285,11 +482,16 @@ function MyListingsContent() {
 /* ─── Listing Row ─────────────────────────────────────────────────────── */
 
 function ListingRow({
-  listing, isEditing, confirmingDelete, deleting,
+  listing, activeTab, checked, onCheck,
+  isEditing, confirmingDelete, deleting,
   onEdit, onCancelEdit, onSave,
   onRequestDelete, onCancelDelete, onConfirmDelete,
+  onStatusChange,
 }: {
   listing: Listing
+  activeTab: ListingStatus
+  checked: boolean
+  onCheck: () => void
   isEditing: boolean
   confirmingDelete: boolean
   deleting: boolean
@@ -299,6 +501,7 @@ function ListingRow({
   onRequestDelete: () => void
   onCancelDelete: () => void
   onConfirmDelete: () => void
+  onStatusChange: (status: ListingStatus) => void
 }) {
   const condition = listing.condition as CardCondition
   const conditionColor = CONDITION_COLORS[condition] ?? 'var(--color-muted)'
@@ -307,14 +510,33 @@ function ListingRow({
   return (
     <div style={{
       background: 'var(--color-surface)',
-      border: `1px solid ${confirmingDelete ? 'rgba(239,68,68,0.35)' : isEditing ? 'rgba(59,130,246,0.35)' : 'var(--color-border)'}`,
+      border: `1px solid ${checked ? 'rgba(59,130,246,0.4)' : confirmingDelete ? 'rgba(239,68,68,0.35)' : isEditing ? 'rgba(59,130,246,0.35)' : 'var(--color-border)'}`,
       borderRadius: '12px',
       overflow: 'hidden',
       transition: 'border-color 0.15s ease',
-    }}>
+      background: checked ? 'rgba(59,130,246,0.04)' : 'var(--color-surface)',
+    } as React.CSSProperties}>
 
       {/* Row summary */}
-      <div style={{ display: 'grid', gridTemplateColumns: '56px 1fr auto', gap: '16px', alignItems: 'center', padding: '14px 18px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '32px 56px 1fr auto', gap: '12px', alignItems: 'center', padding: '14px 16px 14px 14px' }}>
+
+        {/* Checkbox */}
+        <button
+          onClick={onCheck}
+          style={{
+            width: '20px', height: '20px', flexShrink: 0,
+            border: `2px solid ${checked ? 'var(--color-blue)' : 'var(--color-border)'}`,
+            borderRadius: '5px',
+            background: checked ? 'var(--color-blue)' : 'transparent',
+            cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            transition: 'all 0.12s ease',
+          }}
+        >
+          {checked && (
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={3}><polyline points="20 6 9 17 4 12" /></svg>
+          )}
+        </button>
 
         {/* Thumbnail */}
         <div
@@ -352,7 +574,7 @@ function ListingRow({
         </div>
 
         {/* Right: price + actions */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexShrink: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0 }}>
           <span style={{ fontSize: '17px', fontWeight: 800, color: 'var(--color-text)', letterSpacing: '-0.02em' }}>
             ₱{listing.price.toLocaleString('en-PH')}
           </span>
@@ -373,6 +595,25 @@ function ListingRow({
             </div>
           ) : (
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              {/* Quick status actions (contextual to tab) */}
+              {activeTab === 'listed' && (
+                <>
+                  <QuickStatusButton label="Unlist" onClick={() => onStatusChange('unlisted')} />
+                  <QuickStatusButton label="Sold" onClick={() => onStatusChange('sold')} color="#10b981" />
+                </>
+              )}
+              {activeTab === 'unlisted' && (
+                <>
+                  <QuickStatusButton label="Relist" onClick={() => onStatusChange('listed')} color="var(--color-blue)" />
+                  <QuickStatusButton label="Sold" onClick={() => onStatusChange('sold')} color="#10b981" />
+                </>
+              )}
+              {activeTab === 'sold' && (
+                <QuickStatusButton label="Relist" onClick={() => onStatusChange('listed')} color="var(--color-blue)" />
+              )}
+
+              <div style={{ width: '1px', height: '18px', background: 'var(--color-border)' }} />
+
               <Link href={`/card/${listing.card_id}`} title="View listing" style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 width: '32px', height: '32px', borderRadius: '7px',
@@ -419,6 +660,33 @@ function ListingRow({
   )
 }
 
+function QuickStatusButton({ label, onClick, color = 'var(--color-muted)' }: { label: string; onClick: () => void; color?: string }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        padding: '4px 9px', borderRadius: '6px', fontSize: '11px', fontWeight: 600,
+        background: 'transparent',
+        border: `1px solid var(--color-border)`,
+        color,
+        cursor: 'pointer',
+        transition: 'all 0.12s ease',
+        whiteSpace: 'nowrap',
+      }}
+      onMouseEnter={e => {
+        (e.currentTarget as HTMLButtonElement).style.borderColor = color
+        ;(e.currentTarget as HTMLButtonElement).style.background = `${color}14`
+      }}
+      onMouseLeave={e => {
+        (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--color-border)'
+        ;(e.currentTarget as HTMLButtonElement).style.background = 'transparent'
+      }}
+    >
+      {label}
+    </button>
+  )
+}
+
 /* ─── Edit Panel ──────────────────────────────────────────────────────── */
 
 type PrintingOption = {
@@ -449,7 +717,6 @@ function EditPanel({ listing, onSave, onCancel }: {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
-  // fetch all printings of this card from Scryfall
   useEffect(() => {
     async function fetchPrintings() {
       setPrintingsLoading(true)
@@ -469,25 +736,17 @@ function EditPanel({ listing, onSave, onCancel }: {
             collector_number: c.collector_number,
           }))
           setPrintings(opts)
-          // pre-select current printing
           const current = opts.find(o => o.id === listing.card_id) ?? null
           setSelectedPrinting(current)
         }
       } catch {
-        // silently fail — user can still edit price + qty
+        // silently fail
       }
       setPrintingsLoading(false)
     }
     fetchPrintings()
   }, [listing.card_id, listing.card_name])
 
-  const selectedUsdPrice = (() => {
-    // we don't have the USD price cached; multiplier buttons use the selected printing's Scryfall data
-    // so we fetch it lazily when a printing is selected — see applyMultiplier
-    return null
-  })()
-
-  // map of printing id -> { usd, usdFoil }
   const usdCache = useRef<Record<string, { usd: string | null; usdFoil: string | null }>>({})
   const [currentUsd, setCurrentUsd] = useState<string | null>(null)
   const [currentUsdFoil, setCurrentUsdFoil] = useState<string | null>(null)
@@ -514,7 +773,6 @@ function EditPanel({ listing, onSave, onCancel }: {
     }
   }
 
-  // Pre-fetch USD for the current card on mount
   useEffect(() => {
     if (listing.card_id) {
       fetch(`https://api.scryfall.com/cards/${listing.card_id}`)
@@ -668,16 +926,11 @@ function EditPanel({ listing, onSave, onCancel }: {
                     key={c}
                     onClick={() => setCondition(c)}
                     style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '10px',
-                      padding: '8px 12px',
-                      borderRadius: '8px',
+                      display: 'flex', alignItems: 'center', gap: '10px',
+                      padding: '8px 12px', borderRadius: '8px',
                       border: `1px solid ${isSelected ? color : 'var(--color-border)'}`,
                       background: isSelected ? `${color}12` : 'transparent',
-                      cursor: 'pointer',
-                      textAlign: 'left',
-                      transition: 'all 0.12s ease',
+                      cursor: 'pointer', textAlign: 'left', transition: 'all 0.12s ease',
                     }}
                   >
                     <span style={{
@@ -694,7 +947,7 @@ function EditPanel({ listing, onSave, onCancel }: {
                       {CONDITION_LABELS[c]}
                     </span>
                     {isSelected && (
-                      <span style={{ marginLeft: 'auto', color: color }}>
+                      <span style={{ marginLeft: 'auto', color }}>
                         <CheckIcon />
                       </span>
                     )}
@@ -729,25 +982,21 @@ function EditPanel({ listing, onSave, onCancel }: {
             <div style={{ display: 'flex', alignItems: 'center', background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: '8px', overflow: 'hidden' }}>
               <span style={{ padding: '0 10px', fontSize: '14px', color: 'var(--color-muted)', borderRight: '1px solid var(--color-border)' }}>₱</span>
               <input
-                type="number"
-                value={price}
-                onChange={e => setPrice(e.target.value)}
-                min="1"
-                step="1"
+                type="number" value={price} onChange={e => setPrice(e.target.value)}
+                min="1" step="1"
                 style={{ flex: 1, border: 'none', borderRadius: 0, padding: '10px 10px', fontSize: '15px', fontWeight: 700, background: 'transparent', width: '120px' }}
               />
             </div>
 
-            {/* Multiplier buttons */}
             {(() => {
               const base = isFoil ? (currentUsdFoil ?? currentUsd) : currentUsd
               return base ? (
                 <div style={{ marginTop: '8px' }}>
                   <p style={{ fontSize: '11px', color: 'var(--color-subtle)', marginBottom: '6px' }}>
-                    Scryfall{isFoil ? ' foil' : ''} USD: <span style={{ color: 'var(--color-muted)' }}>${base}</span> — suggest PHP:
+                    Manabox{isFoil ? ' foil' : ''}: <span style={{ color: 'var(--color-muted)' }}>${base} USD</span> — suggest PHP:
                   </p>
                   <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                    {[30, 40, 50].map(rate => (
+                    {[50, 56, 60].map(rate => (
                       <button key={rate} onClick={() => applyMultiplier(rate)} style={{
                         padding: '4px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 600,
                         background: 'var(--color-surface)', border: '1px solid var(--color-border)',
@@ -776,11 +1025,8 @@ function EditPanel({ listing, onSave, onCancel }: {
                 style={{ width: '32px', height: '38px', borderRadius: '7px', background: 'var(--color-surface)', border: '1px solid var(--color-border)', color: 'var(--color-muted)', fontSize: '16px', cursor: 'pointer' }}
               >−</button>
               <input
-                type="number"
-                value={quantity}
-                onChange={e => setQuantity(e.target.value)}
-                min="1"
-                step="1"
+                type="number" value={quantity} onChange={e => setQuantity(e.target.value)}
+                min="1" step="1"
                 style={{ width: '64px', padding: '9px 10px', fontSize: '15px', fontWeight: 700, textAlign: 'center', borderRadius: '7px' }}
               />
               <button
@@ -790,10 +1036,8 @@ function EditPanel({ listing, onSave, onCancel }: {
             </div>
           </div>
 
-          {/* Error */}
           {error && <p style={{ fontSize: '13px', color: '#ef4444' }}>{error}</p>}
 
-          {/* Save / Cancel */}
           <div style={{ display: 'flex', gap: '8px' }}>
             <button onClick={handleSave} disabled={saving} style={{
               flex: 1, padding: '10px 16px', background: 'var(--color-blue)', color: '#fff',
@@ -822,7 +1066,8 @@ function SkeletonGrid() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
       {Array.from({ length: 5 }).map((_, i) => (
-        <div key={i} style={{ display: 'grid', gridTemplateColumns: '56px 1fr auto', gap: '16px', alignItems: 'center', padding: '14px 18px', background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: '12px' }}>
+        <div key={i} style={{ display: 'grid', gridTemplateColumns: '32px 56px 1fr auto', gap: '12px', alignItems: 'center', padding: '14px 16px', background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: '12px' }}>
+          <div className="skeleton" style={{ width: '20px', height: '20px', borderRadius: '5px' }} />
           <div className="skeleton" style={{ width: '56px', height: '56px', borderRadius: '8px' }} />
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <div className="skeleton" style={{ height: '15px', width: '200px' }} />

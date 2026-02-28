@@ -40,6 +40,7 @@ export interface Listing {
   quantity: number
   notes: string | null
   views: number
+  status: 'listed' | 'unlisted' | 'sold'
   created_at: string
   profiles?: Profile
 }
