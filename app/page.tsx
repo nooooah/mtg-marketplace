@@ -91,7 +91,7 @@ function ListingGrid({ listings, emptyLabel }: { listings: Listing[]; emptyLabel
           key={listing.id}
           listing={listing}
           noPreview
-          href={listing.profiles?.username ? `/profile/${listing.profiles.username}` : `/listing/${listing.id}`}
+          href={`/card/${listing.card_id}`}
         />
       ))}
     </div>

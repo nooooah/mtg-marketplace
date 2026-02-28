@@ -258,7 +258,13 @@ function BuyPageContent() {
             {listings.length} listing{listings.length !== 1 ? 's' : ''} found
           </p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '16px' }}>
-            {listings.map(listing => <CardTile key={listing.id} listing={listing} />)}
+            {listings.map(listing => (
+              <CardTile
+                key={listing.id}
+                listing={listing}
+                href={`/card/${listing.card_id}`}
+              />
+            ))}
           </div>
         </>
       )}
