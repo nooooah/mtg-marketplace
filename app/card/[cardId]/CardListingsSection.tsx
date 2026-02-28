@@ -134,10 +134,8 @@ export default function CardListingsSection({
       </p>
 
       {/* Listings table */}
-      <div style={{
-        border: '1px solid var(--color-border)', borderRadius: '14px',
-        overflow: 'hidden', background: 'var(--color-surface)',
-      }}>
+      <div style={{ border: '1px solid var(--color-border)', borderRadius: '14px', background: 'var(--color-surface)', overflowX: 'auto' }}>
+        <div style={{ minWidth: '480px' }}>
         {/* Header */}
         <div style={{
           display: 'grid',
@@ -165,6 +163,7 @@ export default function CardListingsSection({
             <ListingRow key={listing.id} listing={listing} isLast={i === filtered.length - 1} />
           ))
         )}
+        </div>
       </div>
     </div>
   )

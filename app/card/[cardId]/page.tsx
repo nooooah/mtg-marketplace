@@ -154,293 +154,257 @@ export default async function CardPage({ params }: { params: Promise<{ cardId: s
   const lowestPrice = lowestListing?.price
 
   return (
-    <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '40px 1.5rem 80px' }}>
+    <>
+      <style>{`
+        .cdp-wrap { max-width: 1200px; margin: 0 auto; padding: 40px 1.5rem 80px; }
+        .cdp-layout { display: grid; grid-template-columns: 300px 1fr; gap: 48px; align-items: start; }
+        .cdp-img-col { position: sticky; top: 80px; display: flex; flex-direction: column; gap: 24px; }
+        .cdp-right { display: flex; flex-direction: column; gap: 28px; }
+        .cdp-h1 { font-size: 32px; font-weight: 800; color: var(--color-text); letter-spacing: -0.03em; margin: 0 0 8px; line-height: 1.1; }
+        .cdp-stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; }
+        .cdp-legality { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 6px; }
+        .cdp-printings { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 10px; }
+        .cdp-price-cta { display: flex; align-items: center; justify-content: space-between; padding: 18px 24px; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 14px; flex-wrap: wrap; gap: 12px; }
 
-      {/* Back */}
-      <Link
-        href="/buy"
-        style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: 'var(--color-muted)', textDecoration: 'none', marginBottom: '28px' }}
-      >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><line x1="19" y1="12" x2="5" y2="12" /><polyline points="12 19 5 12 12 5" /></svg>
-        Back to listings
-      </Link>
+        @media (max-width: 700px) {
+          .cdp-wrap { padding: 20px 1rem 60px; }
+          .cdp-layout { grid-template-columns: 1fr; gap: 20px; }
+          .cdp-img-col { position: static; flex-direction: row; align-items: flex-start; gap: 14px; }
+          .cdp-img-main { width: 130px; flex-shrink: 0; }
+          .cdp-img-side { flex: 1; display: flex; flex-direction: column; gap: 10px; justify-content: flex-end; }
+          .cdp-img-back { display: none; }
+          .cdp-ref-prices { width: 100%; }
+          .cdp-h1 { font-size: 20px; margin: 0 0 6px; }
+          .cdp-stats { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 8px; }
+          .cdp-legality { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 5px; }
+          .cdp-printings { grid-template-columns: repeat(auto-fill, minmax(85px, 1fr)); gap: 8px; }
+          .cdp-price-cta { padding: 14px 16px; }
+          .cdp-right { gap: 20px; }
+        }
+      `}</style>
 
-      {/* Main layout */}
-      <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: '48px', alignItems: 'start' }}>
+      <div className="cdp-wrap">
 
-        {/* ── LEFT COLUMN ────────────────────────────────────────────────────── */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '28px', position: 'sticky', top: '80px' }}>
+        {/* Back */}
+        <Link
+          href="/buy"
+          style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: 'var(--color-muted)', textDecoration: 'none', marginBottom: '24px' }}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><line x1="19" y1="12" x2="5" y2="12" /><polyline points="12 19 5 12 12 5" /></svg>
+          Back to listings
+        </Link>
 
-          {/* Card image */}
-          <div style={{
-            borderRadius: '18px', overflow: 'hidden',
-            border: '1px solid var(--color-border)',
-            boxShadow: '0 12px 40px rgba(0,0,0,0.35)',
-          }}>
-            {imageUrl ? (
-              <img src={imageUrl} alt={card.name} style={{ width: '100%', display: 'block' }} />
-            ) : (
-              <div style={{ aspectRatio: '3/4', background: 'var(--color-surface-2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <span style={{ color: 'var(--color-subtle)', fontSize: '13px' }}>No image</span>
-              </div>
-            )}
-          </div>
+        {/* Main layout */}
+        <div className="cdp-layout">
 
-          {/* Back face (double-faced cards) */}
-          {imageBack && (
-            <div style={{ borderRadius: '18px', overflow: 'hidden', border: '1px solid var(--color-border)' }}>
-              <img src={imageBack} alt={`${card.name} (back)`} style={{ width: '100%', display: 'block' }} />
-            </div>
-          )}
+          {/* ── LEFT COLUMN ── */}
+          <div className="cdp-img-col">
 
-          {/* Reference prices from Scryfall */}
-          {(refUsd || refFoil) && (
-            <div style={{
-              padding: '16px', background: 'var(--color-surface)',
-              border: '1px solid var(--color-border)', borderRadius: '12px',
-            }}>
-              <p style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 12px' }}>
-                Scryfall Reference Prices
-              </p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {refUsd && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: '12px', color: 'var(--color-muted)' }}>Non-Foil NM</span>
-                    <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--color-text)' }}>{refUsd}</span>
-                  </div>
-                )}
-                {refFoil && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: '12px', color: '#fbbf24' }}>✦ Foil NM</span>
-                    <span style={{ fontSize: '14px', fontWeight: 700, color: '#fbbf24' }}>{refFoil}</span>
-                  </div>
-                )}
-              </div>
-              <p style={{ fontSize: '10px', color: 'var(--color-subtle)', margin: '12px 0 0', lineHeight: 1.5 }}>
-                USD prices from Scryfall. Local listings in ₱ (PHP).
-              </p>
-            </div>
-          )}
-
-        </div>
-
-        {/* ── RIGHT COLUMN ───────────────────────────────────────────────────── */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
-
-          {/* Header: name, rarity, mana */}
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px', flexWrap: 'wrap' }}>
-              <span style={{
-                fontSize: '11px', fontWeight: 700, letterSpacing: '0.06em',
-                textTransform: 'capitalize', padding: '3px 10px', borderRadius: '6px',
-                color: rarityStyle.color, background: rarityStyle.bg, border: `1px solid ${rarityStyle.border}`,
-              }}>
-                {card.rarity}
-              </span>
-              <ManaCost cost={card.mana_cost} />
-            </div>
-
-            <h1 style={{ fontSize: '32px', fontWeight: 800, color: 'var(--color-text)', letterSpacing: '-0.03em', margin: '0 0 8px', lineHeight: 1.1 }}>
-              {card.name}
-            </h1>
-
-            <p style={{ fontSize: '14px', color: 'var(--color-muted)', margin: '0 0 4px' }}>
-              {card.set_name}
-              <span style={{ color: 'var(--color-subtle)' }}> · {card.set?.toUpperCase()} #{card.collector_number}</span>
-            </p>
-            <p style={{ fontSize: '13px', color: 'var(--color-subtle)', margin: 0, fontStyle: 'italic' }}>
-              {card.type_line}
-            </p>
-          </div>
-
-          {/* Lowest marketplace price + CTA */}
-          {lowestPrice != null && (
-            <div style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              padding: '18px 24px', background: 'var(--color-surface)',
-              border: '1px solid var(--color-border)', borderRadius: '14px', flexWrap: 'wrap', gap: '12px',
-            }}>
-              <div>
-                <p style={{ fontSize: '11px', color: 'var(--color-muted)', margin: '0 0 4px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  From our community
-                </p>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
-                  <span style={{ fontSize: '28px', fontWeight: 800, color: 'var(--color-text)', letterSpacing: '-0.03em' }}>
-                    ₱{lowestPrice.toLocaleString('en-PH')}
-                  </span>
-                  <span style={{ fontSize: '13px', color: 'var(--color-muted)' }}>lowest · {listings.length} seller{listings.length !== 1 ? 's' : ''}</span>
+            {/* Card image */}
+            <div className="cdp-img-main" style={{ borderRadius: '16px', overflow: 'hidden', border: '1px solid var(--color-border)', boxShadow: '0 12px 40px rgba(0,0,0,0.35)', flex: 'none' }}>
+              {imageUrl ? (
+                <img src={imageUrl} alt={card.name} style={{ width: '100%', display: 'block' }} />
+              ) : (
+                <div style={{ aspectRatio: '3/4', background: 'var(--color-surface-2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <span style={{ color: 'var(--color-subtle)', fontSize: '13px' }}>No image</span>
                 </div>
-              </div>
-              <a
-                href="#listings"
-                style={{
-                  display: 'inline-flex', alignItems: 'center', gap: '6px',
-                  padding: '10px 22px', background: 'var(--color-blue)',
-                  color: '#fff', borderRadius: '10px', fontSize: '14px',
-                  fontWeight: 600, textDecoration: 'none',
-                }}
-              >
-                See all sellers ↓
-              </a>
-            </div>
-          )}
-
-          {/* Oracle text */}
-          {card.oracle_text && (
-            <div style={{
-              padding: '18px 20px', background: 'var(--color-surface)',
-              border: '1px solid var(--color-border)', borderRadius: '14px',
-            }}>
-              <OracleText text={card.oracle_text} />
-              {card.flavor_text && (
-                <p style={{
-                  fontSize: '13px', color: 'var(--color-subtle)', fontStyle: 'italic',
-                  margin: '12px 0 0', paddingTop: '12px', borderTop: '1px solid var(--color-border)', lineHeight: 1.6,
-                }}>
-                  {card.flavor_text}
-                </p>
               )}
             </div>
-          )}
 
-          {/* Stats grid */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: '10px' }}>
-            {[
-              { label: 'Colors', value: card.colors?.length ? card.colors.join(', ') : 'Colorless' },
-              { label: 'CMC', value: card.cmc ?? '—' },
-              { label: 'Collector #', value: `#${card.collector_number}` },
-              { label: 'Released', value: card.released_at ?? '—' },
-              { label: 'Set', value: card.set?.toUpperCase() ?? '—' },
-              ...(card.power != null ? [{ label: 'Power / Toughness', value: `${card.power} / ${card.toughness}` }] : []),
-              ...(card.loyalty != null ? [{ label: 'Loyalty', value: card.loyalty }] : []),
-            ].map(({ label, value }) => (
-              <div
-                key={label}
-                style={{
-                  padding: '12px 14px', background: 'var(--color-surface)',
-                  border: '1px solid var(--color-border)', borderRadius: '10px',
-                }}
-              >
-                <p style={{ fontSize: '10px', fontWeight: 600, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 4px' }}>
-                  {label}
-                </p>
-                <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text)', margin: 0 }}>
-                  {value}
-                </p>
-              </div>
-            ))}
-          </div>
-
-          {/* Format Legality */}
-          <div>
-            <p style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 12px' }}>
-              Format Legality
-            </p>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '6px' }}>
-              {legalFormats.map(f => (
-                <div key={f} style={{
-                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                  padding: '8px 12px', borderRadius: '8px',
-                  background: 'var(--color-surface)', border: '1px solid var(--color-border)',
-                }}>
-                  <span style={{ fontSize: '12px', color: 'var(--color-text)', fontWeight: 500 }}>{FORMAT_LABELS[f]}</span>
-                  <span style={{
-                    fontSize: '10px', fontWeight: 700, color: '#22c55e',
-                    background: '#22c55e15', border: '1px solid #22c55e35',
-                    padding: '2px 7px', borderRadius: '5px',
-                  }}>Legal</span>
+            {/* On mobile: ref prices sit next to the image */}
+            <div className="cdp-img-side">
+              {/* Back face */}
+              {imageBack && (
+                <div className="cdp-img-back" style={{ borderRadius: '16px', overflow: 'hidden', border: '1px solid var(--color-border)' }}>
+                  <img src={imageBack} alt={`${card.name} (back)`} style={{ width: '100%', display: 'block' }} />
                 </div>
-              ))}
-              {illegalFormats.map(f => (
-                <div key={f} style={{
-                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                  padding: '8px 12px', borderRadius: '8px',
-                  background: 'var(--color-surface)', border: '1px solid var(--color-border)',
-                  opacity: 0.6,
-                }}>
-                  <span style={{ fontSize: '12px', color: 'var(--color-muted)', fontWeight: 500 }}>{FORMAT_LABELS[f]}</span>
-                  <span style={{
-                    fontSize: '10px', fontWeight: 700, color: '#94a3b8',
-                    background: '#94a3b815', border: '1px solid #94a3b835',
-                    padding: '2px 7px', borderRadius: '5px',
-                  }}>
-                    {legalities[f] === 'banned' ? 'Banned' : legalities[f] === 'restricted' ? 'Restricted' : 'Not Legal'}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
+              )}
 
-          {/* Available from Sellers */}
-          <div id="listings">
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px', flexWrap: 'wrap' }}>
-              <p style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', margin: 0 }}>
-                Available from Sellers
-              </p>
-              <span style={{
-                fontSize: '11px', fontWeight: 600, color: 'var(--color-blue)',
-                background: 'var(--color-blue-glow)', border: '1px solid var(--color-blue)40',
-                padding: '2px 8px', borderRadius: '5px',
-              }}>
-                {listings.length} listing{listings.length !== 1 ? 's' : ''}
-              </span>
-              <Link
-                href="/sell"
-                style={{
-                  marginLeft: 'auto', fontSize: '12px', fontWeight: 600,
-                  color: 'var(--color-muted)', textDecoration: 'none',
-                  display: 'flex', alignItems: 'center', gap: '4px',
-                }}
-              >
-                + Sell this card
-              </Link>
-            </div>
-            <CardListingsSection listings={listings} cardId={cardId} />
-          </div>
-
-          {/* All Printings */}
-          {printings.length > 0 && (
-            <div>
-              <p style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 12px' }}>
-                All Printings · {printings.length} version{printings.length !== 1 ? 's' : ''}
-              </p>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))', gap: '10px' }}>
-                {printings.map((p: any) => {
-                  const pImg = p.image_uris?.small ?? p.card_faces?.[0]?.image_uris?.small
-                  const isCurrent = p.id === cardId
-                  return (
-                    <Link key={p.id} href={`/card/${p.id}`} style={{ textDecoration: 'none' }}>
-                      <div style={{
-                        borderRadius: '10px', overflow: 'hidden',
-                        border: `1.5px solid ${isCurrent ? 'var(--color-blue)' : 'var(--color-border)'}`,
-                        background: isCurrent ? 'var(--color-blue-glow)' : 'var(--color-surface)',
-                        transition: 'border-color 0.15s ease, transform 0.15s ease',
-                        display: 'flex', flexDirection: 'column',
-                      }}>
-                        {pImg && <img src={pImg} alt={p.set_name} style={{ width: '100%', display: 'block' }} />}
-                        <div style={{ padding: '6px 8px' }}>
-                          <p style={{
-                            fontSize: '10px', fontWeight: 600,
-                            color: isCurrent ? 'var(--color-blue)' : 'var(--color-text)',
-                            margin: '0 0 2px', lineHeight: 1.3,
-                            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                          }}>
-                            {p.set_name}
-                          </p>
-                          <p style={{ fontSize: '9px', color: 'var(--color-muted)', margin: 0 }}>
-                            #{p.collector_number} · {p.set?.toUpperCase()}
-                          </p>
-                        </div>
+              {/* Reference prices */}
+              {(refUsd || refFoil) && (
+                <div className="cdp-ref-prices" style={{ padding: '14px 16px', background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: '12px' }}>
+                  <p style={{ fontSize: '10px', fontWeight: 700, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 10px' }}>
+                    Scryfall Prices
+                  </p>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '7px' }}>
+                    {refUsd && (
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontSize: '11px', color: 'var(--color-muted)' }}>Non-Foil</span>
+                        <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--color-text)' }}>{refUsd}</span>
                       </div>
-                    </Link>
-                  )
-                })}
+                    )}
+                    {refFoil && (
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontSize: '11px', color: '#fbbf24' }}>✦ Foil</span>
+                        <span style={{ fontSize: '13px', fontWeight: 700, color: '#fbbf24' }}>{refFoil}</span>
+                      </div>
+                    )}
+                  </div>
+                  <p style={{ fontSize: '9px', color: 'var(--color-subtle)', margin: '10px 0 0', lineHeight: 1.5 }}>
+                    USD · Local listings in ₱
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* ── RIGHT COLUMN ── */}
+          <div className="cdp-right">
+
+            {/* Header: name, rarity, mana */}
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', flexWrap: 'wrap' }}>
+                <span style={{
+                  fontSize: '11px', fontWeight: 700, letterSpacing: '0.06em',
+                  textTransform: 'capitalize', padding: '3px 10px', borderRadius: '6px',
+                  color: rarityStyle.color, background: rarityStyle.bg, border: `1px solid ${rarityStyle.border}`,
+                }}>
+                  {card.rarity}
+                </span>
+                <ManaCost cost={card.mana_cost} />
+              </div>
+              <h1 className="cdp-h1">{card.name}</h1>
+              <p style={{ fontSize: '13px', color: 'var(--color-muted)', margin: '0 0 3px' }}>
+                {card.set_name}
+                <span style={{ color: 'var(--color-subtle)' }}> · {card.set?.toUpperCase()} #{card.collector_number}</span>
+              </p>
+              <p style={{ fontSize: '12px', color: 'var(--color-subtle)', margin: 0, fontStyle: 'italic' }}>
+                {card.type_line}
+              </p>
+            </div>
+
+            {/* Lowest marketplace price + CTA */}
+            {lowestPrice != null && (
+              <div className="cdp-price-cta">
+                <div>
+                  <p style={{ fontSize: '11px', color: 'var(--color-muted)', margin: '0 0 4px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    From our community
+                  </p>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: '26px', fontWeight: 800, color: 'var(--color-text)', letterSpacing: '-0.03em' }}>
+                      ₱{lowestPrice.toLocaleString('en-PH')}
+                    </span>
+                    <span style={{ fontSize: '12px', color: 'var(--color-muted)' }}>
+                      lowest · {listings.length} seller{listings.length !== 1 ? 's' : ''}
+                    </span>
+                  </div>
+                </div>
+                <a
+                  href="#listings"
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: '6px',
+                    padding: '10px 20px', background: 'var(--color-blue)',
+                    color: '#fff', borderRadius: '10px', fontSize: '13px',
+                    fontWeight: 600, textDecoration: 'none', whiteSpace: 'nowrap',
+                  }}
+                >
+                  See all sellers ↓
+                </a>
+              </div>
+            )}
+
+            {/* Oracle text */}
+            {card.oracle_text && (
+              <div style={{ padding: '16px 18px', background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: '14px' }}>
+                <OracleText text={card.oracle_text} />
+                {card.flavor_text && (
+                  <p style={{ fontSize: '12px', color: 'var(--color-subtle)', fontStyle: 'italic', margin: '12px 0 0', paddingTop: '12px', borderTop: '1px solid var(--color-border)', lineHeight: 1.6 }}>
+                    {card.flavor_text}
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* Stats grid */}
+            <div className="cdp-stats">
+              {[
+                { label: 'Colors', value: card.colors?.length ? card.colors.join(', ') : 'Colorless' },
+                { label: 'CMC', value: card.cmc ?? '—' },
+                { label: 'Collector #', value: `#${card.collector_number}` },
+                { label: 'Released', value: card.released_at ?? '—' },
+                { label: 'Set', value: card.set?.toUpperCase() ?? '—' },
+                ...(card.power != null ? [{ label: 'P / T', value: `${card.power} / ${card.toughness}` }] : []),
+                ...(card.loyalty != null ? [{ label: 'Loyalty', value: card.loyalty }] : []),
+              ].map(({ label, value }) => (
+                <div key={label} style={{ padding: '11px 13px', background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: '10px' }}>
+                  <p style={{ fontSize: '10px', fontWeight: 600, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 3px' }}>{label}</p>
+                  <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text)', margin: 0 }}>{value}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Format Legality */}
+            <div>
+              <p style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 10px' }}>
+                Format Legality
+              </p>
+              <div className="cdp-legality">
+                {legalFormats.map(f => (
+                  <div key={f} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '7px 11px', borderRadius: '8px', background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+                    <span style={{ fontSize: '12px', color: 'var(--color-text)', fontWeight: 500 }}>{FORMAT_LABELS[f]}</span>
+                    <span style={{ fontSize: '10px', fontWeight: 700, color: '#22c55e', background: '#22c55e15', border: '1px solid #22c55e35', padding: '2px 7px', borderRadius: '5px' }}>Legal</span>
+                  </div>
+                ))}
+                {illegalFormats.map(f => (
+                  <div key={f} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '7px 11px', borderRadius: '8px', background: 'var(--color-surface)', border: '1px solid var(--color-border)', opacity: 0.55 }}>
+                    <span style={{ fontSize: '12px', color: 'var(--color-muted)', fontWeight: 500 }}>{FORMAT_LABELS[f]}</span>
+                    <span style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', background: '#94a3b815', border: '1px solid #94a3b835', padding: '2px 7px', borderRadius: '5px' }}>
+                      {legalities[f] === 'banned' ? 'Banned' : legalities[f] === 'restricted' ? 'Restricted' : 'Not Legal'}
+                    </span>
+                  </div>
+                ))}
               </div>
             </div>
-          )}
 
+            {/* Available from Sellers */}
+            <div id="listings">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px', flexWrap: 'wrap' }}>
+                <p style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', margin: 0 }}>
+                  Available from Sellers
+                </p>
+                <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-blue)', background: 'var(--color-blue-glow)', border: '1px solid var(--color-blue)40', padding: '2px 8px', borderRadius: '5px' }}>
+                  {listings.length} listing{listings.length !== 1 ? 's' : ''}
+                </span>
+                <Link href="/sell" style={{ marginLeft: 'auto', fontSize: '12px', fontWeight: 600, color: 'var(--color-muted)', textDecoration: 'none' }}>
+                  + Sell this card
+                </Link>
+              </div>
+              <CardListingsSection listings={listings} cardId={cardId} />
+            </div>
+
+            {/* All Printings */}
+            {printings.length > 0 && (
+              <div>
+                <p style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 12px' }}>
+                  All Printings · {printings.length} version{printings.length !== 1 ? 's' : ''}
+                </p>
+                <div className="cdp-printings">
+                  {printings.map((p: any) => {
+                    const pImg = p.image_uris?.small ?? p.card_faces?.[0]?.image_uris?.small
+                    const isCurrent = p.id === cardId
+                    return (
+                      <Link key={p.id} href={`/card/${p.id}`} style={{ textDecoration: 'none' }}>
+                        <div style={{ borderRadius: '10px', overflow: 'hidden', border: `1.5px solid ${isCurrent ? 'var(--color-blue)' : 'var(--color-border)'}`, background: isCurrent ? 'var(--color-blue-glow)' : 'var(--color-surface)', display: 'flex', flexDirection: 'column' }}>
+                          {pImg && <img src={pImg} alt={p.set_name} style={{ width: '100%', display: 'block' }} />}
+                          <div style={{ padding: '5px 7px' }}>
+                            <p style={{ fontSize: '9px', fontWeight: 600, color: isCurrent ? 'var(--color-blue)' : 'var(--color-text)', margin: '0 0 1px', lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {p.set_name}
+                            </p>
+                            <p style={{ fontSize: '8px', color: 'var(--color-muted)', margin: 0 }}>
+                              #{p.collector_number} · {p.set?.toUpperCase()}
+                            </p>
+                          </div>
+                        </div>
+                      </Link>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+
+          </div>
         </div>
       </div>
-    </div>
+    </>
   )
 }

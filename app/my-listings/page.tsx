@@ -335,7 +335,7 @@ function ListingRow({
         {/* Info */}
         <div style={{ minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '4px' }}>
-            <Link href={`/listing/${listing.id}`}
+            <Link href={`/card/${listing.card_id}`}
               style={{ fontSize: '15px', fontWeight: 700, color: 'var(--color-text)', textDecoration: 'none', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '260px' }}>
               {listing.card_name}
             </Link>
@@ -373,7 +373,7 @@ function ListingRow({
             </div>
           ) : (
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Link href={`/listing/${listing.id}`} title="View listing" style={{
+              <Link href={`/card/${listing.card_id}`} title="View listing" style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 width: '32px', height: '32px', borderRadius: '7px',
                 background: 'var(--color-surface-2)', border: '1px solid var(--color-border)',
