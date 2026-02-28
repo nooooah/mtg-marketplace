@@ -509,13 +509,12 @@ function ListingRow({
 
   return (
     <div style={{
-      background: 'var(--color-surface)',
+      background: checked ? 'rgba(59,130,246,0.04)' : 'var(--color-surface)',
       border: `1px solid ${checked ? 'rgba(59,130,246,0.4)' : confirmingDelete ? 'rgba(239,68,68,0.35)' : isEditing ? 'rgba(59,130,246,0.35)' : 'var(--color-border)'}`,
       borderRadius: '12px',
       overflow: 'hidden',
       transition: 'border-color 0.15s ease',
-      background: checked ? 'rgba(59,130,246,0.04)' : 'var(--color-surface)',
-    } as React.CSSProperties}>
+    }}>
 
       {/* Row summary */}
       <div style={{ display: 'grid', gridTemplateColumns: '32px 56px 1fr auto', gap: '12px', alignItems: 'center', padding: '14px 16px 14px 14px' }}>
