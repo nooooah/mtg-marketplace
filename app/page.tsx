@@ -44,7 +44,7 @@ export default async function HomePage() {
   ])
 
   return (
-    <div style={{ maxWidth: '1280px', margin: '0 auto', padding: '0 1.5rem' }}>
+    <div className="page-wrap" style={{ maxWidth: '1280px', margin: '0 auto', padding: '0 1.5rem' }}>
 
       {/* Search bar */}
       <section style={{ paddingTop: '40px', marginBottom: '28px' }}>

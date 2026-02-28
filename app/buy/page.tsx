@@ -156,7 +156,7 @@ function BuyPageContent() {
   const activeFilterCount = conditions.size + (minPrice ? 1 : 0) + (maxPrice ? 1 : 0)
 
   return (
-    <div style={{ maxWidth: '1280px', margin: '0 auto', padding: '32px 1.5rem 80px' }}>
+    <div className="page-wrap" style={{ maxWidth: '1280px', margin: '0 auto', padding: '32px 1.5rem 80px' }}>
 
       {/* Page header */}
       <div style={{ marginBottom: '28px' }}>
