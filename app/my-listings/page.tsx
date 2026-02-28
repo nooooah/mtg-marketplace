@@ -182,7 +182,7 @@ function MyListingsContent() {
   if (!userId && !loading) return null
 
   return (
-    <div style={{ maxWidth: '1280px', margin: '0 auto', padding: '32px 1.5rem 120px' }}>
+    <div className="page-wrap" style={{ maxWidth: '1280px', margin: '0 auto', padding: '32px 1.5rem 120px' }}>
 
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '24px', gap: '16px', flexWrap: 'wrap' }}>
@@ -403,7 +403,7 @@ function MyListingsContent() {
             </p>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <div className="ml-list" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             {displayedListings.map(listing => (
               <ListingRow
                 key={listing.id}
@@ -508,19 +508,22 @@ function ListingRow({
   const { onMouseMove, onMouseLeave: onPreviewLeave, preview } = useCardHover(listing.card_image_uri)
 
   return (
-    <div style={{
-      background: checked ? 'rgba(59,130,246,0.04)' : 'var(--color-surface)',
-      border: `1px solid ${checked ? 'rgba(59,130,246,0.4)' : confirmingDelete ? 'rgba(239,68,68,0.35)' : isEditing ? 'rgba(59,130,246,0.35)' : 'var(--color-border)'}`,
-      borderRadius: '12px',
-      overflow: 'hidden',
-      transition: 'border-color 0.15s ease',
-    }}>
-
+    <div
+      className={`ml-row${isEditing ? ' ml-editing' : ''}`}
+      style={{
+        background: checked ? 'rgba(59,130,246,0.04)' : 'var(--color-surface)',
+        border: `1px solid ${checked ? 'rgba(59,130,246,0.4)' : confirmingDelete ? 'rgba(239,68,68,0.35)' : isEditing ? 'rgba(59,130,246,0.35)' : 'var(--color-border)'}`,
+        borderRadius: '12px',
+        overflow: 'hidden',
+        transition: 'border-color 0.15s ease',
+      }}
+    >
       {/* Row summary */}
-      <div style={{ display: 'grid', gridTemplateColumns: '32px 56px 1fr auto', gap: '12px', alignItems: 'center', padding: '14px 16px 14px 14px' }}>
+      <div className="ml-row-inner" style={{ display: 'grid', gridTemplateColumns: '32px 56px 1fr auto', gap: '12px', alignItems: 'center', padding: '14px 16px 14px 14px' }}>
 
         {/* Checkbox */}
         <button
+          className="ml-checkbox-col"
           onClick={onCheck}
           style={{
             width: '20px', height: '20px', flexShrink: 0,
@@ -539,6 +542,7 @@ function ListingRow({
 
         {/* Thumbnail */}
         <div
+          className="ml-thumb-col"
           onMouseMove={onMouseMove}
           onMouseLeave={onPreviewLeave}
           style={{ width: '56px', height: '56px', borderRadius: '8px', overflow: 'hidden', background: 'var(--color-surface-2)', flexShrink: 0, border: '1px solid var(--color-border)' }}
@@ -554,7 +558,7 @@ function ListingRow({
         </div>
 
         {/* Info */}
-        <div style={{ minWidth: 0 }}>
+        <div className="ml-info-col" style={{ minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '4px' }}>
             <Link href={`/card/${listing.card_id}`}
               style={{ fontSize: '15px', fontWeight: 700, color: 'var(--color-text)', textDecoration: 'none', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '260px' }}>
@@ -565,21 +569,21 @@ function ListingRow({
             </span>
           </div>
           <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-            {listing.card_set_name && <span style={{ fontSize: '12px', color: 'var(--color-muted)' }}>{listing.card_set_name}</span>}
-            <span style={{ fontSize: '12px', color: 'var(--color-subtle)' }}>{listing.quantity} available</span>
-            <span style={{ fontSize: '12px', color: 'var(--color-subtle)' }}>{listing.views} view{listing.views !== 1 ? 's' : ''}</span>
-            <span style={{ fontSize: '12px', color: 'var(--color-subtle)' }}>Listed {formatDate(listing.created_at)}</span>
+            {listing.card_set_name && <span className="ml-secondary" style={{ fontSize: '12px', color: 'var(--color-muted)' }}>{listing.card_set_name}</span>}
+            <span style={{ fontSize: '12px', color: 'var(--color-subtle)' }}>{listing.quantity} avail.</span>
+            <span className="ml-secondary" style={{ fontSize: '12px', color: 'var(--color-subtle)' }}>{listing.views} view{listing.views !== 1 ? 's' : ''}</span>
+            <span className="ml-secondary" style={{ fontSize: '12px', color: 'var(--color-subtle)' }}>Listed {formatDate(listing.created_at)}</span>
           </div>
         </div>
 
         {/* Right: price + actions */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0 }}>
-          <span style={{ fontSize: '17px', fontWeight: 800, color: 'var(--color-text)', letterSpacing: '-0.02em' }}>
+        <div className="ml-actions-col" style={{ display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0 }}>
+          <span className="ml-price" style={{ fontSize: '17px', fontWeight: 800, color: 'var(--color-text)', letterSpacing: '-0.02em' }}>
             ₱{listing.price.toLocaleString('en-PH')}
           </span>
 
           {confirmingDelete ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
               <span style={{ fontSize: '12px', color: '#ef4444' }}>Delete?</span>
               <button onClick={onConfirmDelete} disabled={deleting} style={{
                 padding: '5px 10px', borderRadius: '6px', background: '#ef4444', color: '#fff',
@@ -593,56 +597,61 @@ function ListingRow({
               </button>
             </div>
           ) : (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              {/* Quick status actions (contextual to tab) */}
-              {activeTab === 'listed' && (
-                <>
-                  <QuickStatusButton label="Unlist" onClick={() => onStatusChange('unlisted')} />
-                  <QuickStatusButton label="Sold" onClick={() => onStatusChange('sold')} color="#10b981" />
-                </>
-              )}
-              {activeTab === 'unlisted' && (
-                <>
+            <>
+              {/* Quick status actions */}
+              <div className="ml-status-btns" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                {activeTab === 'listed' && (
+                  <>
+                    <QuickStatusButton label="Unlist" onClick={() => onStatusChange('unlisted')} />
+                    <QuickStatusButton label="Sold" onClick={() => onStatusChange('sold')} color="#10b981" />
+                  </>
+                )}
+                {activeTab === 'unlisted' && (
+                  <>
+                    <QuickStatusButton label="Relist" onClick={() => onStatusChange('listed')} color="var(--color-blue)" />
+                    <QuickStatusButton label="Sold" onClick={() => onStatusChange('sold')} color="#10b981" />
+                  </>
+                )}
+                {activeTab === 'sold' && (
                   <QuickStatusButton label="Relist" onClick={() => onStatusChange('listed')} color="var(--color-blue)" />
-                  <QuickStatusButton label="Sold" onClick={() => onStatusChange('sold')} color="#10b981" />
-                </>
-              )}
-              {activeTab === 'sold' && (
-                <QuickStatusButton label="Relist" onClick={() => onStatusChange('listed')} color="var(--color-blue)" />
-              )}
+                )}
+              </div>
 
-              <div style={{ width: '1px', height: '18px', background: 'var(--color-border)' }} />
+              <div className="ml-divider" style={{ width: '1px', height: '18px', background: 'var(--color-border)' }} />
 
-              <Link href={`/card/${listing.card_id}`} title="View listing" style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                width: '32px', height: '32px', borderRadius: '7px',
-                background: 'var(--color-surface-2)', border: '1px solid var(--color-border)',
-                color: 'var(--color-muted)', textDecoration: 'none',
-              }}>
-                <EyeIcon />
-              </Link>
-              <button onClick={onEdit} title="Edit listing" style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                width: '32px', height: '32px', borderRadius: '7px',
-                background: isEditing ? 'var(--color-blue-glow)' : 'var(--color-surface-2)',
-                border: `1px solid ${isEditing ? 'rgba(59,130,246,0.4)' : 'var(--color-border)'}`,
-                color: isEditing ? 'var(--color-blue)' : 'var(--color-muted)',
-                cursor: 'pointer', transition: 'all 0.15s ease',
-              }}>
-                <PencilIcon />
-              </button>
-              <button onClick={onRequestDelete} title="Delete listing" style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                width: '32px', height: '32px', borderRadius: '7px',
-                background: 'var(--color-surface-2)', border: '1px solid var(--color-border)',
-                color: 'var(--color-muted)', cursor: 'pointer', transition: 'all 0.15s ease',
-              }}
-                onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = '#ef4444'; (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(239,68,68,0.4)' }}
-                onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--color-muted)'; (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--color-border)' }}
-              >
-                <TrashIcon />
-              </button>
-            </div>
+              {/* Icon buttons */}
+              <div className="ml-icon-btns" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Link className="ml-view-btn" href={`/card/${listing.card_id}`} title="View listing" style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  width: '32px', height: '32px', borderRadius: '7px',
+                  background: 'var(--color-surface-2)', border: '1px solid var(--color-border)',
+                  color: 'var(--color-muted)', textDecoration: 'none',
+                }}>
+                  <EyeIcon />
+                </Link>
+                <button onClick={onEdit} title="Edit listing" style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  width: '32px', height: '32px', borderRadius: '7px',
+                  background: isEditing ? 'var(--color-blue-glow)' : 'var(--color-surface-2)',
+                  border: `1px solid ${isEditing ? 'rgba(59,130,246,0.4)' : 'var(--color-border)'}`,
+                  color: isEditing ? 'var(--color-blue)' : 'var(--color-muted)',
+                  cursor: 'pointer', transition: 'all 0.15s ease',
+                }}>
+                  <PencilIcon />
+                </button>
+                <button onClick={onRequestDelete} title="Delete listing" style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  width: '32px', height: '32px', borderRadius: '7px',
+                  background: 'var(--color-surface-2)', border: '1px solid var(--color-border)',
+                  color: 'var(--color-muted)', cursor: 'pointer', transition: 'all 0.15s ease',
+                }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = '#ef4444'; (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(239,68,68,0.4)' }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--color-muted)'; (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--color-border)' }}
+                >
+                  <TrashIcon />
+                </button>
+              </div>
+            </>
           )}
         </div>
       </div>

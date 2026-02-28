@@ -297,6 +297,64 @@ button {
   }
 }
 
+/* ── My Listings: mobile 2-col card layout ──────── */
+@media (max-width: 600px) {
+  .ml-list {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px !important;
+  }
+  .ml-row {
+    position: relative;
+  }
+  /* When a row is being edited on mobile, span both columns */
+  .ml-row.ml-editing {
+    grid-column: 1 / -1;
+  }
+  /* Inner row grid → flex column (card layout) */
+  .ml-row-inner {
+    display: flex !important;
+    flex-direction: column !important;
+    padding: 0 !important;
+    gap: 0 !important;
+  }
+  /* Checkbox floats over top-left of image */
+  .ml-checkbox-col {
+    position: absolute !important;
+    top: 6px !important;
+    left: 6px !important;
+    z-index: 3 !important;
+    background: rgba(0,0,0,0.3) !important;
+    border-radius: 6px !important;
+    border-color: rgba(255,255,255,0.5) !important;
+  }
+  /* Thumbnail becomes full-width card image */
+  .ml-thumb-col {
+    width: 100% !important;
+    height: auto !important;
+    aspect-ratio: 3/4 !important;
+    border-radius: 0 !important;
+    border: none !important;
+    flex-shrink: 0;
+  }
+  /* Info area */
+  .ml-info-col { padding: 8px 10px 4px !important; }
+  /* Hide secondary info (views, date) */
+  .ml-secondary { display: none !important; }
+  /* Actions area: stack vertically */
+  .ml-actions-col {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 6px !important;
+    padding: 0 10px 10px !important;
+    flex-shrink: unset !important;
+  }
+  .ml-price { font-size: 14px !important; }
+  .ml-status-btns { flex-wrap: wrap !important; }
+  .ml-divider  { display: none !important; }
+  .ml-view-btn { display: none !important; }
+}
+
 /* ── Narrow page padding on small screens ─────── */
 @media (max-width: 480px) {
   .page-wrap {
