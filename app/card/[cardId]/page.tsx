@@ -144,9 +144,9 @@ export default async function CardPage({ params }: { params: Promise<{ cardId: s
   const legalFormats = mainFormats.filter(f => legalities[f] === 'legal')
   const illegalFormats = mainFormats.filter(f => legalities[f] && legalities[f] !== 'legal')
 
-  // Manabox reference prices (CardMarket EUR via Scryfall)
-  const refUsd = card.prices?.eur ? `€${card.prices.eur}` : (card.prices?.usd ? `$${card.prices.usd}` : null)
-  const refFoil = card.prices?.eur_foil ? `€${card.prices.eur_foil}` : (card.prices?.usd_foil ? `$${card.prices.usd_foil}` : null)
+  // Manabox reference prices (USD via Scryfall/TCGPlayer)
+  const refUsd = card.prices?.usd ? `$${card.prices.usd}` : null
+  const refFoil = card.prices?.usd_foil ? `$${card.prices.usd_foil}` : null
 
   const rarityStyle = RARITY_STYLE[card.rarity] ?? RARITY_STYLE.common
 
@@ -247,7 +247,7 @@ export default async function CardPage({ params }: { params: Promise<{ cardId: s
                     )}
                   </div>
                   <p style={{ fontSize: '9px', color: 'var(--color-subtle)', margin: '10px 0 0', lineHeight: 1.5 }}>
-                    EUR (CardMarket) · Local listings in ₱
+                    USD (TCGPlayer) · Local listings in ₱
                   </p>
                 </div>
               )}

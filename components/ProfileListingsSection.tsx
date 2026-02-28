@@ -183,7 +183,7 @@ export default function ProfileListingsSection({ listings }: { listings: Listing
           No listings match your search.
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(148px, 1fr))', gap: '12px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
           {filtered.map(l => <CardTile key={l.id} listing={l} compact href={`/card/${l.card_id}`} />)}
         </div>
       )}
