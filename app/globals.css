@@ -196,3 +196,97 @@ button {
   from { opacity: 0; transform: scale(0.93); }
   to   { opacity: 1; transform: scale(1); }
 }
+
+/* ─────────────────────────────────────────────
+   Mobile Responsive Utilities
+   Breakpoint: 640px (small phones)
+             : 768px (most phones / small tablets)
+─────────────────────────────────────────────── */
+
+/* Page padding shrinks on small screens */
+@media (max-width: 768px) {
+  /* Tighten page-level top padding */
+  .page-container {
+    padding-top: 24px !important;
+    padding-bottom: 60px !important;
+  }
+
+  /* h1 page titles */
+  .page-title {
+    font-size: 22px !important;
+  }
+}
+
+/* ── Profile page ───────────────────────────── */
+@media (max-width: 640px) {
+  /* Profile header stats row wraps vertically */
+  .profile-stats {
+    flex-wrap: wrap !important;
+    gap: 12px !important;
+  }
+
+  /* Tighten profile card padding on mobile */
+  .profile-header-card {
+    padding: 18px 16px !important;
+  }
+}
+
+/* ── Card grid (buy page / homepage) ─────────── */
+@media (max-width: 480px) {
+  /* Force 2 columns on very small screens */
+  .card-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px !important;
+  }
+}
+
+/* ── My-listings row ─────────────────────────── */
+@media (max-width: 600px) {
+  .listing-row-actions {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 6px !important;
+  }
+}
+
+/* ── Sell form ───────────────────────────────── */
+@media (max-width: 768px) {
+  .sell-form-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ── Buy page filter panel ───────────────────── */
+@media (max-width: 640px) {
+  .filter-panel {
+    flex-direction: column !important;
+  }
+}
+
+/* ── Generic flex row → stack on mobile ─────── */
+@media (max-width: 520px) {
+  .mobile-stack {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+  .mobile-stack > * {
+    width: 100% !important;
+    min-width: unset !important;
+  }
+
+  /* Full-width select on mobile */
+  select.mobile-full {
+    width: 100% !important;
+    min-width: unset !important;
+  }
+}
+
+/* ── Prevent horizontal overflow site-wide ──── */
+html, body {
+  overflow-x: hidden;
+}
+
+/* Ensure images never overflow their containers */
+img {
+  max-width: 100%;
+}
