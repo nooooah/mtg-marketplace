@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import EventsBanner from '@/components/EventsBanner'
 import CardTile from '@/components/CardTile'
+import HomeSearchBar from '@/components/HomeSearchBar'
 import { createClient } from '@/lib/supabase/server'
 import { groupListings } from '@/lib/groupListings'
 import type { Listing } from '@/types'
@@ -45,8 +46,13 @@ export default async function HomePage() {
   return (
     <div style={{ maxWidth: '1280px', margin: '0 auto', padding: '0 1.5rem' }}>
 
+      {/* Search bar */}
+      <section style={{ paddingTop: '40px', marginBottom: '28px' }}>
+        <HomeSearchBar />
+      </section>
+
       {/* Events Banner */}
-      <section style={{ marginBottom: '56px', paddingTop: '36px' }}>
+      <section style={{ marginBottom: '56px' }}>
         <EventsBanner />
       </section>
 
