@@ -2,6 +2,7 @@ import Link from 'next/link'
 import EventsBanner from '@/components/EventsBanner'
 import CardTile from '@/components/CardTile'
 import { createClient } from '@/lib/supabase/server'
+import { groupListings } from '@/lib/groupListings'
 import type { Listing } from '@/types'
 
 export const revalidate = 60
@@ -84,13 +85,15 @@ function ListingGrid({ listings, emptyLabel }: { listings: Listing[]; emptyLabel
       </div>
     )
   }
+  const grouped = groupListings(listings)
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '16px' }}>
-      {listings.map(listing => (
+      {grouped.map(listing => (
         <CardTile
-          key={listing.id}
+          key={listing.card_id}
           listing={listing}
           noPreview
+          sellerCount={listing.sellerCount}
           href={`/card/${listing.card_id}`}
         />
       ))}

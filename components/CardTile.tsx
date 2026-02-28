@@ -19,6 +19,7 @@ interface CardTileProps {
   noPreview?: boolean
   compact?: boolean
   href?: string
+  sellerCount?: number
 }
 
 function daysAgo(dateStr: string): string {
@@ -28,7 +29,7 @@ function daysAgo(dateStr: string): string {
   return `${days}d ago`
 }
 
-export default function CardTile({ listing, noPreview = false, compact = false, href }: CardTileProps) {
+export default function CardTile({ listing, noPreview = false, compact = false, href, sellerCount = 1 }: CardTileProps) {
   const [imgError, setImgError] = useState(false)
   const [hovering, setHovering] = useState(false)
 
@@ -162,9 +163,15 @@ export default function CardTile({ listing, noPreview = false, compact = false, 
               margin: 0, marginTop: '1px',
               overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
             }}>
-              Sold by <span style={{ color: 'var(--color-muted)', fontWeight: 500 }}>
-                {listing.profiles?.username ?? 'Seller'}
-              </span>
+              {sellerCount > 1 ? (
+                <span style={{ color: 'var(--color-muted)', fontWeight: 500 }}>
+                  {sellerCount} sellers
+                </span>
+              ) : (
+                <>Sold by <span style={{ color: 'var(--color-muted)', fontWeight: 500 }}>
+                  {listing.profiles?.username ?? 'Seller'}
+                </span></>
+              )}
             </p>
           )}
 

@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import CardTile from '@/components/CardTile'
+import { groupListings } from '@/lib/groupListings'
 import type { Listing, CardCondition } from '@/types'
 
 type SortOption = 'newest' | 'oldest' | 'price_asc' | 'price_desc' | 'hot'
@@ -254,18 +255,29 @@ function BuyPageContent() {
         </div>
       ) : (
         <>
-          <p style={{ fontSize: '12px', color: 'var(--color-subtle)', marginBottom: '16px' }}>
-            {listings.length} listing{listings.length !== 1 ? 's' : ''} found
-          </p>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '16px' }}>
-            {listings.map(listing => (
-              <CardTile
-                key={listing.id}
-                listing={listing}
-                href={`/card/${listing.card_id}`}
-              />
-            ))}
-          </div>
+          {(() => {
+            const grouped = groupListings(listings)
+            return (
+              <>
+                <p style={{ fontSize: '12px', color: 'var(--color-subtle)', marginBottom: '16px' }}>
+                  {grouped.length} card{grouped.length !== 1 ? 's' : ''} found
+                  {grouped.length !== listings.length && (
+                    <span style={{ color: 'var(--color-subtle)' }}> ({listings.length} listing{listings.length !== 1 ? 's' : ''})</span>
+                  )}
+                </p>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '16px' }}>
+                  {grouped.map(listing => (
+                    <CardTile
+                      key={listing.card_id}
+                      listing={listing}
+                      sellerCount={listing.sellerCount}
+                      href={`/card/${listing.card_id}`}
+                    />
+                  ))}
+                </div>
+              </>
+            )
+          })()}
         </>
       )}
     </div>
