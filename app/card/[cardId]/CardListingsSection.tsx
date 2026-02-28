@@ -139,7 +139,7 @@ export default function CardListingsSection({
         {/* Header */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: '1fr 100px 80px 60px 100px 44px',
+          gridTemplateColumns: '1fr 100px 80px 60px 100px',
           gap: '12px', padding: '10px 16px',
           borderBottom: '1px solid var(--color-border)',
           fontSize: '11px', fontWeight: 600,
@@ -150,7 +150,6 @@ export default function CardListingsSection({
           <span>Finish</span>
           <span>Qty</span>
           <span style={{ textAlign: 'right' }}>Price</span>
-          <span />
         </div>
 
         {/* Rows */}
@@ -178,7 +177,7 @@ function ListingRow({ listing, isLast }: { listing: Listing; isLast: boolean }) 
     <div
       style={{
         display: 'grid',
-        gridTemplateColumns: '1fr 100px 80px 60px 100px 44px',
+        gridTemplateColumns: '1fr 100px 80px 60px 100px',
         gap: '12px', padding: '12px 16px', alignItems: 'center',
         borderBottom: isLast ? 'none' : '1px solid var(--color-border)',
         background: hovering ? 'var(--color-surface-2)' : 'transparent',
@@ -187,26 +186,55 @@ function ListingRow({ listing, isLast }: { listing: Listing; isLast: boolean }) 
       onMouseEnter={() => setHovering(true)}
       onMouseLeave={() => setHovering(false)}
     >
-      {/* Seller */}
-      <Link
-        href={`/profile/${seller?.username}`}
-        style={{ display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none' }}
-      >
-        <div style={{
-          width: '28px', height: '28px', borderRadius: '50%',
-          background: 'var(--color-blue)', display: 'flex', alignItems: 'center',
-          justifyContent: 'center', fontSize: '11px', fontWeight: 700,
-          color: '#fff', flexShrink: 0,
-        }}>
-          {sellerInitial}
-        </div>
-        <span style={{
-          fontSize: '13px', fontWeight: 500, color: 'var(--color-text)',
-          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-        }}>
-          {seller?.display_name ?? seller?.username ?? 'Seller'}
-        </span>
-      </Link>
+      {/* Seller + Messenger button */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+        <Link
+          href={`/profile/${seller?.username}`}
+          style={{ display: 'flex', alignItems: 'center', gap: '7px', textDecoration: 'none', minWidth: 0 }}
+        >
+          <div style={{
+            width: '28px', height: '28px', borderRadius: '50%',
+            background: 'var(--color-blue)', display: 'flex', alignItems: 'center',
+            justifyContent: 'center', fontSize: '11px', fontWeight: 700,
+            color: '#fff', flexShrink: 0,
+          }}>
+            {sellerInitial}
+          </div>
+          <span style={{
+            fontSize: '13px', fontWeight: 500, color: 'var(--color-text)',
+            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          }}>
+            {seller?.display_name ?? seller?.username ?? 'Seller'}
+          </span>
+        </Link>
+
+        {/* Messenger button — only shown if seller has a link */}
+        {seller?.messenger_link && (
+          <a
+            href={seller.messenger_link}
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Message seller on Messenger"
+            onClick={e => e.stopPropagation()}
+            style={{
+              flexShrink: 0, width: '26px', height: '26px', borderRadius: '50%',
+              background: 'linear-gradient(135deg, #0099ff 0%, #a033ff 60%, #ff5c87 100%)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              textDecoration: 'none', transition: 'opacity 0.15s ease, transform 0.15s ease',
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.opacity = '0.85'
+              e.currentTarget.style.transform = 'scale(1.1)'
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.opacity = '1'
+              e.currentTarget.style.transform = 'scale(1)'
+            }}
+          >
+            <MessengerIcon />
+          </a>
+        )}
+      </div>
 
       {/* Condition */}
       <span style={{
@@ -230,15 +258,9 @@ function ListingRow({ listing, isLast }: { listing: Listing; isLast: boolean }) 
       </span>
 
       {/* Price */}
-      <span style={{
-        fontSize: '15px', fontWeight: 700, color: 'var(--color-text)',
-        textAlign: 'right',
-      }}>
+      <span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--color-text)', textAlign: 'right' }}>
         ₱{listing.price.toLocaleString('en-PH')}
       </span>
-
-      {/* Message */}
-      <MessageBtn listingId={listing.id} sellerId={listing.user_id} />
     </div>
   )
 }
@@ -250,32 +272,11 @@ function conditionColor(c: string) {
   return map[c] ?? '#94a3b8'
 }
 
-function MessageBtn({ listingId, sellerId }: { listingId: string; sellerId: string }) {
+// Messenger "M" lightning-bolt icon (white on gradient circle)
+function MessengerIcon() {
   return (
-    <button
-      onClick={() => { window.location.href = `/messages/new?listing=${listingId}&to=${sellerId}` }}
-      title="Message seller"
-      style={{
-        width: '32px', height: '32px', borderRadius: '8px',
-        border: '1px solid var(--color-border)', background: 'transparent',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        color: 'var(--color-muted)', cursor: 'pointer', padding: 0,
-        transition: 'all 0.15s ease', flexShrink: 0,
-      }}
-      onMouseEnter={e => {
-        e.currentTarget.style.background = 'var(--color-blue-glow)'
-        e.currentTarget.style.borderColor = 'var(--color-blue)'
-        e.currentTarget.style.color = 'var(--color-blue)'
-      }}
-      onMouseLeave={e => {
-        e.currentTarget.style.background = 'transparent'
-        e.currentTarget.style.borderColor = 'var(--color-border)'
-        e.currentTarget.style.color = 'var(--color-muted)'
-      }}
-    >
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-      </svg>
-    </button>
+    <svg width="13" height="13" viewBox="0 0 28 28" fill="white">
+      <path d="M14 2C7.373 2 2 7.06 2 13.32c0 3.43 1.676 6.49 4.31 8.51V26l3.93-2.16c1.05.29 2.16.45 3.31.45 6.627 0 12-5.06 12-11.32C26 7.06 20.627 2 14 2zm1.19 15.24l-3.06-3.26-5.97 3.26 6.57-6.97 3.13 3.26 5.9-3.26-6.57 6.97z" />
+    </svg>
   )
 }
