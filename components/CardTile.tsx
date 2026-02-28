@@ -21,6 +21,13 @@ interface CardTileProps {
   href?: string
 }
 
+function daysAgo(dateStr: string): string {
+  const days = Math.floor((Date.now() - new Date(dateStr).getTime()) / (1000 * 60 * 60 * 24))
+  if (days === 0) return 'today'
+  if (days === 1) return '1d ago'
+  return `${days}d ago`
+}
+
 export default function CardTile({ listing, noPreview = false, compact = false, href }: CardTileProps) {
   const [imgError, setImgError] = useState(false)
   const [hovering, setHovering] = useState(false)
@@ -99,12 +106,13 @@ export default function CardTile({ listing, noPreview = false, compact = false, 
             </div>
           )}
 
-          {/* Condition + foil badge overlay */}
-          <div style={{ position: 'absolute', top: '8px', left: '8px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <span className={`badge badge-${condition.toLowerCase()}`}>
-              {condition}
-            </span>
-            {listing.is_foil && (
+          {/* Bottom overlay: foil left, condition right */}
+          <div style={{
+            position: 'absolute', bottom: '8px', left: '8px', right: '8px',
+            display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end',
+            pointerEvents: 'none',
+          }}>
+            {listing.is_foil ? (
               <span style={{
                 display: 'inline-flex', alignItems: 'center', gap: '3px',
                 fontSize: '9px', fontWeight: 800, letterSpacing: '0.04em',
@@ -114,121 +122,88 @@ export default function CardTile({ listing, noPreview = false, compact = false, 
               }}>
                 ✦ FOIL
               </span>
-            )}
+            ) : <span />}
+            <span className={`badge badge-${condition.toLowerCase()}`}>
+              {condition}
+            </span>
           </div>
         </div>
 
         {/* Card details */}
-        <div style={{ padding: compact ? '8px 10px' : '12px', display: 'flex', flexDirection: 'column', gap: compact ? '4px' : '8px', flex: 1 }}>
-          {/* Name + Set */}
-          <div>
-            <p
-              style={{
-                fontWeight: 600,
-                fontSize: compact ? '12px' : '13px',
-                color: 'var(--color-text)',
-                margin: 0,
-                lineHeight: 1.3,
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {listing.card_name}
-            </p>
-            {listing.card_set_name && (
-              <p
-                style={{
-                  fontSize: compact ? '10px' : '11px',
-                  color: 'var(--color-muted)',
-                  margin: 0,
-                  marginTop: '2px',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                {listing.card_set_name}
-              </p>
-            )}
-          </div>
+        <div style={{ padding: compact ? '8px 10px' : '12px', display: 'flex', flexDirection: 'column', gap: compact ? '3px' : '4px', flex: 1 }}>
+          {/* Name */}
+          <p style={{
+            fontWeight: 600,
+            fontSize: compact ? '12px' : '13px',
+            color: 'var(--color-text)',
+            margin: 0,
+            lineHeight: 1.3,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}>
+            {listing.card_name}
+          </p>
 
-          {/* Type line — hidden in compact */}
-          {!compact && listing.card_type && (
-            <p
-              style={{
-                fontSize: '11px',
-                color: 'var(--color-subtle)',
-                margin: 0,
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {listing.card_type}
+          {/* Set name */}
+          {listing.card_set_name && (
+            <p style={{
+              fontSize: compact ? '10px' : '11px',
+              color: 'var(--color-muted)',
+              margin: 0,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}>
+              {listing.card_set_name}
             </p>
           )}
 
-          {/* Footer: price + seller */}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              marginTop: 'auto',
-              paddingTop: compact ? '6px' : '8px',
-              borderTop: '1px solid var(--color-border)',
-            }}
-          >
-            {/* Price */}
-            <span
-              style={{
-                fontWeight: 700,
-                fontSize: compact ? '13px' : '15px',
-                color: 'var(--color-text)',
-              }}
-            >
+          {/* Seller name — hidden in compact */}
+          {!compact && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginTop: '1px' }}>
+              <div style={{
+                width: '16px', height: '16px', borderRadius: '50%',
+                background: 'var(--color-blue)', display: 'flex',
+                alignItems: 'center', justifyContent: 'center',
+                fontSize: '8px', fontWeight: 700, color: '#fff', flexShrink: 0,
+              }}>
+                {sellerInitial}
+              </div>
+              <span style={{
+                fontSize: '11px', color: 'var(--color-subtle)',
+                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              }}>
+                {listing.profiles?.username ?? 'Seller'}
+              </span>
+            </div>
+          )}
+
+          {/* Footer: price left, qty + age right */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginTop: 'auto',
+            paddingTop: compact ? '6px' : '8px',
+            borderTop: '1px solid var(--color-border)',
+          }}>
+            <span style={{
+              fontWeight: 700,
+              fontSize: compact ? '13px' : '15px',
+              color: 'var(--color-text)',
+            }}>
               ₱{listing.price.toLocaleString('en-PH')}
             </span>
 
-            {/* Seller + message button — hidden in compact */}
-            {!compact && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '5px',
-                    fontSize: '11px',
-                    color: 'var(--color-muted)',
-                  }}
-                >
-                  <div
-                    style={{
-                      width: '20px',
-                      height: '20px',
-                      borderRadius: '50%',
-                      background: 'var(--color-blue)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '9px',
-                      fontWeight: 700,
-                      color: '#fff',
-                      flexShrink: 0,
-                    }}
-                  >
-                    {sellerInitial}
-                  </div>
-                  <span style={{ maxWidth: '60px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {listing.profiles?.username ?? 'Seller'}
-                  </span>
-                </div>
-
-                {/* Message button */}
-                <MessageButton listingId={listing.id} sellerId={listing.user_id} />
-              </div>
-            )}
+            <span style={{
+              fontSize: compact ? '9px' : '10px',
+              color: 'var(--color-subtle)',
+              textAlign: 'right',
+              lineHeight: 1.4,
+            }}>
+              ×{listing.quantity} · {daysAgo(listing.created_at)}
+            </span>
           </div>
         </div>
       </div>
