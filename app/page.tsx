@@ -15,6 +15,7 @@ async function getLatestListings(): Promise<Listing[]> {
       .from('listings')
       .select('*, profiles(username, avatar_url)')
       .eq('status', 'listed')
+      .not('binder_id', 'is', null)
       .order('created_at', { ascending: false })
       .limit(54) // fetch extra so grouping still fills 3 rows (~18 unique cards)
     return (data as Listing[]) ?? []
@@ -31,6 +32,7 @@ async function getLowerThanMarketListings(): Promise<Listing[]> {
       .from('listings')
       .select('*, profiles(username, avatar_url)')
       .eq('status', 'listed')
+      .not('binder_id', 'is', null)
       .not('usd_price', 'is', null)
       .gt('usd_price', 0)
       .order('created_at', { ascending: false })

@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import type { ScryfallCard, CardCondition } from '@/types'
+import type { ScryfallCard, CardCondition, Binder } from '@/types'
 import { useCardHover, HoverCardImage } from '@/components/CardHoverPreview'
 
 const CONDITIONS: { value: CardCondition; label: string }[] = [
@@ -115,9 +115,17 @@ function SingleCardForm({ userId }: { userId: string }) {
   const [quantity, setQuantity] = useState('1')
   const [notes, setNotes] = useState('')
 
+  const [binders, setBinders] = useState<Binder[]>([])
+  const [selectedBinderId, setSelectedBinderId] = useState<string | null>(null)
+
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
+
+  useEffect(() => {
+    supabase.from('binders').select('*').eq('user_id', userId).order('display_order')
+      .then(({ data }) => { if (data) setBinders(data as Binder[]) })
+  }, [userId])
 
   useEffect(() => {
     if (!cardQuery.trim() || selectedCard) { setScryfallResults([]); return }
@@ -176,6 +184,7 @@ function SingleCardForm({ userId }: { userId: string }) {
         usd_price: isFoil
           ? parseFloat(selectedCard?.prices?.usd_foil ?? selectedCard?.prices?.usd ?? '0') || null
           : parseFloat(selectedCard?.prices?.usd ?? '0') || null,
+        binder_id: selectedBinderId,
       })
       if (insertError) setError(insertError.message)
       else setSuccess(true)
@@ -310,6 +319,23 @@ function SingleCardForm({ userId }: { userId: string }) {
         </FieldLabel>
       </FormSection>
 
+      <FormSection title="3. Assign to binder">
+        <div style={{ padding: '10px 14px', borderRadius: '8px', background: 'rgba(234,179,8,0.08)', border: '1px solid rgba(234,179,8,0.2)', color: '#fbbf24', fontSize: '13px', marginBottom: '4px' }}>
+          ⚠ Cards must be assigned to a binder to appear in search results.
+        </div>
+        <FieldLabel label="Binder">
+          <select value={selectedBinderId ?? ''} onChange={e => setSelectedBinderId(e.target.value || null)}>
+            <option value="">No binder (hidden from search)</option>
+            {binders.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+          </select>
+        </FieldLabel>
+        {binders.length === 0 && (
+          <p style={{ fontSize: '12px', color: 'var(--color-muted)', margin: 0 }}>
+            You have no binders yet. <a href="/my-listings" style={{ color: 'var(--color-blue)', textDecoration: 'none' }}>Create one in My Listings →</a>
+          </p>
+        )}
+      </FormSection>
+
       {error && (
         <div style={{ padding: '10px 14px', borderRadius: '8px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', color: '#f87171', fontSize: '13px' }}>
           {error}
@@ -379,9 +405,17 @@ function BulkImportForm({ userId }: { userId: string }) {
   const [globalCondition, setGlobalCondition] = useState<CardCondition | ''>('')
   const [globalMultiplier, setGlobalMultiplier] = useState<number | null>(null)
 
+  const [binders, setBinders] = useState<Binder[]>([])
+  const [selectedBinderId, setSelectedBinderId] = useState<string | null>(null)
+
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState('')
   const [successCount, setSuccessCount] = useState<number | null>(null)
+
+  useEffect(() => {
+    supabase.from('binders').select('*').eq('user_id', userId).order('display_order')
+      .then(({ data }) => { if (data) setBinders(data as Binder[]) })
+  }, [userId])
 
   const handleParse = async () => {
     setParseError('')
@@ -511,6 +545,7 @@ function BulkImportForm({ userId }: { userId: string }) {
           usd_price: r.isFoil
             ? parseFloat(r.usdFoilPrice ?? r.usdPrice ?? '0') || null
             : parseFloat(r.usdPrice ?? '0') || null,
+          binder_id: selectedBinderId,
         }))
       )
       if (insertError) { setSubmitError(insertError.message); setSubmitting(false); return }
@@ -662,6 +697,24 @@ function BulkImportForm({ userId }: { userId: string }) {
                 onRemove={() => removeRow(row._key)}
               />
             ))}
+          </div>
+
+          {/* Binder assignment */}
+          <div style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: '12px', padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div style={{ padding: '10px 14px', borderRadius: '8px', background: 'rgba(234,179,8,0.08)', border: '1px solid rgba(234,179,8,0.2)', color: '#fbbf24', fontSize: '13px' }}>
+              ⚠ Cards must be assigned to a binder to appear in search results.
+            </div>
+            <FieldLabel label="Assign all to binder">
+              <select value={selectedBinderId ?? ''} onChange={e => setSelectedBinderId(e.target.value || null)} style={{ maxWidth: '320px' }}>
+                <option value="">No binder (hidden from search)</option>
+                {binders.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+              </select>
+            </FieldLabel>
+            {binders.length === 0 && (
+              <p style={{ fontSize: '12px', color: 'var(--color-muted)', margin: 0 }}>
+                You have no binders yet. <a href="/my-listings" style={{ color: 'var(--color-blue)', textDecoration: 'none' }}>Create one in My Listings →</a>
+              </p>
+            )}
           </div>
 
           {/* Submit */}

@@ -23,6 +23,7 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
     .select('*, profiles(id, username, avatar_url, bio, created_at)')
     .eq('id', id)
     .eq('status', 'listed')
+    .not('binder_id', 'is', null)
     .single()
 
   if (!listing) notFound()

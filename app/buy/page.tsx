@@ -97,6 +97,7 @@ function BuyPageContent() {
       .from('listings')
       .select('*, profiles(username, avatar_url)')
       .eq('status', 'listed')
+      .not('binder_id', 'is', null)
 
     if (query.trim()) {
       q = q.ilike('card_name', `%${query.trim()}%`)

@@ -124,6 +124,7 @@ export default async function CardPage({ params }: { params: Promise<{ cardId: s
       .select('*, profiles(id, username, avatar_url, display_name, created_at, messenger_link)')
       .eq('card_id', cardId)
       .eq('status', 'listed')
+      .not('binder_id', 'is', null)
       .gt('quantity', 0)
       .order('price', { ascending: true }),
   ])

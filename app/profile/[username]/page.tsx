@@ -20,7 +20,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
   if (!profile) notFound()
 
   const [{ data: listings }, { data: wanted }] = await Promise.all([
-    supabase.from('listings').select('*, profiles(username, avatar_url)').eq('user_id', profile.id).eq('status', 'listed').order('created_at', { ascending: false }),
+    supabase.from('listings').select('*, profiles(username, avatar_url)').eq('user_id', profile.id).eq('status', 'listed').not('binder_id', 'is', null).order('created_at', { ascending: false }),
     supabase.from('wanted_cards').select('*').eq('user_id', profile.id).order('created_at', { ascending: false }),
   ])
 
