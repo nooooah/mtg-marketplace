@@ -72,15 +72,15 @@ export default function PublicBindersDisplay({
             )
           })}
         </div>
+        {activeGroup?.binder.description && (
+          <p style={{ fontSize: '13px', color: 'var(--color-muted)', margin: '16px 0 0', fontStyle: 'italic', lineHeight: 1.5 }}>
+            {activeGroup.binder.description}
+          </p>
+        )}
       </div>
 
       {/* Cards tile */}
       <div style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: '16px', padding: '28px' }}>
-        {activeGroup?.binder.description && (
-          <p style={{ fontSize: '13px', color: 'var(--color-muted)', margin: '0 0 16px', fontStyle: 'italic', lineHeight: 1.5 }}>
-            {activeGroup.binder.description}
-          </p>
-        )}
         {activeGroup && <ProfileListingsSection listings={activeGroup.cards} />}
       </div>
 
