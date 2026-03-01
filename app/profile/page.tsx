@@ -193,6 +193,7 @@ function ProfileCard({ profile, listingCount, binderCount, onSave }: {
   const [error, setError] = useState('')
 
   const [displayName, setDisplayName] = useState(profile.display_name ?? '')
+  const [avatarUrl, setAvatarUrl] = useState(profile.avatar_url ?? '')
   const [location, setLocation] = useState(profile.location ?? '')
   const [preferredLgs, setPreferredLgs] = useState(profile.preferred_lgs ?? '')
   const [messengerLink, setMessengerLink] = useState(profile.messenger_link ?? '')
@@ -203,6 +204,7 @@ function ProfileCard({ profile, listingCount, binderCount, onSave }: {
     setError('')
     const { data, error: err } = await supabase.from('profiles').update({
       display_name: displayName.trim() || null,
+      avatar_url: avatarUrl.trim() || null,
       location: location.trim() || null,
       preferred_lgs: preferredLgs.trim() || null,
       messenger_link: messengerLink.trim() || null,
@@ -216,6 +218,7 @@ function ProfileCard({ profile, listingCount, binderCount, onSave }: {
 
   const handleCancel = () => {
     setDisplayName(profile.display_name ?? '')
+    setAvatarUrl(profile.avatar_url ?? '')
     setLocation(profile.location ?? '')
     setPreferredLgs(profile.preferred_lgs ?? '')
     setMessengerLink(profile.messenger_link ?? '')
@@ -238,6 +241,26 @@ function ProfileCard({ profile, listingCount, binderCount, onSave }: {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           <ProfileField label="Display name">
             <input value={displayName} onChange={e => setDisplayName(e.target.value)} placeholder={profile.username} />
+          </ProfileField>
+          <ProfileField label="Profile photo URL">
+            <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+              <input
+                value={avatarUrl}
+                onChange={e => setAvatarUrl(e.target.value)}
+                placeholder="https://example.com/your-photo.jpg"
+                style={{ flex: 1 }}
+              />
+              {avatarUrl.trim() && (
+                <div style={{ width: '40px', height: '40px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0, border: '1px solid var(--color-border)', background: 'var(--color-surface-2)' }}>
+                  <img
+                    src={avatarUrl.trim()}
+                    alt="preview"
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
+                  />
+                </div>
+              )}
+            </div>
           </ProfileField>
           <ProfileField label="Bio">
             <textarea value={bio} onChange={e => setBio(e.target.value)} rows={2} placeholder="A few words about yourself…" style={{ resize: 'vertical' }} />
@@ -271,46 +294,54 @@ function ProfileCard({ profile, listingCount, binderCount, onSave }: {
           </div>
         </div>
       ) : (
-        <div style={{ display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap' }}>
-          {/* Avatar */}
-          <div style={{
-            width: '56px', height: '56px', borderRadius: '50%', flexShrink: 0,
-            background: profile.avatar_url ? 'transparent' : 'var(--color-blue)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: '22px', fontWeight: 800, color: '#fff', overflow: 'hidden',
-          }}>
-            {profile.avatar_url
-              ? <img src={profile.avatar_url} alt={profile.username} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-              : initials}
-          </div>
+        <div className="profile-card-view" style={{ display: 'flex', gap: '16px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
 
-          {/* Name + meta */}
-          <div style={{ flex: 1, minWidth: '180px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-              <h1 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--color-text)', letterSpacing: '-0.02em', margin: 0 }}>
+          {/* Left column: avatar + name + stats (stacks vertically on mobile) */}
+          <div className="profile-card-left" style={{ display: 'flex', gap: '14px', alignItems: 'center', flexShrink: 0 }}>
+            {/* Avatar */}
+            <div style={{
+              width: '56px', height: '56px', borderRadius: '50%', flexShrink: 0,
+              background: profile.avatar_url ? 'transparent' : 'var(--color-blue)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: '22px', fontWeight: 800, color: '#fff', overflow: 'hidden',
+            }}>
+              {profile.avatar_url
+                ? <img src={profile.avatar_url} alt={profile.username} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                : initials}
+            </div>
+
+            {/* Name + stats (shown beside avatar on desktop, below on mobile) */}
+            <div className="profile-card-name-block">
+              <h1 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--color-text)', letterSpacing: '-0.02em', margin: '0 0 4px' }}>
                 {profile.display_name ?? profile.username}
               </h1>
               {profile.display_name && (
-                <span style={{ fontSize: '12px', color: 'var(--color-subtle)' }}>@{profile.username}</span>
+                <div style={{ fontSize: '12px', color: 'var(--color-subtle)', marginBottom: '6px' }}>@{profile.username}</div>
               )}
-              <StatBadge value={listingCount} label="Listings" />
-              <StatBadge value={binderCount} label="Binders" />
+              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                <StatBadge value={listingCount} label="Listings" />
+                <StatBadge value={binderCount} label="Binders" />
+              </div>
             </div>
+          </div>
+
+          {/* Right / main: meta + bio + buttons */}
+          <div style={{ flex: 1, minWidth: '200px' }}>
             <a
               href={`/profile/${profile.username}`}
               target="_blank"
               rel="noopener noreferrer"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: 'var(--color-muted)', textDecoration: 'none', margin: '3px 0 6px' }}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: 'var(--color-muted)', textDecoration: 'none', marginBottom: '8px' }}
             >
               <LinkIcon />
-              tcgmarket.ph/profile/{profile.username}
+              mtgbinder.app/profile/{profile.username}
             </a>
             {profile.bio && (
-              <p style={{ fontSize: '13px', color: 'var(--color-muted)', lineHeight: 1.5, margin: '0 0 6px', maxWidth: '520px' }}>
+              <p style={{ fontSize: '13px', color: 'var(--color-muted)', lineHeight: 1.5, margin: '0 0 8px', maxWidth: '520px' }}>
                 {profile.bio}
               </p>
             )}
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', alignItems: 'center' }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', alignItems: 'center', marginBottom: '10px' }}>
               <MetaBadge icon={<CalendarIcon />} text={`Member since ${formatMemberSince(profile.created_at)}`} />
               {profile.location && <MetaBadge icon={<LocationIcon />} text={profile.location} />}
               {profile.preferred_lgs && <MetaBadge icon={<StoreIcon />} text={profile.preferred_lgs} />}
@@ -320,29 +351,27 @@ function ProfileCard({ profile, listingCount, binderCount, onSave }: {
                 </a>
               )}
             </div>
-          </div>
-
-          {/* Buttons */}
-          <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
-            <a
-              href={`/profile/${profile.username}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <a
+                href={`/profile/${profile.username}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  padding: '6px 12px', borderRadius: '8px', border: '1px solid var(--color-border)',
+                  background: 'transparent', color: 'var(--color-muted)', fontSize: '12px', fontWeight: 500,
+                  cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px', textDecoration: 'none',
+                }}
+              >
+                <EyeIcon /> Preview
+              </a>
+              <button onClick={() => setEditing(true)} style={{
                 padding: '6px 12px', borderRadius: '8px', border: '1px solid var(--color-border)',
                 background: 'transparent', color: 'var(--color-muted)', fontSize: '12px', fontWeight: 500,
-                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px', textDecoration: 'none',
-              }}
-            >
-              <EyeIcon /> Preview
-            </a>
-            <button onClick={() => setEditing(true)} style={{
-              padding: '6px 12px', borderRadius: '8px', border: '1px solid var(--color-border)',
-              background: 'transparent', color: 'var(--color-muted)', fontSize: '12px', fontWeight: 500,
-              cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px',
-            }}>
-              <EditIcon /> Edit profile
-            </button>
+                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px',
+              }}>
+                <EditIcon /> Edit profile
+              </button>
+            </div>
           </div>
         </div>
       )}

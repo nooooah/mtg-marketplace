@@ -229,6 +229,19 @@ button {
   .profile-header-card {
     padding: 18px 16px !important;
   }
+
+  /* On mobile: left column (avatar + name/stats) goes full width, stacks vertically */
+  .profile-card-left {
+    width: 100% !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 10px !important;
+  }
+
+  /* Name block sits below avatar on mobile */
+  .profile-card-name-block {
+    /* no override needed — already column inside profile-card-left */
+  }
 }
 
 /* ── Card grid (buy page / homepage) ─────────── */
