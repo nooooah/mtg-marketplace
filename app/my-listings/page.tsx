@@ -8,7 +8,7 @@ import type { Listing, CardCondition, ScryfallCard, Binder } from '@/types'
 import { useCardHover, HoverCardImage } from '@/components/CardHoverPreview'
 import { formatDate } from '@/lib/utils'
 
-type SortOption = 'newest' | 'oldest' | 'price_asc' | 'price_desc' | 'most_viewed'
+type SortOption = 'newest' | 'oldest' | 'price_asc' | 'price_desc' | 'most_viewed' | 'alpha'
 type ListingStatus = 'listed' | 'unlisted' | 'sold'
 
 const CONDITIONS: CardCondition[] = ['NM', 'LP', 'MP', 'HP', 'DMG']
@@ -69,6 +69,8 @@ function MyListingsContent() {
   const [selectedBinderId, setSelectedBinderId] = useState<string | 'unsorted'>('unsorted')
   const [renamingBinderId, setRenamingBinderId] = useState<string | null>(null)
   const [renameValue, setRenameValue] = useState('')
+  const [editingDescId, setEditingDescId] = useState<string | null>(null)
+  const [descValue, setDescValue] = useState('')
 
   // Auth guard
   useEffect(() => {
@@ -123,6 +125,13 @@ function MyListingsContent() {
     setRenamingBinderId(null)
   }
 
+  const handleDescribeBinder = async (id: string, description: string) => {
+    const trimmed = description.trim() || null
+    await supabase.from('binders').update({ description: trimmed }).eq('id', id)
+    setBinders(prev => prev.map(b => b.id === id ? { ...b, description: trimmed } : b))
+    setEditingDescId(null)
+  }
+
   const handleMoveToBinder = async (ids: string[], binderId: string | null) => {
     setBulkLoading(true)
     await supabase.from('listings').update({ binder_id: binderId }).in('id', ids)
@@ -152,6 +161,7 @@ function MyListingsContent() {
       case 'price_asc':   q = q.order('price', { ascending: true });       break
       case 'price_desc':  q = q.order('price', { ascending: false });      break
       case 'most_viewed': q = q.order('views', { ascending: false });      break
+      case 'alpha':       q = q.order('card_name', { ascending: true });   break
     }
 
     const { data } = await q
@@ -342,6 +352,47 @@ function MyListingsContent() {
         </button>
       </div>
 
+      {/* Active binder description + total count */}
+      {selectedBinderId !== 'unsorted' && (() => {
+        const activeBinder = binders.find(b => b.id === selectedBinderId)
+        if (!activeBinder) return null
+        const totalCards = listings.filter(l => l.binder_id === selectedBinderId).length
+        const isEditingDesc = editingDescId === selectedBinderId
+        return (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px', minHeight: '28px' }}>
+            <span style={{ fontSize: '12px', color: 'var(--color-subtle)', fontWeight: 500 }}>
+              {totalCards} card{totalCards !== 1 ? 's' : ''} total
+            </span>
+            <span style={{ fontSize: '12px', color: 'var(--color-border)' }}>·</span>
+            {isEditingDesc ? (
+              <input
+                autoFocus
+                value={descValue}
+                onChange={e => setDescValue(e.target.value)}
+                onBlur={() => handleDescribeBinder(selectedBinderId, descValue)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') handleDescribeBinder(selectedBinderId, descValue)
+                  if (e.key === 'Escape') setEditingDescId(null)
+                }}
+                placeholder="Add a short description…"
+                style={{ flex: 1, maxWidth: '420px', fontSize: '13px', padding: '3px 8px', borderRadius: '6px' }}
+              />
+            ) : (
+              <button
+                onClick={() => { setEditingDescId(selectedBinderId); setDescValue(activeBinder.description ?? '') }}
+                style={{
+                  background: 'transparent', border: 'none', padding: 0,
+                  fontSize: '13px', color: activeBinder.description ? 'var(--color-text)' : 'var(--color-subtle)',
+                  cursor: 'pointer', textAlign: 'left', fontStyle: activeBinder.description ? 'normal' : 'italic',
+                }}
+              >
+                {activeBinder.description ?? 'Add description…'}
+              </button>
+            )}
+          </div>
+        )
+      })()}
+
       {/* Status Tabs */}
       <div style={{
         display: 'flex', gap: '2px',
@@ -418,6 +469,7 @@ function MyListingsContent() {
           <option value="price_asc">Price: Low → High</option>
           <option value="price_desc">Price: High → Low</option>
           <option value="most_viewed">Most viewed</option>
+          <option value="alpha">A → Z</option>
         </select>
 
         <button onClick={() => setFiltersOpen(v => !v)} style={{

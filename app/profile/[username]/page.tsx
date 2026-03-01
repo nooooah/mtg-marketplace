@@ -35,37 +35,39 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
 
       {/* Profile header */}
       <div style={{
-        display: 'flex', alignItems: 'flex-start', gap: '24px',
-        padding: '28px 32px', background: 'var(--color-surface)',
+        display: 'flex', alignItems: 'center', gap: '16px',
+        padding: '20px 24px', background: 'var(--color-surface)',
         border: '1px solid var(--color-border)', borderRadius: '16px',
-        marginBottom: '36px', flexWrap: 'wrap',
+        marginBottom: '20px', flexWrap: 'wrap',
       }}>
         {/* Avatar */}
         <div style={{
-          width: '72px', height: '72px', borderRadius: '50%',
+          width: '56px', height: '56px', borderRadius: '50%',
           background: p.avatar_url ? 'transparent' : 'var(--color-blue)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: '26px', fontWeight: 800, color: '#fff', flexShrink: 0, overflow: 'hidden',
+          fontSize: '22px', fontWeight: 800, color: '#fff', flexShrink: 0, overflow: 'hidden',
         }}>
           {p.avatar_url ? <img src={p.avatar_url} alt={p.username} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : initials}
         </div>
 
         {/* Info */}
-        <div style={{ flex: 1, minWidth: '200px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px', flexWrap: 'wrap' }}>
-            <h1 style={{ fontSize: '22px', fontWeight: 800, color: 'var(--color-text)', letterSpacing: '-0.03em', margin: 0 }}>
+        <div style={{ flex: 1, minWidth: '180px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            <h1 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--color-text)', letterSpacing: '-0.02em', margin: 0 }}>
               {p.display_name ?? p.username}
             </h1>
             {p.display_name && (
-              <span style={{ fontSize: '13px', color: 'var(--color-subtle)' }}>@{p.username}</span>
+              <span style={{ fontSize: '12px', color: 'var(--color-subtle)' }}>@{p.username}</span>
             )}
+            <Stat value={l.length} label="Listings" />
+            <Stat value={activeBinders.length} label="Binders" />
           </div>
           {p.bio && (
-            <p style={{ fontSize: '14px', color: 'var(--color-text)', lineHeight: 1.6, margin: '0 0 12px', maxWidth: '520px' }}>
+            <p style={{ fontSize: '13px', color: 'var(--color-muted)', lineHeight: 1.5, margin: '4px 0 6px', maxWidth: '520px' }}>
               {p.bio}
             </p>
           )}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', alignItems: 'center', marginTop: p.bio ? 0 : '6px' }}>
             <MetaBadge icon="📅" text={`Member since ${formatMemberSince(p.created_at)}`} />
             {p.location && <MetaBadge icon="📍" text={p.location} />}
             {p.preferred_lgs && <MetaBadge icon="🏠" text={p.preferred_lgs} />}
@@ -75,12 +77,6 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
               </a>
             )}
           </div>
-        </div>
-
-        {/* Stats */}
-        <div style={{ display: 'flex', gap: '24px', flexShrink: 0 }}>
-          <Stat value={l.length} label="Listings" />
-          <Stat value={activeBinders.length} label="Binders" />
         </div>
       </div>
 
@@ -112,10 +108,14 @@ function MetaBadge({ icon, text }: { icon: string; text: string }) {
 
 function Stat({ value, label }: { value: number; label: string }) {
   return (
-    <div style={{ textAlign: 'center' }}>
-      <p style={{ fontSize: '22px', fontWeight: 800, color: 'var(--color-text)', margin: 0, letterSpacing: '-0.03em' }}>{value}</p>
-      <p style={{ fontSize: '12px', color: 'var(--color-muted)', margin: 0 }}>{label}</p>
-    </div>
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', gap: '4px',
+      fontSize: '12px', color: 'var(--color-muted)',
+      background: 'var(--color-surface-2)', border: '1px solid var(--color-border)',
+      padding: '3px 8px', borderRadius: '20px',
+    }}>
+      <strong style={{ color: 'var(--color-text)', fontWeight: 700 }}>{value}</strong> {label}
+    </span>
   )
 }
 

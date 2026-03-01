@@ -167,6 +167,11 @@ function BindersDisplay({ listings, binders, loading, displayName }: {
 
       {/* Cards tile */}
       <div style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: '16px', padding: '28px' }}>
+        {activeGroup?.binder.description && (
+          <p style={{ fontSize: '13px', color: 'var(--color-muted)', margin: '0 0 16px', fontStyle: 'italic', lineHeight: 1.5 }}>
+            {activeGroup.binder.description}
+          </p>
+        )}
         {activeGroup && <ProfileListingsSection listings={activeGroup.cards} />}
       </div>
 
@@ -226,132 +231,121 @@ function ProfileCard({ profile, listingCount, binderCount, onSave }: {
       background: 'var(--color-surface)',
       border: '1px solid var(--color-border)',
       borderRadius: '16px',
-      padding: '28px 32px',
-      marginBottom: '28px',
+      padding: '20px 24px',
+      marginBottom: '20px',
     }}>
-      <div style={{ display: 'flex', gap: '24px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
-
-        {/* Avatar */}
-        <div style={{
-          width: '80px', height: '80px', borderRadius: '50%', flexShrink: 0,
-          background: profile.avatar_url ? 'transparent' : 'var(--color-blue)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: '30px', fontWeight: 800, color: '#fff', overflow: 'hidden',
-        }}>
-          {profile.avatar_url
-            ? <img src={profile.avatar_url} alt={profile.username} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-            : initials}
-        </div>
-
-        {/* Main info */}
-        <div style={{ flex: 1, minWidth: '220px' }}>
-          {editing ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <ProfileField label="Display name">
-                <input value={displayName} onChange={e => setDisplayName(e.target.value)} placeholder={profile.username} />
-              </ProfileField>
-              <ProfileField label="Bio">
-                <textarea value={bio} onChange={e => setBio(e.target.value)} rows={2} placeholder="A few words about yourself…" style={{ resize: 'vertical' }} />
-              </ProfileField>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                <ProfileField label="Location">
-                  <input value={location} onChange={e => setLocation(e.target.value)} placeholder="e.g. Manila, PH" />
-                </ProfileField>
-                <ProfileField label="Preferred Pod / LGS">
-                  <input value={preferredLgs} onChange={e => setPreferredLgs(e.target.value)} placeholder="e.g. Neutral Grounds" />
-                </ProfileField>
-              </div>
-              <ProfileField label="Facebook Messenger link">
-                <input value={messengerLink} onChange={e => setMessengerLink(e.target.value)} placeholder="https://m.me/yourname" />
-              </ProfileField>
-              {error && <p style={{ fontSize: '13px', color: '#f87171', margin: 0 }}>{error}</p>}
-              <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
-                <button onClick={handleSave} disabled={saving} style={{
-                  padding: '8px 18px', borderRadius: '8px', background: 'var(--color-blue)', border: 'none',
-                  color: '#fff', fontSize: '13px', fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer',
-                  opacity: saving ? 0.6 : 1,
-                }}>
-                  {saving ? 'Saving…' : 'Save changes'}
-                </button>
-                <button onClick={handleCancel} style={{
-                  padding: '8px 14px', borderRadius: '8px', border: '1px solid var(--color-border)',
-                  background: 'transparent', color: 'var(--color-muted)', fontSize: '13px', cursor: 'pointer',
-                }}>
-                  Cancel
-                </button>
-              </div>
-            </div>
-          ) : (
-            <>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '2px', flexWrap: 'wrap' }}>
-                <h1 style={{ fontSize: '22px', fontWeight: 800, color: 'var(--color-text)', letterSpacing: '-0.03em', margin: 0 }}>
-                  {profile.display_name ?? profile.username}
-                </h1>
-                {profile.display_name && (
-                  <span style={{ fontSize: '13px', color: 'var(--color-subtle)' }}>@{profile.username}</span>
-                )}
-              </div>
-              <a
-                href={`/profile/${profile.username}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '12px', color: 'var(--color-muted)', textDecoration: 'none', marginBottom: '10px' }}
-              >
-                <LinkIcon />
-                tcgmarket.ph/profile/{profile.username}
-              </a>
-              {profile.bio && (
-                <p style={{ fontSize: '14px', color: 'var(--color-text)', lineHeight: 1.6, margin: '0 0 12px', maxWidth: '560px' }}>
-                  {profile.bio}
-                </p>
-              )}
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center' }}>
-                <MetaBadge icon={<CalendarIcon />} text={`Member since ${formatMemberSince(profile.created_at)}`} />
-                {profile.location && <MetaBadge icon={<LocationIcon />} text={profile.location} />}
-                {profile.preferred_lgs && <MetaBadge icon={<StoreIcon />} text={profile.preferred_lgs} />}
-                {profile.messenger_link && (
-                  <a href={profile.messenger_link} target="_blank" rel="noopener noreferrer"
-                    style={{ textDecoration: 'none' }}>
-                    <MetaBadge icon={<MessengerIcon />} text="Message on Messenger" clickable />
-                  </a>
-                )}
-              </div>
-            </>
-          )}
-        </div>
-
-        {/* Stats + edit button */}
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '16px', flexShrink: 0 }}>
-          {!editing && (
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <a
-                href={`/profile/${profile.username}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{
-                  padding: '7px 14px', borderRadius: '8px', border: '1px solid var(--color-border)',
-                  background: 'transparent', color: 'var(--color-muted)', fontSize: '13px', fontWeight: 500,
-                  cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', textDecoration: 'none',
-                }}
-              >
-                <EyeIcon /> Preview
-              </a>
-              <button onClick={() => setEditing(true)} style={{
-                padding: '7px 14px', borderRadius: '8px', border: '1px solid var(--color-border)',
-                background: 'transparent', color: 'var(--color-muted)', fontSize: '13px', fontWeight: 500,
-                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px',
-              }}>
-                <EditIcon /> Edit profile
-              </button>
-            </div>
-          )}
-          <div style={{ display: 'flex', gap: '20px' }}>
-            <StatBadge value={listingCount} label="Listings" />
-            <StatBadge value={binderCount} label="Binders" />
+      {editing ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <ProfileField label="Display name">
+            <input value={displayName} onChange={e => setDisplayName(e.target.value)} placeholder={profile.username} />
+          </ProfileField>
+          <ProfileField label="Bio">
+            <textarea value={bio} onChange={e => setBio(e.target.value)} rows={2} placeholder="A few words about yourself…" style={{ resize: 'vertical' }} />
+          </ProfileField>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+            <ProfileField label="Location">
+              <input value={location} onChange={e => setLocation(e.target.value)} placeholder="e.g. Manila, PH" />
+            </ProfileField>
+            <ProfileField label="Preferred Pod / LGS">
+              <input value={preferredLgs} onChange={e => setPreferredLgs(e.target.value)} placeholder="e.g. Neutral Grounds" />
+            </ProfileField>
+          </div>
+          <ProfileField label="Facebook Messenger link">
+            <input value={messengerLink} onChange={e => setMessengerLink(e.target.value)} placeholder="https://m.me/yourname" />
+          </ProfileField>
+          {error && <p style={{ fontSize: '13px', color: '#f87171', margin: 0 }}>{error}</p>}
+          <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
+            <button onClick={handleSave} disabled={saving} style={{
+              padding: '7px 16px', borderRadius: '8px', background: 'var(--color-blue)', border: 'none',
+              color: '#fff', fontSize: '13px', fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer',
+              opacity: saving ? 0.6 : 1,
+            }}>
+              {saving ? 'Saving…' : 'Save changes'}
+            </button>
+            <button onClick={handleCancel} style={{
+              padding: '7px 12px', borderRadius: '8px', border: '1px solid var(--color-border)',
+              background: 'transparent', color: 'var(--color-muted)', fontSize: '13px', cursor: 'pointer',
+            }}>
+              Cancel
+            </button>
           </div>
         </div>
+      ) : (
+        <div style={{ display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap' }}>
+          {/* Avatar */}
+          <div style={{
+            width: '56px', height: '56px', borderRadius: '50%', flexShrink: 0,
+            background: profile.avatar_url ? 'transparent' : 'var(--color-blue)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: '22px', fontWeight: 800, color: '#fff', overflow: 'hidden',
+          }}>
+            {profile.avatar_url
+              ? <img src={profile.avatar_url} alt={profile.username} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              : initials}
+          </div>
 
-      </div>
+          {/* Name + meta */}
+          <div style={{ flex: 1, minWidth: '180px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              <h1 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--color-text)', letterSpacing: '-0.02em', margin: 0 }}>
+                {profile.display_name ?? profile.username}
+              </h1>
+              {profile.display_name && (
+                <span style={{ fontSize: '12px', color: 'var(--color-subtle)' }}>@{profile.username}</span>
+              )}
+              <StatBadge value={listingCount} label="Listings" />
+              <StatBadge value={binderCount} label="Binders" />
+            </div>
+            <a
+              href={`/profile/${profile.username}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: 'var(--color-muted)', textDecoration: 'none', margin: '3px 0 6px' }}
+            >
+              <LinkIcon />
+              tcgmarket.ph/profile/{profile.username}
+            </a>
+            {profile.bio && (
+              <p style={{ fontSize: '13px', color: 'var(--color-muted)', lineHeight: 1.5, margin: '0 0 6px', maxWidth: '520px' }}>
+                {profile.bio}
+              </p>
+            )}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', alignItems: 'center' }}>
+              <MetaBadge icon={<CalendarIcon />} text={`Member since ${formatMemberSince(profile.created_at)}`} />
+              {profile.location && <MetaBadge icon={<LocationIcon />} text={profile.location} />}
+              {profile.preferred_lgs && <MetaBadge icon={<StoreIcon />} text={profile.preferred_lgs} />}
+              {profile.messenger_link && (
+                <a href={profile.messenger_link} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
+                  <MetaBadge icon={<MessengerIcon />} text="Message on Messenger" clickable />
+                </a>
+              )}
+            </div>
+          </div>
+
+          {/* Buttons */}
+          <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+            <a
+              href={`/profile/${profile.username}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                padding: '6px 12px', borderRadius: '8px', border: '1px solid var(--color-border)',
+                background: 'transparent', color: 'var(--color-muted)', fontSize: '12px', fontWeight: 500,
+                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px', textDecoration: 'none',
+              }}
+            >
+              <EyeIcon /> Preview
+            </a>
+            <button onClick={() => setEditing(true)} style={{
+              padding: '6px 12px', borderRadius: '8px', border: '1px solid var(--color-border)',
+              background: 'transparent', color: 'var(--color-muted)', fontSize: '12px', fontWeight: 500,
+              cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px',
+            }}>
+              <EditIcon /> Edit profile
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -374,10 +368,14 @@ function MetaBadge({ icon, text, clickable }: { icon: React.ReactNode; text: str
 
 function StatBadge({ value, label }: { value: number; label: string }) {
   return (
-    <div style={{ textAlign: 'center' }}>
-      <p style={{ fontSize: '20px', fontWeight: 800, color: 'var(--color-text)', margin: 0, letterSpacing: '-0.03em' }}>{value}</p>
-      <p style={{ fontSize: '11px', color: 'var(--color-muted)', margin: 0 }}>{label}</p>
-    </div>
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', gap: '4px',
+      fontSize: '12px', color: 'var(--color-muted)',
+      background: 'var(--color-surface-2)', border: '1px solid var(--color-border)',
+      padding: '3px 8px', borderRadius: '20px',
+    }}>
+      <strong style={{ color: 'var(--color-text)', fontWeight: 700 }}>{value}</strong> {label}
+    </span>
   )
 }
 

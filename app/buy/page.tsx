@@ -8,7 +8,7 @@ import { groupListings } from '@/lib/groupListings'
 import { useDebounce } from '@/hooks/useDebounce'
 import type { Listing, CardCondition } from '@/types'
 
-type SortOption = 'newest' | 'oldest' | 'price_asc' | 'price_desc' | 'hot'
+type SortOption = 'newest' | 'oldest' | 'price_asc' | 'price_desc' | 'hot' | 'alpha'
 
 interface ScryfallSuggestion {
   id: string
@@ -119,6 +119,7 @@ function BuyPageContent() {
       case 'price_asc': q = q.order('price', { ascending: true });       break
       case 'price_desc':q = q.order('price', { ascending: false });      break
       case 'hot':       q = q.order('views', { ascending: false }).order('created_at', { ascending: false }); break
+      case 'alpha':     q = q.order('card_name', { ascending: true }); break
     }
 
     const { data } = await q.limit(lowerThanMarket ? 300 : 48)
@@ -258,6 +259,7 @@ function BuyPageContent() {
           <option value="price_asc">Price: Low → High</option>
           <option value="price_desc">Price: High → Low</option>
           <option value="hot">Most viewed</option>
+          <option value="alpha">A → Z</option>
         </select>
 
         {/* Filter toggle */}
