@@ -36,9 +36,9 @@ async function getLowerThanMarketListings(): Promise<Listing[]> {
       .order('created_at', { ascending: false })
       .limit(120) // fetch enough to find low-multiplier cards after grouping
     const listings = (data as Listing[]) ?? []
-    // Keep only listings that bucket into ×30, ×40, or ×50 (mult ≤ 50)
+    // Keep only listings that bucket into ×30 or ×40 (mult ≤ 40)
     return listings
-      .filter(l => l.usd_price && Math.round(l.price / l.usd_price) <= 50)
+      .filter(l => l.usd_price && Math.round(l.price / l.usd_price) <= 40)
       .sort((a, b) => (a.price / a.usd_price!) - (b.price / b.usd_price!))
   } catch {
     return []
@@ -72,7 +72,7 @@ export default async function HomePage() {
 
       {/* Lower Than Market */}
       <section style={{ marginBottom: '80px' }}>
-        <SectionHeader label="Lower Than Market" description="Cards listed below the usual market rate" href="/buy" linkLabel="Browse all" />
+        <SectionHeader label="Lower Than Market" description="Cards listed below the usual market rate" href="/buy?ltm=1" linkLabel="Browse all" />
         <ListingGrid listings={lowerThanMarket} maxCards={12} emptyLabel="No below-market listings right now. Check back soon." />
       </section>
     </div>

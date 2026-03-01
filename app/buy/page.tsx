@@ -35,15 +35,17 @@ function BuyPageContent() {
 
   const initialQuery = searchParams.get('q') ?? ''
   const initialSort = (searchParams.get('sort') as SortOption) ?? 'newest'
+  const initialLtm = searchParams.get('ltm') === '1'
 
   const [query, setQuery] = useState(initialQuery)
   const [sort, setSort] = useState<SortOption>(initialSort)
   const [conditions, setConditions] = useState<Set<CardCondition>>(new Set())
   const [minPrice, setMinPrice] = useState('')
   const [maxPrice, setMaxPrice] = useState('')
+  const [lowerThanMarket, setLowerThanMarket] = useState(initialLtm)
   const [listings, setListings] = useState<Listing[]>([])
   const [loading, setLoading] = useState(true)
-  const [filtersOpen, setFiltersOpen] = useState(false)
+  const [filtersOpen, setFiltersOpen] = useState(initialLtm)
 
   // Scryfall suggestions
   const [suggestions, setSuggestions] = useState<ScryfallSuggestion[]>([])
@@ -105,6 +107,11 @@ function BuyPageContent() {
     if (minPrice) q = q.gte('price', parseFloat(minPrice))
     if (maxPrice) q = q.lte('price', parseFloat(maxPrice))
 
+    // Fetch more rows when LTM is active so client-side filtering has enough to work with
+    if (lowerThanMarket) {
+      q = q.not('usd_price', 'is', null).gt('usd_price', 0)
+    }
+
     switch (sort) {
       case 'newest':    q = q.order('created_at', { ascending: false }); break
       case 'oldest':    q = q.order('created_at', { ascending: true });  break
@@ -113,10 +120,17 @@ function BuyPageContent() {
       case 'hot':       q = q.order('views', { ascending: false }).order('created_at', { ascending: false }); break
     }
 
-    const { data } = await q.limit(48)
-    setListings((data as Listing[]) ?? [])
+    const { data } = await q.limit(lowerThanMarket ? 300 : 48)
+    let results = (data as Listing[]) ?? []
+
+    if (lowerThanMarket) {
+      results = results
+        .filter(l => l.usd_price && Math.round(l.price / l.usd_price) <= 40)
+    }
+
+    setListings(results)
     setLoading(false)
-  }, [query, sort, conditions, minPrice, maxPrice])
+  }, [query, sort, conditions, minPrice, maxPrice, lowerThanMarket])
 
   useEffect(() => {
     fetchListings()
@@ -146,7 +160,7 @@ function BuyPageContent() {
     }
   }
 
-  const activeFilterCount = conditions.size + (minPrice ? 1 : 0) + (maxPrice ? 1 : 0)
+  const activeFilterCount = conditions.size + (minPrice ? 1 : 0) + (maxPrice ? 1 : 0) + (lowerThanMarket ? 1 : 0)
 
   return (
     <div className="page-wrap" style={{ maxWidth: '1280px', margin: '0 auto', padding: '32px 1.5rem 80px' }}>
@@ -341,11 +355,37 @@ function BuyPageContent() {
             </div>
           </div>
 
+          {/* Lower Than Market */}
+          <div>
+            <p style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-muted)', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Price Tag
+            </p>
+            <button
+              onClick={() => setLowerThanMarket(v => !v)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '7px',
+                padding: '5px 11px', borderRadius: '7px',
+                border: `1px solid ${lowerThanMarket ? '#22c55e' : 'var(--color-border)'}`,
+                background: lowerThanMarket ? '#22c55e18' : 'transparent',
+                color: lowerThanMarket ? '#22c55e' : 'var(--color-muted)',
+                fontSize: '12px', fontWeight: lowerThanMarket ? 600 : 400,
+                transition: 'all 0.15s ease', cursor: 'pointer',
+              }}
+            >
+              <span style={{
+                fontSize: '9px', fontWeight: 700, padding: '1px 4px', borderRadius: '4px',
+                border: `1px solid ${lowerThanMarket ? '#22c55e' : 'var(--color-border)'}40`,
+                background: lowerThanMarket ? '#22c55e18' : 'var(--color-surface-2)',
+              }}>×40</span>
+              Lower Than Market
+            </button>
+          </div>
+
           {/* Clear */}
           {activeFilterCount > 0 && (
             <div style={{ display: 'flex', alignItems: 'flex-end' }}>
               <button
-                onClick={() => { setConditions(new Set()); setMinPrice(''); setMaxPrice('') }}
+                onClick={() => { setConditions(new Set()); setMinPrice(''); setMaxPrice(''); setLowerThanMarket(false) }}
                 style={{ background: 'transparent', color: 'var(--color-muted)', fontSize: '12px', padding: '7px 12px', border: '1px solid var(--color-border)', borderRadius: '7px' }}
               >
                 Clear filters
