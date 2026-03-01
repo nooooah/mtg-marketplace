@@ -797,7 +797,7 @@ function EditPanel({ listing, onSave, onCancel }: {
   const applyMultiplier = (rate: number) => {
     const base = isFoil ? (currentUsdFoil ?? currentUsd) : currentUsd
     if (!base) return
-    setPrice(Math.ceil(parseFloat(base) * rate).toString())
+    setPrice(Math.round(parseFloat(base) * rate).toString())
   }
 
   const handleSave = async () => {
@@ -1014,7 +1014,7 @@ function EditPanel({ listing, onSave, onCancel }: {
                         onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--color-blue)'; (e.currentTarget as HTMLButtonElement).style.color = 'var(--color-blue)' }}
                         onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--color-border)'; (e.currentTarget as HTMLButtonElement).style.color = 'var(--color-muted)' }}
                       >
-                        ×{rate} <span style={{ opacity: 0.7 }}>₱{Math.ceil(parseFloat(base) * rate).toLocaleString('en-PH')}</span>
+                        ×{rate} <span style={{ opacity: 0.7 }}>₱{Math.round(parseFloat(base) * rate).toLocaleString('en-PH')}</span>
                       </button>
                     ))}
                   </div>

@@ -38,7 +38,7 @@ async function getLowerThanMarketListings(): Promise<Listing[]> {
     const listings = (data as Listing[]) ?? []
     // Keep only listings that bucket into ×30, ×40, or ×50 (mult ≤ 50)
     return listings
-      .filter(l => l.usd_price && (l.price / l.usd_price) <= 50)
+      .filter(l => l.usd_price && Math.round(l.price / l.usd_price) <= 50)
       .sort((a, b) => (a.price / a.usd_price!) - (b.price / b.usd_price!))
   } catch {
     return []

@@ -194,7 +194,7 @@ export default function CardTile({ listing, noPreview = false, compact = false, 
                   ₱{listing.price.toLocaleString('en-PH')}
                 </span>
                 {listing.usd_price && listing.usd_price > 0 && (() => {
-                  const mult = listing.price / listing.usd_price
+                  const mult = Math.round(listing.price / listing.usd_price)
                   let bucket: number | null = null
                   let color = 'var(--color-subtle)'
                   if (mult <= 30)      { bucket = 30; color = '#10b981' }

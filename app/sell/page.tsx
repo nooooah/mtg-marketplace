@@ -145,7 +145,7 @@ function SingleCardForm({ userId }: { userId: string }) {
       ? (selectedCard?.prices?.usd_foil ?? selectedCard?.prices?.usd)
       : selectedCard?.prices?.usd
     if (!basePrice) return
-    setPrice(String(Math.ceil(parseFloat(basePrice) * rate)))
+    setPrice(String(Math.round(parseFloat(basePrice) * rate)))
   }
   const clearCard = () => { setSelectedCard(null); setCardQuery(''); setPrice(''); setIsFoil(false) }
   const getCardImage = (card: ScryfallCard) =>
@@ -291,7 +291,7 @@ function SingleCardForm({ userId }: { userId: string }) {
                       <button key={rate} type="button" onClick={() => applyMultiplier(rate)} style={{ padding: '4px 10px', borderRadius: '6px', border: '1px solid var(--color-border)', background: 'var(--color-surface-2)', color: 'var(--color-muted)', fontSize: '12px', fontWeight: 500, cursor: 'pointer', transition: 'all 0.15s ease' }}
                         onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--color-blue)'; e.currentTarget.style.color = 'var(--color-blue)' }}
                         onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--color-border)'; e.currentTarget.style.color = 'var(--color-muted)' }}>
-                        ×{rate} <span style={{ opacity: 0.7 }}>≈ ₱{Math.ceil(parseFloat(base) * rate).toLocaleString()}</span>
+                        ×{rate} <span style={{ opacity: 0.7 }}>≈ ₱{Math.round(parseFloat(base) * rate).toLocaleString()}</span>
                       </button>
                     ))}
                   </div>
@@ -439,7 +439,7 @@ function BulkImportForm({ userId }: { userId: string }) {
         status: card ? 'found' : 'not_found',
         condition: 'NM',
         isFoil: false,
-        price: card?.prices?.usd ? String(Math.ceil(parseFloat(card.prices.usd) * 40)) : '',
+        price: card?.prices?.usd ? String(Math.round(parseFloat(card.prices.usd) * 40)) : '',
       }
     })
 
@@ -467,7 +467,7 @@ function BulkImportForm({ userId }: { userId: string }) {
     setRows(prev => prev.map(r => {
       const base = r.isFoil ? (r.usdFoilPrice ?? r.usdPrice) : r.usdPrice
       if (!base) return r
-      return { ...r, price: String(Math.ceil(parseFloat(base) * rate)) }
+      return { ...r, price: String(Math.round(parseFloat(base) * rate)) }
     }))
   }
 
@@ -475,7 +475,7 @@ function BulkImportForm({ userId }: { userId: string }) {
     setRows(prev => prev.map(r => {
       const base = foil ? (r.usdFoilPrice ?? r.usdPrice) : r.usdPrice
       const newPrice = base && globalMultiplier
-        ? String(Math.ceil(parseFloat(base) * globalMultiplier))
+        ? String(Math.round(parseFloat(base) * globalMultiplier))
         : r.price
       return { ...r, isFoil: foil, price: newPrice }
     }))
@@ -761,7 +761,7 @@ function BulkRowCard({ row, onChange, onRemove }: {
       rarity: p.rarity,
       usdPrice: p.usd,
       usdFoilPrice: p.usd_foil,
-      price: base ? String(Math.ceil(parseFloat(base) * 40)) : row.price,
+      price: base ? String(Math.round(parseFloat(base) * 40)) : row.price,
     })
     setShowPrintings(false)
   }
@@ -769,13 +769,13 @@ function BulkRowCard({ row, onChange, onRemove }: {
   const applyMultiplier = (rate: number) => {
     const base = row.isFoil ? (row.usdFoilPrice ?? row.usdPrice) : row.usdPrice
     if (!base) return
-    onChange({ price: String(Math.ceil(parseFloat(base) * rate)) })
+    onChange({ price: String(Math.round(parseFloat(base) * rate)) })
   }
 
   const toggleFoil = () => {
     const newFoil = !row.isFoil
     const base = newFoil ? (row.usdFoilPrice ?? row.usdPrice) : row.usdPrice
-    const newPrice = base ? String(Math.ceil(parseFloat(base) * 40)) : row.price
+    const newPrice = base ? String(Math.round(parseFloat(base) * 40)) : row.price
     onChange({ isFoil: newFoil, price: newPrice })
   }
 
@@ -885,7 +885,7 @@ function BulkRowCard({ row, onChange, onRemove }: {
                     onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--color-blue)'; (e.currentTarget as HTMLButtonElement).style.color = 'var(--color-blue)' }}
                     onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--color-border)'; (e.currentTarget as HTMLButtonElement).style.color = 'var(--color-muted)' }}
                   >
-                    ×{rate} <span style={{ opacity: 0.65 }}>₱{Math.ceil(parseFloat(row.usdPrice!) * rate).toLocaleString('en-PH')}</span>
+                    ×{rate} <span style={{ opacity: 0.65 }}>₱{Math.round(parseFloat(row.usdPrice!) * rate).toLocaleString('en-PH')}</span>
                   </button>
                 ))}
               </div>
