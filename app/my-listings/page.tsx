@@ -365,43 +365,69 @@ function MyListingsContent() {
         </button>
       </div>
 
-      {/* Active binder description + total count */}
+      {/* Active binder info tile */}
       {selectedBinderId !== 'unsorted' && (() => {
         const activeBinder = binders.find(b => b.id === selectedBinderId)
         if (!activeBinder) return null
-        const totalCards = listings.filter(l => l.binder_id === selectedBinderId).length
+        const binderAll = listings.filter(l => l.binder_id === selectedBinderId)
+        const totalCards = binderAll.length
+        const totalToEarn = binderAll
+          .filter(l => (l.status ?? 'listed') === 'listed')
+          .reduce((sum, l) => sum + l.price * l.quantity, 0)
         const isEditingDesc = editingDescId === selectedBinderId
         return (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px', minHeight: '28px' }}>
-            <span style={{ fontSize: '12px', color: 'var(--color-subtle)', fontWeight: 500 }}>
-              {totalCards} card{totalCards !== 1 ? 's' : ''} total
-            </span>
-            <span style={{ fontSize: '12px', color: 'var(--color-border)' }}>·</span>
-            {isEditingDesc ? (
-              <input
-                autoFocus
-                value={descValue}
-                onChange={e => setDescValue(e.target.value)}
-                onBlur={() => handleDescribeBinder(selectedBinderId, descValue)}
-                onKeyDown={e => {
-                  if (e.key === 'Enter') handleDescribeBinder(selectedBinderId, descValue)
-                  if (e.key === 'Escape') setEditingDescId(null)
-                }}
-                placeholder="Add a short description…"
-                style={{ flex: 1, maxWidth: '420px', fontSize: '13px', padding: '3px 8px', borderRadius: '6px' }}
-              />
-            ) : (
-              <button
-                onClick={() => { setEditingDescId(selectedBinderId); setDescValue(activeBinder.description ?? '') }}
-                style={{
-                  background: 'transparent', border: 'none', padding: 0,
-                  fontSize: '13px', color: activeBinder.description ? 'var(--color-text)' : 'var(--color-subtle)',
-                  cursor: 'pointer', textAlign: 'left', fontStyle: activeBinder.description ? 'normal' : 'italic',
-                }}
-              >
-                {activeBinder.description ?? 'Add description…'}
-              </button>
-            )}
+          <div style={{
+            background: 'var(--color-surface)', border: '1px solid var(--color-border)',
+            borderRadius: '12px', padding: '16px 20px', marginBottom: '20px',
+          }}>
+            {/* Description row */}
+            <div style={{ marginBottom: '14px' }}>
+              <p style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-subtle)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>
+                Description
+              </p>
+              {isEditingDesc ? (
+                <input
+                  autoFocus
+                  value={descValue}
+                  onChange={e => setDescValue(e.target.value)}
+                  onBlur={() => handleDescribeBinder(selectedBinderId, descValue)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') handleDescribeBinder(selectedBinderId, descValue)
+                    if (e.key === 'Escape') setEditingDescId(null)
+                  }}
+                  placeholder="Add a short description…"
+                  style={{ width: '100%', maxWidth: '480px', fontSize: '13px', padding: '6px 10px', borderRadius: '7px' }}
+                />
+              ) : (
+                <button
+                  onClick={() => { setEditingDescId(selectedBinderId); setDescValue(activeBinder.description ?? '') }}
+                  style={{
+                    background: 'transparent', border: 'none', padding: 0,
+                    fontSize: '13px', color: activeBinder.description ? 'var(--color-text)' : 'var(--color-subtle)',
+                    cursor: 'pointer', textAlign: 'left', fontStyle: activeBinder.description ? 'normal' : 'italic',
+                  }}
+                >
+                  {activeBinder.description ?? 'Add description…'}
+                </button>
+              )}
+            </div>
+
+            {/* Stats row */}
+            <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap' }}>
+              <div>
+                <p style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-subtle)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '3px' }}>Cards</p>
+                <p style={{ fontSize: '18px', fontWeight: 700, color: 'var(--color-text)', letterSpacing: '-0.02em' }}>
+                  {totalCards}
+                </p>
+              </div>
+              <div style={{ width: '1px', background: 'var(--color-border)', alignSelf: 'stretch' }} />
+              <div>
+                <p style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-subtle)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '3px' }}>Total to Earn</p>
+                <p style={{ fontSize: '18px', fontWeight: 700, color: 'var(--color-text)', letterSpacing: '-0.02em' }}>
+                  ₱{totalToEarn.toLocaleString('en-PH')}
+                </p>
+              </div>
+            </div>
           </div>
         )
       })()}
