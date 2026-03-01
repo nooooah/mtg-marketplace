@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
 import PublicBindersDisplay from '@/components/PublicBindersDisplay'
-import type { Listing, Profile, WantedCard, Binder } from '@/types'
+import type { Listing, Profile, Binder } from '@/types'
 
 function formatMemberSince(dateStr: string) {
   return new Date(dateStr).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
@@ -19,15 +19,13 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
 
   if (!profile) notFound()
 
-  const [{ data: listings }, { data: wanted }, { data: binders }] = await Promise.all([
+  const [{ data: listings }, { data: binders }] = await Promise.all([
     supabase.from('listings').select('*, profiles(username, avatar_url)').eq('user_id', profile.id).eq('status', 'listed').not('binder_id', 'is', null).order('created_at', { ascending: false }),
-    supabase.from('wanted_cards').select('*').eq('user_id', profile.id).order('created_at', { ascending: false }),
     supabase.from('binders').select('*').eq('user_id', profile.id).order('display_order'),
   ])
 
   const p = profile as Profile
   const l = (listings ?? []) as Listing[]
-  const w = (wanted ?? []) as WantedCard[]
   const b = (binders ?? []) as Binder[]
   const activeBinders = b.filter(binder => l.some(listing => listing.binder_id === binder.id))
   const initials = (p.display_name ?? p.username)?.[0]?.toUpperCase() ?? '?'
@@ -83,7 +81,6 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
         <div style={{ display: 'flex', gap: '24px', flexShrink: 0 }}>
           <Stat value={l.length} label="Listings" />
           <Stat value={activeBinders.length} label="Binders" />
-          <Stat value={w.length} label="Wanted" />
         </div>
       </div>
 
@@ -94,49 +91,6 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
         displayName={p.display_name ?? p.username}
       />
 
-      {/* Wanted section */}
-      <SectionHeader
-        title="Looking to Buy"
-        subtitle={`${w.length} card${w.length !== 1 ? 's' : ''} on the wanted list`}
-      />
-      {w.length === 0 ? (
-        <EmptyState>No wanted cards listed.</EmptyState>
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          {w.map(item => <WantedRow key={item.id} item={item} />)}
-        </div>
-      )}
-
-    </div>
-  )
-}
-
-function WantedRow({ item: w }: { item: WantedCard }) {
-  return (
-    <div style={{
-      display: 'flex', alignItems: 'center', gap: '14px',
-      background: 'var(--color-surface)', border: '1px solid var(--color-border)',
-      borderRadius: '10px', padding: '12px 16px',
-    }}>
-      <div style={{ width: '40px', height: '56px', borderRadius: '4px', overflow: 'hidden', flexShrink: 0, background: 'var(--color-surface-2)' }}>
-        {w.card_image_uri && <img src={w.card_image_uri} alt={w.card_name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
-      </div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <p style={{ fontWeight: 700, fontSize: '14px', color: 'var(--color-text)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {w.card_name}
-          </p>
-          {w.is_foil && (
-            <span style={{ fontSize: '10px', fontWeight: 700, color: '#fbbf24', background: 'rgba(234,179,8,0.1)', border: '1px solid rgba(234,179,8,0.3)', padding: '1px 6px', borderRadius: '5px' }}>
-              FOIL
-            </span>
-          )}
-        </div>
-        <p style={{ fontSize: '12px', color: 'var(--color-muted)', margin: '2px 0 0' }}>
-          {w.card_set_name ?? w.card_set?.toUpperCase()}
-          {w.card_collector_number && <span style={{ color: 'var(--color-subtle)' }}> · #{w.card_collector_number}</span>}
-        </p>
-      </div>
     </div>
   )
 }
@@ -165,19 +119,3 @@ function Stat({ value, label }: { value: number; label: string }) {
   )
 }
 
-function SectionHeader({ title, subtitle }: { title: string; subtitle: string }) {
-  return (
-    <div style={{ marginBottom: '16px' }}>
-      <h2 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--color-text)', letterSpacing: '-0.02em', margin: 0 }}>{title}</h2>
-      <p style={{ fontSize: '13px', color: 'var(--color-muted)', marginTop: '4px' }}>{subtitle}</p>
-    </div>
-  )
-}
-
-function EmptyState({ children }: { children: React.ReactNode }) {
-  return (
-    <div style={{ padding: '32px 24px', textAlign: 'center', background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: '12px', color: 'var(--color-muted)', fontSize: '14px', marginBottom: '40px' }}>
-      {children}
-    </div>
-  )
-}
