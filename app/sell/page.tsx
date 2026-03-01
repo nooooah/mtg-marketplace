@@ -287,7 +287,7 @@ function SingleCardForm({ userId }: { userId: string }) {
                     Manabox{isFoil ? ' foil' : ''}: <strong style={{ color: 'var(--color-text)' }}>${base} USD</strong> — suggest PHP:
                   </p>
                   <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                    {[30, 40, 70].map(rate => (
+                    {[30, 40, 50, 60, 70].map(rate => (
                       <button key={rate} type="button" onClick={() => applyMultiplier(rate)} style={{ padding: '4px 10px', borderRadius: '6px', border: '1px solid var(--color-border)', background: 'var(--color-surface-2)', color: 'var(--color-muted)', fontSize: '12px', fontWeight: 500, cursor: 'pointer', transition: 'all 0.15s ease' }}
                         onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--color-blue)'; e.currentTarget.style.color = 'var(--color-blue)' }}
                         onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--color-border)'; e.currentTarget.style.color = 'var(--color-muted)' }}>
@@ -604,7 +604,7 @@ function BulkImportForm({ userId }: { userId: string }) {
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
               <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Apply multiplier:</span>
               <div style={{ display: 'flex', gap: '5px' }}>
-                {[30, 40, 70].map(rate => (
+                {[30, 40, 50, 60, 70].map(rate => (
                   <button key={rate} onClick={() => applyGlobalMultiplier(rate)} style={{
                     padding: '4px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 600,
                     border: `1px solid ${globalMultiplier === rate ? 'var(--color-blue)' : 'var(--color-border)'}`,
@@ -875,7 +875,7 @@ function BulkRowCard({ row, onChange, onRemove }: {
             {/* Multiplier buttons */}
             {row.usdPrice && !isNotFound && (
               <div style={{ display: 'flex', gap: '4px' }}>
-                {[30, 40, 70].map(rate => (
+                {[30, 40, 50, 60, 70].map(rate => (
                   <button key={rate} onClick={() => applyMultiplier(rate)} style={{
                     padding: '5px 9px', borderRadius: '6px', fontSize: '11px', fontWeight: 600,
                     border: '1px solid var(--color-border)', background: 'transparent',

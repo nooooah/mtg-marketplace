@@ -36,9 +36,9 @@ async function getLowerThanMarketListings(): Promise<Listing[]> {
       .order('created_at', { ascending: false })
       .limit(120) // fetch enough to find low-multiplier cards after grouping
     const listings = (data as Listing[]) ?? []
-    // Keep only listings with multiplier < 50 (below typical market rate of ~56–60×)
+    // Keep only listings that bucket into ×30, ×40, or ×50 (mult ≤ 50)
     return listings
-      .filter(l => l.usd_price && Math.round(l.price / l.usd_price) < 50)
+      .filter(l => l.usd_price && (l.price / l.usd_price) <= 50)
       .sort((a, b) => (a.price / a.usd_price!) - (b.price / b.usd_price!))
   } catch {
     return []

@@ -1005,7 +1005,7 @@ function EditPanel({ listing, onSave, onCancel }: {
                     Manabox{isFoil ? ' foil' : ''}: <span style={{ color: 'var(--color-muted)' }}>${base} USD</span> — suggest PHP:
                   </p>
                   <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                    {[30, 40, 70].map(rate => (
+                    {[30, 40, 50, 60, 70].map(rate => (
                       <button key={rate} onClick={() => applyMultiplier(rate)} style={{
                         padding: '4px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 600,
                         background: 'var(--color-surface)', border: '1px solid var(--color-border)',
