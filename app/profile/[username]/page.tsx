@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
-import ProfileListingsSection from '@/components/ProfileListingsSection'
-import type { Listing, Profile, WantedCard } from '@/types'
+import PublicBindersDisplay from '@/components/PublicBindersDisplay'
+import type { Listing, Profile, WantedCard, Binder } from '@/types'
 
 function formatMemberSince(dateStr: string) {
   return new Date(dateStr).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
@@ -19,14 +19,17 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
 
   if (!profile) notFound()
 
-  const [{ data: listings }, { data: wanted }] = await Promise.all([
+  const [{ data: listings }, { data: wanted }, { data: binders }] = await Promise.all([
     supabase.from('listings').select('*, profiles(username, avatar_url)').eq('user_id', profile.id).eq('status', 'listed').not('binder_id', 'is', null).order('created_at', { ascending: false }),
     supabase.from('wanted_cards').select('*').eq('user_id', profile.id).order('created_at', { ascending: false }),
+    supabase.from('binders').select('*').eq('user_id', profile.id).order('display_order'),
   ])
 
   const p = profile as Profile
   const l = (listings ?? []) as Listing[]
   const w = (wanted ?? []) as WantedCard[]
+  const b = (binders ?? []) as Binder[]
+  const activeBinders = b.filter(binder => l.some(listing => listing.binder_id === binder.id))
   const initials = (p.display_name ?? p.username)?.[0]?.toUpperCase() ?? '?'
 
   return (
@@ -79,22 +82,17 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
         {/* Stats */}
         <div style={{ display: 'flex', gap: '24px', flexShrink: 0 }}>
           <Stat value={l.length} label="Listings" />
+          <Stat value={activeBinders.length} label="Binders" />
           <Stat value={w.length} label="Wanted" />
         </div>
       </div>
 
-      {/* Listings section */}
-      <SectionHeader
-        title="Active Listings"
-        subtitle={`${l.length} card${l.length !== 1 ? 's' : ''} for sale`}
+      {/* Binders section */}
+      <PublicBindersDisplay
+        listings={l}
+        binders={b}
+        displayName={p.display_name ?? p.username}
       />
-      {l.length === 0 ? (
-        <EmptyState>No listings yet.</EmptyState>
-      ) : (
-        <div style={{ marginBottom: '48px' }}>
-          <ProfileListingsSection listings={l} />
-        </div>
-      )}
 
       {/* Wanted section */}
       <SectionHeader
