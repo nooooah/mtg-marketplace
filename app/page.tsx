@@ -59,11 +59,11 @@ export default async function HomePage() {
       {/* Search bar */}
       <section style={{ paddingTop: '48px', marginBottom: '28px' }}>
         <h1 style={{
-          textAlign: 'center', fontSize: '36px', fontWeight: 800,
+          textAlign: 'center', fontSize: '36px', fontWeight: 500,
           color: 'var(--color-text)', letterSpacing: '-0.03em',
           marginBottom: '24px', lineHeight: 1.2,
         }}>
-          Search from all community binders in a click.
+          Search across community binders in a single location.
         </h1>
         <HomeSearchBar />
       </section>
