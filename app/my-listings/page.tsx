@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useMemo, useRef, Suspense } from 'rea
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
-import type { Listing, CardCondition, ScryfallCard } from '@/types'
+import type { Listing, CardCondition, ScryfallCard, Binder } from '@/types'
 import { useCardHover, HoverCardImage } from '@/components/CardHoverPreview'
 import { formatDate } from '@/lib/utils'
 
@@ -64,6 +64,12 @@ function MyListingsContent() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [bulkLoading, setBulkLoading] = useState(false)
 
+  // Binders
+  const [binders, setBinders] = useState<Binder[]>([])
+  const [selectedBinderId, setSelectedBinderId] = useState<string | 'unsorted'>('unsorted')
+  const [renamingBinderId, setRenamingBinderId] = useState<string | null>(null)
+  const [renameValue, setRenameValue] = useState('')
+
   // Auth guard
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -74,6 +80,56 @@ function MyListingsContent() {
       }
     })
   }, [])
+
+  // Fetch + auto-create binders
+  useEffect(() => {
+    if (!userId) return
+    const init = async () => {
+      const { data: existing } = await supabase
+        .from('binders').select('*').eq('user_id', userId).order('display_order')
+      if (existing && existing.length > 0) {
+        setBinders(existing as Binder[])
+      } else {
+        const defaults = [
+          { user_id: userId, name: 'Binder 1', display_order: 0 },
+          { user_id: userId, name: 'Binder 2', display_order: 1 },
+          { user_id: userId, name: 'Binder 3', display_order: 2 },
+        ]
+        const { data: created } = await supabase.from('binders').insert(defaults).select()
+        if (created) setBinders(created as Binder[])
+      }
+    }
+    init()
+  }, [userId])
+
+  const handleAddBinder = async () => {
+    if (!userId) return
+    const display_order = binders.length
+    const { data } = await supabase
+      .from('binders')
+      .insert({ user_id: userId, name: `Binder ${binders.length + 1}`, display_order })
+      .select().single()
+    if (data) {
+      setBinders(prev => [...prev, data as Binder])
+      setSelectedBinderId((data as Binder).id)
+    }
+  }
+
+  const handleRenameBinder = async (id: string, name: string) => {
+    const trimmed = name.trim()
+    if (!trimmed) return
+    await supabase.from('binders').update({ name: trimmed }).eq('id', id)
+    setBinders(prev => prev.map(b => b.id === id ? { ...b, name: trimmed } : b))
+    setRenamingBinderId(null)
+  }
+
+  const handleMoveToBinder = async (ids: string[], binderId: string | null) => {
+    setBulkLoading(true)
+    await supabase.from('listings').update({ binder_id: binderId }).in('id', ids)
+    setListings(prev => prev.map(l => ids.includes(l.id) ? { ...l, binder_id: binderId } : l))
+    setSelectedIds(new Set())
+    setBulkLoading(false)
+  }
 
   // Fetch ALL listings (all statuses), filter client-side for instant tab switching
   const fetchListings = useCallback(async () => {
@@ -107,16 +163,23 @@ function MyListingsContent() {
     if (userId) fetchListings()
   }, [fetchListings, userId])
 
-  // Computed
+  // Computed — filter by selected binder first, then by status
+  const binderListings = useMemo(() =>
+    selectedBinderId === 'unsorted'
+      ? listings.filter(l => !l.binder_id)
+      : listings.filter(l => l.binder_id === selectedBinderId),
+    [listings, selectedBinderId]
+  )
+
   const tabCounts = useMemo(() => ({
-    listed:   listings.filter(l => (l.status ?? 'listed') === 'listed').length,
-    unlisted: listings.filter(l => l.status === 'unlisted').length,
-    sold:     listings.filter(l => l.status === 'sold').length,
-  }), [listings])
+    listed:   binderListings.filter(l => (l.status ?? 'listed') === 'listed').length,
+    unlisted: binderListings.filter(l => l.status === 'unlisted').length,
+    sold:     binderListings.filter(l => l.status === 'sold').length,
+  }), [binderListings])
 
   const displayedListings = useMemo(() =>
-    listings.filter(l => (l.status ?? 'listed') === activeTab),
-    [listings, activeTab]
+    binderListings.filter(l => (l.status ?? 'listed') === activeTab),
+    [binderListings, activeTab]
   )
 
   const allSelected = selectedIds.size > 0 && selectedIds.size === displayedListings.length
@@ -135,6 +198,14 @@ function MyListingsContent() {
     setSelectedIds(new Set())
     setEditingId(null)
     setConfirmDeleteId(null)
+  }
+
+  const switchBinder = (id: string | 'unsorted') => {
+    setSelectedBinderId(id)
+    setSelectedIds(new Set())
+    setEditingId(null)
+    setConfirmDeleteId(null)
+    setActiveTab('listed')
   }
 
   const toggleSelect = (id: string) => {
@@ -200,6 +271,75 @@ function MyListingsContent() {
         }}>
           <PlusIcon /> New listing
         </Link>
+      </div>
+
+      {/* Binder Tabs */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginBottom: '20px' }}>
+        {/* Unsorted */}
+        {[{ id: 'unsorted', name: 'Unsorted' }, ...binders].map((b) => {
+          const isUnsorted = b.id === 'unsorted'
+          const isActive = selectedBinderId === b.id
+          const count = isUnsorted
+            ? listings.filter(l => !l.binder_id).length
+            : listings.filter(l => l.binder_id === b.id).length
+          const isRenaming = !isUnsorted && renamingBinderId === b.id
+          return (
+            <div key={b.id} style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+              {isRenaming ? (
+                <input
+                  autoFocus
+                  value={renameValue}
+                  onChange={e => setRenameValue(e.target.value)}
+                  onBlur={() => handleRenameBinder(b.id, renameValue || b.name)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') handleRenameBinder(b.id, renameValue || b.name)
+                    if (e.key === 'Escape') setRenamingBinderId(null)
+                  }}
+                  style={{ width: '110px', fontSize: '13px', padding: '5px 9px', borderRadius: '8px' }}
+                />
+              ) : (
+                <button
+                  onClick={() => switchBinder(b.id as string | 'unsorted')}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '6px',
+                    padding: '6px 12px', borderRadius: '8px', fontSize: '13px', fontWeight: isActive ? 600 : 400,
+                    border: `1px solid ${isActive ? 'var(--color-blue)' : 'var(--color-border)'}`,
+                    background: isActive ? 'var(--color-blue-glow)' : 'var(--color-surface)',
+                    color: isActive ? 'var(--color-blue)' : 'var(--color-muted)',
+                    cursor: 'pointer', transition: 'all 0.12s ease',
+                  }}
+                >
+                  {b.name}
+                  <span style={{
+                    fontSize: '10px', fontWeight: 700, padding: '1px 5px', borderRadius: '8px',
+                    background: isActive ? 'rgba(59,130,246,0.15)' : 'var(--color-surface-2)',
+                    color: isActive ? 'var(--color-blue)' : 'var(--color-subtle)',
+                    border: `1px solid ${isActive ? 'rgba(59,130,246,0.25)' : 'var(--color-border)'}`,
+                  }}>{count}</span>
+                </button>
+              )}
+              {!isUnsorted && !isRenaming && (
+                <button
+                  onClick={() => { setRenamingBinderId(b.id); setRenameValue(b.name) }}
+                  title="Rename binder"
+                  style={{ background: 'transparent', border: 'none', color: 'var(--color-subtle)', cursor: 'pointer', padding: '4px', fontSize: '11px', lineHeight: 1 }}
+                >✏️</button>
+              )}
+            </div>
+          )
+        })}
+        <button
+          onClick={handleAddBinder}
+          style={{
+            display: 'flex', alignItems: 'center', gap: '5px',
+            padding: '6px 12px', borderRadius: '8px', fontSize: '13px',
+            border: '1px dashed var(--color-border)',
+            background: 'transparent', color: 'var(--color-subtle)',
+            cursor: 'pointer', transition: 'all 0.12s ease',
+          }}
+        >
+          + Add Binder
+        </button>
       </div>
 
       {/* Status Tabs */}
@@ -419,6 +559,8 @@ function MyListingsContent() {
                 onCancelDelete={() => setConfirmDeleteId(null)}
                 onConfirmDelete={() => handleDelete(listing.id)}
                 onStatusChange={(status) => handleStatusChange([listing.id], status)}
+                binders={binders}
+                onMoveToBinder={(binderId) => handleMoveToBinder([listing.id], binderId)}
               />
             ))}
           </div>
@@ -461,6 +603,19 @@ function MyListingsContent() {
             </button>
           ))}
           <div style={{ width: '1px', height: '18px', background: 'var(--color-border)', margin: '0 4px' }} />
+          <select
+            onChange={e => { if (e.target.value) handleMoveToBinder(Array.from(selectedIds), e.target.value === 'unsorted' ? null : e.target.value) }}
+            defaultValue=""
+            disabled={bulkLoading}
+            style={{ padding: '7px 10px', borderRadius: '8px', fontSize: '12px', border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-muted)', cursor: 'pointer' }}
+          >
+            <option value="" disabled>Move to binder…</option>
+            <option value="unsorted">Unsorted</option>
+            {binders.map(b => (
+              <option key={b.id} value={b.id}>{b.name}</option>
+            ))}
+          </select>
+          <div style={{ width: '1px', height: '18px', background: 'var(--color-border)', margin: '0 4px' }} />
           <button
             onClick={() => setSelectedIds(new Set())}
             style={{
@@ -484,7 +639,7 @@ function ListingRow({
   isEditing, confirmingDelete, deleting,
   onEdit, onCancelEdit, onSave,
   onRequestDelete, onCancelDelete, onConfirmDelete,
-  onStatusChange,
+  onStatusChange, binders, onMoveToBinder,
 }: {
   listing: Listing
   activeTab: ListingStatus
@@ -497,6 +652,8 @@ function ListingRow({
   onCancelEdit: () => void
   onSave: (updated: Listing) => void
   onRequestDelete: () => void
+  binders: Binder[]
+  onMoveToBinder: (binderId: string | null) => void
   onCancelDelete: () => void
   onConfirmDelete: () => void
   onStatusChange: (status: ListingStatus) => void
@@ -660,6 +817,8 @@ function ListingRow({
           listing={listing}
           onSave={onSave}
           onCancel={onCancelEdit}
+          binders={binders}
+          onMoveToBinder={onMoveToBinder}
         />
       )}
     </div>
@@ -705,10 +864,12 @@ type PrintingOption = {
   collector_number: string
 }
 
-function EditPanel({ listing, onSave, onCancel }: {
+function EditPanel({ listing, onSave, onCancel, binders, onMoveToBinder }: {
   listing: Listing
   onSave: (updated: Listing) => void
   onCancel: () => void
+  binders: Binder[]
+  onMoveToBinder: (binderId: string | null) => void
 }) {
   const supabase = createClient()
 
@@ -1044,6 +1205,23 @@ function EditPanel({ listing, onSave, onCancel }: {
               >+</button>
             </div>
           </div>
+
+          {/* Binder assignment */}
+          {binders.length > 0 && (
+            <div style={{ marginBottom: '8px' }}>
+              <p style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>Binder</p>
+              <select
+                value={listing.binder_id ?? 'unsorted'}
+                onChange={e => onMoveToBinder(e.target.value === 'unsorted' ? null : e.target.value)}
+                style={{ width: '100%', padding: '8px 10px', fontSize: '13px', borderRadius: '8px' }}
+              >
+                <option value="unsorted">Unsorted</option>
+                {binders.map(b => (
+                  <option key={b.id} value={b.id}>{b.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {error && <p style={{ fontSize: '13px', color: '#ef4444' }}>{error}</p>}
 

@@ -23,6 +23,14 @@ export interface WantedCard {
   created_at: string
 }
 
+export interface Binder {
+  id: string
+  user_id: string
+  name: string
+  display_order: number
+  created_at: string
+}
+
 export interface Listing {
   id: string
   user_id: string
@@ -42,6 +50,7 @@ export interface Listing {
   views: number
   usd_price: number | null
   status: 'listed' | 'unlisted' | 'sold'
+  binder_id: string | null
   created_at: string
   profiles?: Profile
 }

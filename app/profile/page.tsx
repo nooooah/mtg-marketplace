@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import type { Profile, Listing } from '@/types'
+import type { Profile, Listing, Binder } from '@/types'
 import ProfileListingsSection from '@/components/ProfileListingsSection'
 
 /* ─── Helpers ─────────────────────────────────────────────────────────── */
@@ -58,11 +58,14 @@ function ProfileContent({ userId, initialProfile }: { userId: string; initialPro
   const supabase = createClient()
   const [profile, setProfile] = useState(initialProfile)
   const [listings, setListings] = useState<Listing[]>([])
+  const [binders, setBinders] = useState<Binder[]>([])
   const [listingsLoading, setListingsLoading] = useState(true)
 
   useEffect(() => {
     supabase.from('listings').select('*').eq('user_id', userId).eq('status', 'listed').order('created_at', { ascending: false })
       .then(({ data }) => { setListings((data ?? []) as Listing[]); setListingsLoading(false) })
+    supabase.from('binders').select('*').eq('user_id', userId).order('display_order')
+      .then(({ data }) => { if (data) setBinders(data as Binder[]) })
   }, [userId])
 
   return (
@@ -72,21 +75,62 @@ function ProfileContent({ userId, initialProfile }: { userId: string; initialPro
         <ProfileCard
           profile={profile}
           listingCount={listings.length}
+          binderCount={binders.length}
           onSave={updated => setProfile(updated)}
         />
 
-        <ListingsTab listings={listings} loading={listingsLoading} />
+        <BindersDisplay listings={listings} binders={binders} loading={listingsLoading} />
 
       </div>
     </PageShell>
   )
 }
 
+/* ─── Binders Display ─────────────────────────────────────────────────── */
+
+function BindersDisplay({ listings, binders, loading }: { listings: Listing[]; binders: Binder[]; loading: boolean }) {
+  if (loading) return <TabEmpty>Loading listings…</TabEmpty>
+
+  // Group listed cards by binder
+  const unsorted = listings.filter(l => !l.binder_id)
+  const binderGroups = binders.map(b => ({
+    binder: b,
+    cards: listings.filter(l => l.binder_id === b.id),
+  })).filter(g => g.cards.length > 0)
+
+  if (listings.length === 0) {
+    return (
+      <TabEmpty>
+        No active listings.{' '}
+        <a href="/sell" style={{ color: 'var(--color-blue)', textDecoration: 'none' }}>List a card →</a>
+      </TabEmpty>
+    )
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '40px' }}>
+      {unsorted.length > 0 && (
+        <div>
+          <h3 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--color-muted)', margin: '0 0 16px', letterSpacing: '-0.01em' }}>Unsorted</h3>
+          <ProfileListingsSection listings={unsorted} />
+        </div>
+      )}
+      {binderGroups.map(({ binder, cards }) => (
+        <div key={binder.id}>
+          <h3 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--color-text)', margin: '0 0 16px', letterSpacing: '-0.01em' }}>{binder.name}</h3>
+          <ProfileListingsSection listings={cards} />
+        </div>
+      ))}
+    </div>
+  )
+}
+
 /* ─── Profile Card ────────────────────────────────────────────────────── */
 
-function ProfileCard({ profile, listingCount, onSave }: {
+function ProfileCard({ profile, listingCount, binderCount, onSave }: {
   profile: Profile
   listingCount: number
+  binderCount: number
   onSave: (p: Profile) => void
 }) {
   const supabase = createClient()
@@ -231,27 +275,13 @@ function ProfileCard({ profile, listingCount, onSave }: {
           )}
           <div style={{ display: 'flex', gap: '20px' }}>
             <StatBadge value={listingCount} label="Listings" />
+            <StatBadge value={binderCount} label="Binders" />
           </div>
         </div>
 
       </div>
     </div>
   )
-}
-
-/* ─── Listings Tab ────────────────────────────────────────────────────── */
-
-function ListingsTab({ listings, loading }: { listings: Listing[]; loading: boolean }) {
-  if (loading) return <TabEmpty>Loading listings…</TabEmpty>
-  if (listings.length === 0) {
-    return (
-      <TabEmpty>
-        You have no active listings.{' '}
-        <a href="/sell" style={{ color: 'var(--color-blue)', textDecoration: 'none' }}>List a card →</a>
-      </TabEmpty>
-    )
-  }
-  return <ProfileListingsSection listings={listings} />
 }
 
 /* ─── Small UI components ─────────────────────────────────────────────── */
