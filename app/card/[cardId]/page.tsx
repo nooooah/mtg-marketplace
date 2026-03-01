@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import CardListingsSection from './CardListingsSection'
-import type { Listing } from '@/types'
+import type { Listing, ScryfallCard } from '@/types'
 import { formatDate } from '@/lib/utils'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
