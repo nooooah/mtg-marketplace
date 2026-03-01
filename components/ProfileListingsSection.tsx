@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react'
 import CardTile from './CardTile'
 import type { Listing, CardCondition } from '@/types'
 
-type SortOption = 'newest' | 'oldest' | 'price_asc' | 'price_desc'
+type SortOption = 'newest' | 'oldest' | 'price_asc' | 'price_desc' | 'alpha'
 
 const CONDITIONS: CardCondition[] = ['NM', 'LP', 'MP', 'HP', 'DMG']
 const CONDITION_COLORS: Record<CardCondition, string> = {
@@ -20,6 +20,7 @@ const SORT_LABELS: Record<SortOption, string> = {
   oldest: 'Oldest first',
   price_asc: 'Price: low to high',
   price_desc: 'Price: high to low',
+  alpha: 'A → Z',
 }
 
 export default function ProfileListingsSection({ listings }: { listings: Listing[] }) {
@@ -56,6 +57,7 @@ export default function ProfileListingsSection({ listings }: { listings: Listing
       case 'oldest':     result.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()); break
       case 'price_asc':  result.sort((a, b) => a.price - b.price); break
       case 'price_desc': result.sort((a, b) => b.price - a.price); break
+      case 'alpha':      result.sort((a, b) => a.card_name.localeCompare(b.card_name)); break
     }
 
     return result

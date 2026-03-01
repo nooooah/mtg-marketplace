@@ -69,7 +69,7 @@ export default function Navbar() {
             textDecoration: 'none', letterSpacing: '-0.02em',
             whiteSpace: 'nowrap', flexShrink: 0, flex: 1,
           }}>
-            TCG<span style={{ color: 'var(--color-blue)' }}> Community</span> Market
+            mtg<span style={{ color: 'var(--color-blue)' }}>binder</span>.app
           </Link>
 
           {/* Desktop nav links + auth */}

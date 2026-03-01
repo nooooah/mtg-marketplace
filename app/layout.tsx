@@ -10,7 +10,7 @@ const inter = Inter({
 })
 
 export const metadata: Metadata = {
-  title: 'TCG Community Market',
+  title: 'mtgbinder.app',
   description: 'Buy, sell, and trade Magic: The Gathering cards in a community-driven marketplace.',
   keywords: ['MTG', 'Magic the Gathering', 'TCG', 'marketplace', 'cards', 'buy', 'sell'],
 }
