@@ -231,7 +231,7 @@ export function AuthLayout({ children }: { children: React.ReactNode }) {
               letterSpacing: '-0.02em',
             }}
           >
-            TCG<span style={{ color: 'var(--color-blue)' }}> Community</span> Market
+            MTG<span style={{ color: 'var(--color-blue)' }}>binder</span>
           </Link>
         </div>
 

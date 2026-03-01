@@ -70,7 +70,7 @@ export default function Navbar() {
             textDecoration: 'none', letterSpacing: '-0.02em',
             whiteSpace: 'nowrap', flexShrink: 0, flex: 1,
           }}>
-            MTG<span style={{ color: 'var(--color-blue)' }}>binder</span>
+            MTG<span style={{ color: 'var(--color-blue)', marginLeft: '-1px' }}>binder</span>
             <span style={{
               fontSize: '9px', fontWeight: 700, letterSpacing: '0.06em',
               textTransform: 'uppercase', color: 'var(--color-blue)',
