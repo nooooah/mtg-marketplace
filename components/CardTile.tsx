@@ -183,15 +183,33 @@ export default function CardTile({ listing, noPreview = false, compact = false, 
             display: 'flex', flexDirection: 'column', gap: '3px',
           }}>
             {/* Row 1: price + condition */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={{
-                fontWeight: 700,
-                fontSize: compact ? '13px' : '15px',
-                color: 'var(--color-text)',
-              }}>
-                ₱{listing.price.toLocaleString('en-PH')}
-              </span>
-              <span className={`badge badge-${listing.condition.toLowerCase()}`} style={{ fontSize: compact ? '9px' : undefined }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '5px', minWidth: 0 }}>
+                <span style={{
+                  fontWeight: 700,
+                  fontSize: compact ? '13px' : '15px',
+                  color: 'var(--color-text)',
+                  flexShrink: 0,
+                }}>
+                  ₱{listing.price.toLocaleString('en-PH')}
+                </span>
+                {listing.usd_price && listing.usd_price > 0 && (() => {
+                  const mult = Math.round(listing.price / listing.usd_price)
+                  const color = mult < 45 ? '#10b981' : mult < 55 ? '#3b82f6' : 'var(--color-subtle)'
+                  return (
+                    <span style={{
+                      fontSize: '9px', fontWeight: 700,
+                      color, border: `1px solid ${color}40`,
+                      background: `${color}12`,
+                      borderRadius: '4px', padding: '1px 4px',
+                      flexShrink: 0, letterSpacing: '0.01em',
+                    }}>
+                      ×{mult}
+                    </span>
+                  )
+                })()}
+              </div>
+              <span className={`badge badge-${listing.condition.toLowerCase()}`} style={{ fontSize: compact ? '9px' : undefined, flexShrink: 0 }}>
                 {listing.condition}
               </span>
             </div>

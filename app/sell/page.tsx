@@ -173,6 +173,9 @@ function SingleCardForm({ userId }: { userId: string }) {
         price: parseFloat(price),
         quantity: parseInt(quantity) || 1,
         notes: notes.trim() || null,
+        usd_price: isFoil
+          ? parseFloat(selectedCard?.prices?.usd_foil ?? selectedCard?.prices?.usd ?? '0') || null
+          : parseFloat(selectedCard?.prices?.usd ?? '0') || null,
       })
       if (insertError) setError(insertError.message)
       else setSuccess(true)
@@ -284,7 +287,7 @@ function SingleCardForm({ userId }: { userId: string }) {
                     Manabox{isFoil ? ' foil' : ''}: <strong style={{ color: 'var(--color-text)' }}>${base} USD</strong> — suggest PHP:
                   </p>
                   <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                    {[50, 56, 60].map(rate => (
+                    {[30, 40, 70].map(rate => (
                       <button key={rate} type="button" onClick={() => applyMultiplier(rate)} style={{ padding: '4px 10px', borderRadius: '6px', border: '1px solid var(--color-border)', background: 'var(--color-surface-2)', color: 'var(--color-muted)', fontSize: '12px', fontWeight: 500, cursor: 'pointer', transition: 'all 0.15s ease' }}
                         onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--color-blue)'; e.currentTarget.style.color = 'var(--color-blue)' }}
                         onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--color-border)'; e.currentTarget.style.color = 'var(--color-muted)' }}>
@@ -505,6 +508,9 @@ function BulkImportForm({ userId }: { userId: string }) {
           price: parseInt(r.price, 10),
           quantity: r.quantity,
           notes: null,
+          usd_price: r.isFoil
+            ? parseFloat(r.usdFoilPrice ?? r.usdPrice ?? '0') || null
+            : parseFloat(r.usdPrice ?? '0') || null,
         }))
       )
       if (insertError) { setSubmitError(insertError.message); setSubmitting(false); return }
@@ -598,7 +604,7 @@ function BulkImportForm({ userId }: { userId: string }) {
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
               <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Apply multiplier:</span>
               <div style={{ display: 'flex', gap: '5px' }}>
-                {[50, 56, 60].map(rate => (
+                {[30, 40, 70].map(rate => (
                   <button key={rate} onClick={() => applyGlobalMultiplier(rate)} style={{
                     padding: '4px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 600,
                     border: `1px solid ${globalMultiplier === rate ? 'var(--color-blue)' : 'var(--color-border)'}`,
@@ -869,7 +875,7 @@ function BulkRowCard({ row, onChange, onRemove }: {
             {/* Multiplier buttons */}
             {row.usdPrice && !isNotFound && (
               <div style={{ display: 'flex', gap: '4px' }}>
-                {[50, 56, 60].map(rate => (
+                {[30, 40, 70].map(rate => (
                   <button key={rate} onClick={() => applyMultiplier(rate)} style={{
                     padding: '5px 9px', borderRadius: '6px', fontSize: '11px', fontWeight: 600,
                     border: '1px solid var(--color-border)', background: 'transparent',

@@ -23,26 +23,32 @@ async function getLatestListings(): Promise<Listing[]> {
   }
 }
 
-async function getHotListings(): Promise<Listing[]> {
+async function getLowerThanMarketListings(): Promise<Listing[]> {
   try {
     const supabase = await createClient()
+    // Fetch listings that have a known USD price so we can compute the multiplier
     const { data } = await supabase
       .from('listings')
       .select('*, profiles(username, avatar_url)')
       .eq('status', 'listed')
-      .order('views', { ascending: false })
+      .not('usd_price', 'is', null)
+      .gt('usd_price', 0)
       .order('created_at', { ascending: false })
-      .limit(36) // fetch extra so grouping still fills 2 rows (~12 unique cards)
-    return (data as Listing[]) ?? []
+      .limit(120) // fetch enough to find low-multiplier cards after grouping
+    const listings = (data as Listing[]) ?? []
+    // Keep only listings with multiplier < 50 (below typical market rate of ~56–60×)
+    return listings
+      .filter(l => l.usd_price && Math.round(l.price / l.usd_price) < 50)
+      .sort((a, b) => (a.price / a.usd_price!) - (b.price / b.usd_price!))
   } catch {
     return []
   }
 }
 
 export default async function HomePage() {
-  const [latest, hot] = await Promise.all([
+  const [latest, lowerThanMarket] = await Promise.all([
     getLatestListings(),
-    getHotListings(),
+    getLowerThanMarketListings(),
   ])
 
   return (
@@ -64,10 +70,10 @@ export default async function HomePage() {
         <ListingGrid listings={latest} maxCards={18} emptyLabel="No listings yet — be the first to list a card!" />
       </section>
 
-      {/* Hot Right Now */}
+      {/* Lower Than Market */}
       <section style={{ marginBottom: '80px' }}>
-        <SectionHeader label="Hot Right Now" description="Most viewed and recently active listings" href="/buy?sort=hot" linkLabel="See more" />
-        <ListingGrid listings={hot} maxCards={12} emptyLabel="Nothing trending yet. Check back soon." />
+        <SectionHeader label="Lower Than Market" description="Cards listed below the usual market rate" href="/buy" linkLabel="Browse all" />
+        <ListingGrid listings={lowerThanMarket} maxCards={12} emptyLabel="No below-market listings right now. Check back soon." />
       </section>
     </div>
   )

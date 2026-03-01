@@ -814,6 +814,9 @@ function EditPanel({ listing, onSave, onCancel }: {
       quantity: parsedQty,
       condition,
       is_foil: isFoil,
+      usd_price: isFoil
+        ? parseFloat(currentUsdFoil ?? currentUsd ?? '0') || null
+        : parseFloat(currentUsd ?? '0') || null,
     }
 
     if (selectedPrinting && selectedPrinting.id !== listing.card_id) {
@@ -1002,7 +1005,7 @@ function EditPanel({ listing, onSave, onCancel }: {
                     Manabox{isFoil ? ' foil' : ''}: <span style={{ color: 'var(--color-muted)' }}>${base} USD</span> — suggest PHP:
                   </p>
                   <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                    {[50, 56, 60].map(rate => (
+                    {[30, 40, 70].map(rate => (
                       <button key={rate} onClick={() => applyMultiplier(rate)} style={{
                         padding: '4px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 600,
                         background: 'var(--color-surface)', border: '1px solid var(--color-border)',
