@@ -283,7 +283,7 @@ function ProfileCard({ profile, listingCount, binderCount, onSave }: {
             </div>
           ) : (
             <>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '2px', flexWrap: 'wrap' }}>
                 <h1 style={{ fontSize: '22px', fontWeight: 800, color: 'var(--color-text)', letterSpacing: '-0.03em', margin: 0 }}>
                   {profile.display_name ?? profile.username}
                 </h1>
@@ -291,6 +291,15 @@ function ProfileCard({ profile, listingCount, binderCount, onSave }: {
                   <span style={{ fontSize: '13px', color: 'var(--color-subtle)' }}>@{profile.username}</span>
                 )}
               </div>
+              <a
+                href={`/profile/${profile.username}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '12px', color: 'var(--color-muted)', textDecoration: 'none', marginBottom: '10px' }}
+              >
+                <LinkIcon />
+                tcgmarket.ph/profile/{profile.username}
+              </a>
               {profile.bio && (
                 <p style={{ fontSize: '14px', color: 'var(--color-text)', lineHeight: 1.6, margin: '0 0 12px', maxWidth: '560px' }}>
                   {profile.bio}
@@ -314,13 +323,27 @@ function ProfileCard({ profile, listingCount, binderCount, onSave }: {
         {/* Stats + edit button */}
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '16px', flexShrink: 0 }}>
           {!editing && (
-            <button onClick={() => setEditing(true)} style={{
-              padding: '7px 14px', borderRadius: '8px', border: '1px solid var(--color-border)',
-              background: 'transparent', color: 'var(--color-muted)', fontSize: '13px', fontWeight: 500,
-              cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px',
-            }}>
-              <EditIcon /> Edit profile
-            </button>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <a
+                href={`/profile/${profile.username}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  padding: '7px 14px', borderRadius: '8px', border: '1px solid var(--color-border)',
+                  background: 'transparent', color: 'var(--color-muted)', fontSize: '13px', fontWeight: 500,
+                  cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', textDecoration: 'none',
+                }}
+              >
+                <EyeIcon /> Preview
+              </a>
+              <button onClick={() => setEditing(true)} style={{
+                padding: '7px 14px', borderRadius: '8px', border: '1px solid var(--color-border)',
+                background: 'transparent', color: 'var(--color-muted)', fontSize: '13px', fontWeight: 500,
+                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px',
+              }}>
+                <EditIcon /> Edit profile
+              </button>
+            </div>
           )}
           <div style={{ display: 'flex', gap: '20px' }}>
             <StatBadge value={listingCount} label="Listings" />
@@ -394,4 +417,10 @@ function StoreIcon() {
 }
 function MessengerIcon() {
   return <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></svg>
+}
+function LinkIcon() {
+  return <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" /><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" /></svg>
+}
+function EyeIcon() {
+  return <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></svg>
 }
