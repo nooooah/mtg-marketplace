@@ -63,6 +63,7 @@ function MyListingsContent() {
   const [activeTab, setActiveTab] = useState<ListingStatus>('listed')
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [bulkLoading, setBulkLoading] = useState(false)
+  const [confirmBulkDelete, setConfirmBulkDelete] = useState(false)
 
   // Binders
   const [binders, setBinders] = useState<Binder[]>([])
@@ -208,6 +209,7 @@ function MyListingsContent() {
     setSelectedIds(new Set())
     setEditingId(null)
     setConfirmDeleteId(null)
+    setConfirmBulkDelete(false)
   }
 
   const switchBinder = (id: string | 'unsorted') => {
@@ -215,6 +217,7 @@ function MyListingsContent() {
     setSelectedIds(new Set())
     setEditingId(null)
     setConfirmDeleteId(null)
+    setConfirmBulkDelete(false)
     setActiveTab('listed')
   }
 
@@ -249,6 +252,16 @@ function MyListingsContent() {
     setListings(prev => prev.filter(l => l.id !== id))
     setDeletingId(null)
     setConfirmDeleteId(null)
+  }
+
+  const handleBulkDelete = async () => {
+    const ids = Array.from(selectedIds)
+    setBulkLoading(true)
+    await supabase.from('listings').delete().in('id', ids)
+    setListings(prev => prev.filter(l => !ids.includes(l.id)))
+    setSelectedIds(new Set())
+    setConfirmBulkDelete(false)
+    setBulkLoading(false)
   }
 
   const handleSave = (updated: Listing) => {
@@ -668,16 +681,59 @@ function MyListingsContent() {
             ))}
           </select>
           <div style={{ width: '1px', height: '18px', background: 'var(--color-border)', margin: '0 4px' }} />
-          <button
-            onClick={() => setSelectedIds(new Set())}
-            style={{
-              padding: '7px 12px', borderRadius: '8px', fontSize: '12px',
-              background: 'transparent', border: '1px solid var(--color-border)',
-              color: 'var(--color-subtle)', cursor: 'pointer',
-            }}
-          >
-            Cancel
-          </button>
+          {confirmBulkDelete ? (
+            <>
+              <span style={{ fontSize: '12px', color: '#f87171', fontWeight: 600 }}>
+                Delete {selectedIds.size} listing{selectedIds.size !== 1 ? 's' : ''}?
+              </span>
+              <button
+                onClick={handleBulkDelete}
+                disabled={bulkLoading}
+                style={{
+                  padding: '7px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: 600,
+                  background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.35)',
+                  color: '#f87171', cursor: bulkLoading ? 'not-allowed' : 'pointer',
+                  opacity: bulkLoading ? 0.6 : 1,
+                }}
+              >
+                {bulkLoading ? 'Deleting…' : 'Yes, delete'}
+              </button>
+              <button
+                onClick={() => setConfirmBulkDelete(false)}
+                style={{
+                  padding: '7px 12px', borderRadius: '8px', fontSize: '12px',
+                  background: 'transparent', border: '1px solid var(--color-border)',
+                  color: 'var(--color-subtle)', cursor: 'pointer',
+                }}
+              >
+                Cancel
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                onClick={() => setConfirmBulkDelete(true)}
+                disabled={bulkLoading}
+                style={{
+                  padding: '7px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: 600,
+                  background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)',
+                  color: '#f87171', cursor: 'pointer',
+                }}
+              >
+                Delete
+              </button>
+              <button
+                onClick={() => setSelectedIds(new Set())}
+                style={{
+                  padding: '7px 12px', borderRadius: '8px', fontSize: '12px',
+                  background: 'transparent', border: '1px solid var(--color-border)',
+                  color: 'var(--color-subtle)', cursor: 'pointer',
+                }}
+              >
+                Cancel
+              </button>
+            </>
+          )}
         </div>
       )}
     </div>
