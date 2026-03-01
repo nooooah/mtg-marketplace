@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import type { Event } from '@/types'
 import Link from 'next/link'
+import { formatDate } from '@/lib/utils'
 
 export const revalidate = 60
 
@@ -17,14 +18,6 @@ async function getEvents(): Promise<Event[]> {
   }
 }
 
-function formatDate(dateStr: string) {
-  return new Date(dateStr).toLocaleDateString('en-US', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  })
-}
 function formatTime(dateStr: string) {
   return new Date(dateStr).toLocaleTimeString('en-US', {
     hour: 'numeric',

@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import MessageButton from './MessageButton'
 import type { Listing } from '@/types'
+import { formatDate } from '@/lib/utils'
 
 const CONDITION_LABELS: Record<string, string> = {
   NM: 'Near Mint',
@@ -12,11 +13,6 @@ const CONDITION_LABELS: Record<string, string> = {
   DMG: 'Damaged',
 }
 
-function formatDate(dateStr: string) {
-  return new Date(dateStr).toLocaleDateString('en-US', {
-    year: 'numeric', month: 'long', day: 'numeric',
-  })
-}
 
 export default async function ListingPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params

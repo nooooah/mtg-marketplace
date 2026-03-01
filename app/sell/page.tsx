@@ -598,7 +598,7 @@ function BulkImportForm({ userId }: { userId: string }) {
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
               <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Apply multiplier:</span>
               <div style={{ display: 'flex', gap: '5px' }}>
-                {[30, 40, 50].map(rate => (
+                {[50, 56, 60].map(rate => (
                   <button key={rate} onClick={() => applyGlobalMultiplier(rate)} style={{
                     padding: '4px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 600,
                     border: `1px solid ${globalMultiplier === rate ? 'var(--color-blue)' : 'var(--color-border)'}`,
@@ -869,7 +869,7 @@ function BulkRowCard({ row, onChange, onRemove }: {
             {/* Multiplier buttons */}
             {row.usdPrice && !isNotFound && (
               <div style={{ display: 'flex', gap: '4px' }}>
-                {[30, 40, 50].map(rate => (
+                {[50, 56, 60].map(rate => (
                   <button key={rate} onClick={() => applyMultiplier(rate)} style={{
                     padding: '5px 9px', borderRadius: '6px', fontSize: '11px', fontWeight: 600,
                     border: '1px solid var(--color-border)', background: 'transparent',

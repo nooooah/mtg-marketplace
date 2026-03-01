@@ -15,6 +15,11 @@ export const metadata: Metadata = {
   keywords: ['MTG', 'Magic the Gathering', 'TCG', 'marketplace', 'cards', 'buy', 'sell'],
 }
 
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+}
+
 export default function RootLayout({
   children,
 }: Readonly<{

@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import type { Listing, CardCondition, ScryfallCard } from '@/types'
 import { useCardHover, HoverCardImage } from '@/components/CardHoverPreview'
+import { formatDate } from '@/lib/utils'
 
 type SortOption = 'newest' | 'oldest' | 'price_asc' | 'price_desc' | 'most_viewed'
 type ListingStatus = 'listed' | 'unlisted' | 'sold'
@@ -38,9 +39,6 @@ const BULK_ACTIONS: Record<ListingStatus, ListingStatus[]> = {
   sold:     ['listed', 'unlisted'],
 }
 
-function formatDate(dateStr: string) {
-  return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-}
 
 /* ─── Page ────────────────────────────────────────────────────────────── */
 

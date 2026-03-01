@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import CardListingsSection from './CardListingsSection'
 import type { Listing } from '@/types'
+import { formatDate } from '@/lib/utils'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -109,9 +110,6 @@ async function fetchPrintings(oracleId: string): Promise<any[]> {
   }
 }
 
-function formatDate(dateStr: string) {
-  return new Date(dateStr).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
-}
 
 // ─── Page ──────────────────────────────────────────────────────────────────────
 
@@ -386,7 +384,7 @@ export default async function CardPage({ params }: { params: Promise<{ cardId: s
                   All Printings · {printings.length} version{printings.length !== 1 ? 's' : ''}
                 </p>
                 <div className="cdp-printings">
-                  {printings.map((p: any) => {
+                  {printings.map((p: ScryfallCard) => {
                     const pImg = p.image_uris?.small ?? p.card_faces?.[0]?.image_uris?.small
                     const isCurrent = p.id === cardId
                     return (

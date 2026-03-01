@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import CardTile from '@/components/CardTile'
 import { groupListings } from '@/lib/groupListings'
+import { useDebounce } from '@/hooks/useDebounce'
 import type { Listing, CardCondition } from '@/types'
 
 type SortOption = 'newest' | 'oldest' | 'price_asc' | 'price_desc' | 'hot'
@@ -25,15 +26,6 @@ const CONDITION_LABELS: Record<CardCondition, string> = {
   MP: 'Moderately Played',
   HP: 'Heavily Played',
   DMG: 'Damaged',
-}
-
-function useDebounce<T>(value: T, delay: number): T {
-  const [debounced, setDebounced] = useState(value)
-  useEffect(() => {
-    const t = setTimeout(() => setDebounced(value), delay)
-    return () => clearTimeout(t)
-  }, [value, delay])
-  return debounced
 }
 
 function BuyPageContent() {

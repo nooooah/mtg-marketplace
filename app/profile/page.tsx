@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import type { Profile, Listing, WantedCard, ScryfallCard } from '@/types'
 import { useCardHover, HoverCardImage } from '@/components/CardHoverPreview'
 import ProfileListingsSection from '@/components/ProfileListingsSection'
+import { formatDate } from '@/lib/utils'
 
 /* ─── Helpers ─────────────────────────────────────────────────────────── */
 
@@ -13,9 +14,6 @@ function formatMemberSince(dateStr: string) {
   return new Date(dateStr).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
 }
 
-function formatDate(dateStr: string) {
-  return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-}
 
 
 /* ─── Page ────────────────────────────────────────────────────────────── */
