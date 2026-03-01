@@ -230,17 +230,12 @@ button {
     padding: 18px 16px !important;
   }
 
-  /* On mobile: left column (avatar + name/stats) goes full width, stacks vertically */
+  /* On mobile: row 1 = avatar + name/stats side by side (full width)
+                row 2 = bio + meta wraps below automatically */
   .profile-card-left {
     width: 100% !important;
-    flex-direction: column !important;
-    align-items: flex-start !important;
-    gap: 10px !important;
-  }
-
-  /* Name block sits below avatar on mobile */
-  .profile-card-name-block {
-    /* no override needed — already column inside profile-card-left */
+    align-items: center !important;
+    gap: 12px !important;
   }
 }
 

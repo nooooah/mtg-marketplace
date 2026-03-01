@@ -5,34 +5,34 @@ import Link from 'next/link'
 import type { Event } from '@/types'
 import { formatDate } from '@/lib/utils'
 
-// Placeholder events for when no DB data is available
+// Site announcements shown in the banner
 const PLACEHOLDER_EVENTS: Event[] = [
   {
-    id: '1',
-    title: 'Friday Night Magic — Draft Night',
-    description: 'Join us every Friday for booster draft! Open to all skill levels.',
-    date: new Date(Date.now() + 86400000 * 2).toISOString(),
-    location: 'Local Game Store · Downtown',
+    id: 'beta-1',
+    title: 'Site currently in private beta.',
+    description: 'Some features may be unavailable. We appreciate your patience as we continue to improve the platform.',
+    date: new Date(Date.now() + 86400000 * 365).toISOString(),
+    location: null,
     image_url: null,
     organizer_id: null,
     created_at: new Date().toISOString(),
   },
   {
-    id: '2',
-    title: 'Regional Championship Qualifier',
-    description: 'Compete for a spot at the Regional Championship. Standard format.',
-    date: new Date(Date.now() + 86400000 * 7).toISOString(),
-    location: 'Convention Center · Hall B',
+    id: 'beta-2',
+    title: 'Bulk import of cards to buy — coming soon.',
+    description: 'You\'ll soon be able to upload a full wants list and instantly match with sellers in the community.',
+    date: new Date(Date.now() + 86400000 * 365).toISOString(),
+    location: null,
     image_url: null,
     organizer_id: null,
     created_at: new Date().toISOString(),
   },
   {
-    id: '3',
-    title: 'Commander Night — Open Duel',
-    description: '100-card singleton. Bring your best Commander deck and challenge the community.',
-    date: new Date(Date.now() + 86400000 * 14).toISOString(),
-    location: 'TCG Hub · Game Room',
+    id: 'beta-3',
+    title: 'Interested in joining the beta?',
+    description: 'Contact Noah to get access and be one of the first sellers on the platform.',
+    date: new Date(Date.now() + 86400000 * 365).toISOString(),
+    location: null,
     image_url: null,
     organizer_id: null,
     created_at: new Date().toISOString(),
@@ -152,18 +152,18 @@ export default function EventsBanner({ events }: EventsBannerProps) {
               {current.description}
             </p>
           )}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--color-muted)' }}>
-              <ClockIcon />
-              <span>{formatDate(current.date)}</span>
-            </div>
-            {current.location && (
+          {current.location && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--color-muted)' }}>
+                <ClockIcon />
+                <span>{formatDate(current.date)}</span>
+              </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--color-muted)' }}>
                 <LocationIcon />
                 <span>{current.location}</span>
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
 
         {/* Dots */}

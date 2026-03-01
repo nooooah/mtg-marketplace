@@ -57,8 +57,25 @@ export default async function HomePage() {
     <div className="page-wrap" style={{ maxWidth: '1280px', margin: '0 auto', padding: '0 1.5rem' }}>
 
       {/* Search bar */}
-      <section style={{ paddingTop: '40px', marginBottom: '28px' }}>
-        <HomeSearchBar />
+      <section style={{ paddingTop: '48px', marginBottom: '28px' }}>
+        <p style={{
+          textAlign: 'center', fontSize: '13px', fontWeight: 500,
+          color: 'var(--color-muted)', letterSpacing: '0.01em',
+          marginBottom: '16px',
+        }}>
+          Search from all community binders in a click.
+        </p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', maxWidth: '700px', margin: '0 auto' }}>
+          {/* MTG logo */}
+          <div style={{ flexShrink: 0 }}>
+            <img
+              src="https://upload.wikimedia.org/wikipedia/en/a/aa/Magic-The-Gathering-Logo.svg"
+              alt="Magic: The Gathering"
+              style={{ height: '44px', width: 'auto', display: 'block', opacity: 0.9 }}
+            />
+          </div>
+          <HomeSearchBar />
+        </div>
       </section>
 
       {/* Events Banner */}

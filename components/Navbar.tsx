@@ -65,11 +65,20 @@ export default function Navbar() {
 
           {/* Logo */}
           <Link href="/" style={{
+            display: 'flex', alignItems: 'center', gap: '8px',
             fontWeight: 700, fontSize: '15px', color: 'var(--color-text)',
             textDecoration: 'none', letterSpacing: '-0.02em',
             whiteSpace: 'nowrap', flexShrink: 0, flex: 1,
           }}>
             mtg<span style={{ color: 'var(--color-blue)' }}>binder</span>.app
+            <span style={{
+              fontSize: '9px', fontWeight: 700, letterSpacing: '0.06em',
+              textTransform: 'uppercase', color: 'var(--color-blue)',
+              background: 'rgba(59,130,246,0.12)', border: '1px solid rgba(59,130,246,0.3)',
+              padding: '2px 6px', borderRadius: '5px', lineHeight: 1.4,
+            }}>
+              BETA
+            </span>
           </Link>
 
           {/* Desktop nav links + auth */}
