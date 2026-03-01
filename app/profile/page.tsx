@@ -75,7 +75,7 @@ function ProfileContent({ userId, initialProfile }: { userId: string; initialPro
         <ProfileCard
           profile={profile}
           listingCount={listings.length}
-          binderCount={binders.length}
+          binderCount={binders.filter(b => listings.some(l => l.binder_id === b.id)).length}
           onSave={updated => setProfile(updated)}
         />
 
@@ -92,16 +92,15 @@ function BindersDisplay({ listings, binders, loading }: { listings: Listing[]; b
   if (loading) return <TabEmpty>Loading listings…</TabEmpty>
 
   // Group listed cards by binder
-  const unsorted = listings.filter(l => !l.binder_id)
   const binderGroups = binders.map(b => ({
     binder: b,
     cards: listings.filter(l => l.binder_id === b.id),
   })).filter(g => g.cards.length > 0)
 
-  if (listings.length === 0) {
+  if (binderGroups.length === 0) {
     return (
       <TabEmpty>
-        No active listings.{' '}
+        No active listings in any binder.{' '}
         <a href="/sell" style={{ color: 'var(--color-blue)', textDecoration: 'none' }}>List a card →</a>
       </TabEmpty>
     )
@@ -109,12 +108,6 @@ function BindersDisplay({ listings, binders, loading }: { listings: Listing[]; b
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '40px' }}>
-      {unsorted.length > 0 && (
-        <div>
-          <h3 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--color-muted)', margin: '0 0 16px', letterSpacing: '-0.01em' }}>Unsorted</h3>
-          <ProfileListingsSection listings={unsorted} />
-        </div>
-      )}
       {binderGroups.map(({ binder, cards }) => (
         <div key={binder.id}>
           <h3 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--color-text)', margin: '0 0 16px', letterSpacing: '-0.01em' }}>{binder.name}</h3>
