@@ -89,31 +89,78 @@ function ProfileContent({ userId, initialProfile }: { userId: string; initialPro
 /* ─── Binders Display ─────────────────────────────────────────────────── */
 
 function BindersDisplay({ listings, binders, loading }: { listings: Listing[]; binders: Binder[]; loading: boolean }) {
-  if (loading) return <TabEmpty>Loading listings…</TabEmpty>
-
-  // Group listed cards by binder
+  // Group by binder, filter to only non-empty
   const binderGroups = binders.map(b => ({
     binder: b,
     cards: listings.filter(l => l.binder_id === b.id),
   })).filter(g => g.cards.length > 0)
 
+  const [selectedBinderId, setSelectedBinderId] = useState<string>(binderGroups[0]?.binder.id ?? '')
+
+  // Keep selected tab valid when binders load
+  const activeGroup = binderGroups.find(g => g.binder.id === selectedBinderId) ?? binderGroups[0]
+
+  if (loading) {
+    return (
+      <div style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: '16px', padding: '48px 24px', textAlign: 'center', color: 'var(--color-muted)', fontSize: '14px' }}>
+        Loading listings…
+      </div>
+    )
+  }
+
   if (binderGroups.length === 0) {
     return (
-      <TabEmpty>
-        No active listings in any binder.{' '}
-        <a href="/sell" style={{ color: 'var(--color-blue)', textDecoration: 'none' }}>List a card →</a>
-      </TabEmpty>
+      <div style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: '16px', padding: '64px 24px', textAlign: 'center' }}>
+        <p style={{ fontSize: '15px', color: 'var(--color-muted)', margin: '0 0 12px' }}>No cards listed in any binder yet.</p>
+        <a href="/sell" style={{ display: 'inline-block', padding: '9px 18px', background: 'var(--color-blue)', color: '#fff', borderRadius: '8px', fontSize: '13px', fontWeight: 600, textDecoration: 'none' }}>
+          List a card →
+        </a>
+      </div>
     )
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '40px' }}>
-      {binderGroups.map(({ binder, cards }) => (
-        <div key={binder.id}>
-          <h3 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--color-text)', margin: '0 0 16px', letterSpacing: '-0.01em' }}>{binder.name}</h3>
-          <ProfileListingsSection listings={cards} />
-        </div>
-      ))}
+    <div style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: '16px', overflow: 'hidden' }}>
+
+      {/* Binder tab bar */}
+      <div style={{ borderBottom: '1px solid var(--color-border)', padding: '0 28px', display: 'flex', gap: '2px', overflowX: 'auto' }}>
+        {binderGroups.map(({ binder, cards }) => {
+          const isActive = binder.id === (activeGroup?.binder.id)
+          return (
+            <button
+              key={binder.id}
+              onClick={() => setSelectedBinderId(binder.id)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '7px',
+                padding: '16px 18px',
+                background: 'transparent',
+                border: 'none',
+                borderBottom: `2px solid ${isActive ? 'var(--color-blue)' : 'transparent'}`,
+                color: isActive ? 'var(--color-text)' : 'var(--color-muted)',
+                fontSize: '14px', fontWeight: isActive ? 700 : 400,
+                cursor: 'pointer', transition: 'all 0.12s ease',
+                whiteSpace: 'nowrap', flexShrink: 0,
+              }}
+            >
+              {binder.name}
+              <span style={{
+                fontSize: '11px', fontWeight: 700, padding: '2px 7px', borderRadius: '10px',
+                background: isActive ? 'var(--color-blue-glow)' : 'var(--color-surface-2)',
+                color: isActive ? 'var(--color-blue)' : 'var(--color-subtle)',
+                border: `1px solid ${isActive ? 'rgba(59,130,246,0.25)' : 'var(--color-border)'}`,
+              }}>
+                {cards.length}
+              </span>
+            </button>
+          )
+        })}
+      </div>
+
+      {/* Active binder content */}
+      <div style={{ padding: '28px' }}>
+        {activeGroup && <ProfileListingsSection listings={activeGroup.cards} />}
+      </div>
+
     </div>
   )
 }
