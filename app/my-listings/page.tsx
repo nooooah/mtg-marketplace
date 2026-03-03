@@ -1099,7 +1099,7 @@ function EditPanel({ listing, onSave, onCancel, binders, onMoveToBinder }: {
     const parsedPrice = parseInt(price, 10)
     const parsedQty = parseInt(quantity, 10)
     if (!parsedPrice || parsedPrice < 1) { setError('Enter a valid price.'); return }
-    if (!parsedQty || parsedQty < 1) { setError('Enter a valid quantity.'); return }
+    if (isNaN(parsedQty) || parsedQty < 0) { setError('Enter a valid quantity (0 or more).'); return }
 
     setSaving(true)
     setError('')
@@ -1325,12 +1325,12 @@ function EditPanel({ listing, onSave, onCancel, binders, onMoveToBinder }: {
             </label>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <button
-                onClick={() => setQuantity(q => String(Math.max(1, parseInt(q || '1') - 1)))}
+                onClick={() => setQuantity(q => String(Math.max(0, parseInt(q || '0') - 1)))}
                 style={{ width: '32px', height: '38px', borderRadius: '7px', background: 'var(--color-surface)', border: '1px solid var(--color-border)', color: 'var(--color-muted)', fontSize: '16px', cursor: 'pointer' }}
               >−</button>
               <input
                 type="number" value={quantity} onChange={e => setQuantity(e.target.value)}
-                min="1" step="1"
+                min="0" step="1"
                 style={{ width: '64px', padding: '9px 10px', fontSize: '15px', fontWeight: 700, textAlign: 'center', borderRadius: '7px' }}
               />
               <button

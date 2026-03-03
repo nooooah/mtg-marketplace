@@ -6,8 +6,11 @@ export interface GroupedListing extends Listing {
 
 /**
  * Groups listings by card_id (same printing).
- * The representative entry is the lowest-priced listing.
- * Quantity is summed across all listings in the group.
+ * - If any listing in the group is 'listed' with quantity > 0, the group is in-stock.
+ *   The representative entry is the lowest-priced available listing.
+ * - If all listings are 'sold' or have quantity 0, the group is sold-out.
+ *   Quantity is set to 0 so CardTile shows the "Sold Out" badge.
+ * Sold-out groups are pushed to the end of the array.
  */
 export function groupListings(listings: Listing[]): GroupedListing[] {
   const map = new Map<string, Listing[]>()
@@ -18,13 +21,30 @@ export function groupListings(listings: Listing[]): GroupedListing[] {
     map.get(key)!.push(l)
   }
 
-  return Array.from(map.values()).map(group => {
-    // Sort cheapest first so the tile shows the best available price
-    const sorted = [...group].sort((a, b) => a.price - b.price)
-    const cheapest = sorted[0]
-    const totalQty = group.reduce((sum, l) => sum + l.quantity, 0)
-    const sellerCount = new Set(group.map(l => l.user_id)).size
+  const inStock: GroupedListing[] = []
+  const soldOut: GroupedListing[] = []
 
-    return { ...cheapest, quantity: totalQty, sellerCount }
-  })
+  for (const group of map.values()) {
+    const available = group.filter(
+      l => (l.status ?? 'listed') === 'listed' && l.quantity > 0,
+    )
+
+    if (available.length > 0) {
+      // In-stock: use cheapest available listing as representative
+      const sorted = [...available].sort((a, b) => a.price - b.price)
+      const cheapest = sorted[0]
+      const totalQty = available.reduce((sum, l) => sum + l.quantity, 0)
+      const sellerCount = new Set(available.map(l => l.user_id)).size
+      inStock.push({ ...cheapest, quantity: totalQty, sellerCount })
+    } else {
+      // Sold-out: use most recently updated listing as representative
+      const sorted = [...group].sort(
+        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+      )
+      const representative = sorted[0]
+      soldOut.push({ ...representative, quantity: 0, sellerCount: 0 })
+    }
+  }
+
+  return [...inStock, ...soldOut]
 }

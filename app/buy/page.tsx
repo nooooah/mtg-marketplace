@@ -96,7 +96,7 @@ function BuyPageContent() {
     let q = supabase
       .from('listings')
       .select('*, profiles(username, avatar_url)')
-      .eq('status', 'listed')
+      .in('status', ['listed', 'sold'])
       .not('binder_id', 'is', null)
 
     if (query.trim()) {
