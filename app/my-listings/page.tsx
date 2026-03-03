@@ -54,6 +54,7 @@ function MyListingsContent() {
   const [maxPrice, setMaxPrice] = useState('')
   const [listings, setListings] = useState<Listing[]>([])
   const [loading, setLoading] = useState(true)
+  const [allListings, setAllListings] = useState<Listing[]>([])
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
@@ -141,6 +142,7 @@ function MyListingsContent() {
     setBulkLoading(true)
     await supabase.from('listings').update({ binder_id: binderId }).in('id', ids)
     setListings(prev => prev.map(l => ids.includes(l.id) ? { ...l, binder_id: binderId } : l))
+    setAllListings(prev => prev.map(l => ids.includes(l.id) ? { ...l, binder_id: binderId } : l))
     setSelectedIds(new Set())
     setBulkLoading(false)
   }
@@ -174,9 +176,23 @@ function MyListingsContent() {
     setLoading(false)
   }, [userId, query, sort, conditions, minPrice, maxPrice])
 
+  // Fetch ALL listings unfiltered — used by dashboard so search bar doesn't affect stats
+  const fetchAllListings = useCallback(async () => {
+    if (!userId) return
+    const { data } = await supabase
+      .from('listings')
+      .select('*')
+      .eq('user_id', userId)
+    setAllListings((data as Listing[]) ?? [])
+  }, [userId])
+
   useEffect(() => {
     if (userId) fetchListings()
   }, [fetchListings, userId])
+
+  useEffect(() => {
+    if (userId) fetchAllListings()
+  }, [fetchAllListings, userId])
 
   // Computed — filter by selected binder first, then by status
   const binderListings = useMemo(() =>
@@ -246,6 +262,7 @@ function MyListingsContent() {
     setBulkLoading(true)
     await supabase.from('listings').update({ status: newStatus }).in('id', ids)
     setListings(prev => prev.map(l => ids.includes(l.id) ? { ...l, status: newStatus } : l))
+    setAllListings(prev => prev.map(l => ids.includes(l.id) ? { ...l, status: newStatus } : l))
     setSelectedIds(new Set())
     setBulkLoading(false)
   }, [supabase])
@@ -254,6 +271,7 @@ function MyListingsContent() {
     setDeletingId(id)
     await supabase.from('listings').delete().eq('id', id)
     setListings(prev => prev.filter(l => l.id !== id))
+    setAllListings(prev => prev.filter(l => l.id !== id))
     setDeletingId(null)
     setConfirmDeleteId(null)
   }
@@ -263,6 +281,7 @@ function MyListingsContent() {
     setBulkLoading(true)
     await supabase.from('listings').delete().in('id', ids)
     setListings(prev => prev.filter(l => !ids.includes(l.id)))
+    setAllListings(prev => prev.filter(l => !ids.includes(l.id)))
     setSelectedIds(new Set())
     setConfirmBulkDelete(false)
     setBulkLoading(false)
@@ -270,6 +289,7 @@ function MyListingsContent() {
 
   const handleSave = (updated: Listing) => {
     setListings(prev => prev.map(l => l.id === updated.id ? updated : l))
+    setAllListings(prev => prev.map(l => l.id === updated.id ? updated : l))
     setEditingId(null)
   }
 
@@ -284,16 +304,18 @@ function MyListingsContent() {
       lifetime: 0,
     }
     const since = cutoff[dashPeriod]
-    const filtered = listings.filter(l => new Date(l.created_at).getTime() >= since)
-    const listed = filtered.filter(l => (l.status ?? 'listed') === 'listed')
-    const sold   = filtered.filter(l => l.status === 'sold')
+    // Use allListings (unfiltered) so the search bar never affects these stats
+    const periodFiltered = allListings.filter(l => new Date(l.created_at).getTime() >= since)
+    const listed = periodFiltered.filter(l => (l.status ?? 'listed') === 'listed')
+    const sold   = periodFiltered.filter(l => l.status === 'sold')
     return {
       totalListed:  listed.length,
       totalSold:    sold.length,
-      totalValue:   listed.reduce((s, l) => s + l.price * l.quantity, 0),
+      // Total value = ALL cards (listed + unlisted + sold) so that when all cards are sold, totalValue === amountEarned
+      totalValue:   periodFiltered.reduce((s, l) => s + l.price * l.quantity, 0),
       amountEarned: sold.reduce((s, l) => s + l.price * l.quantity, 0),
     }
-  }, [listings, dashPeriod])
+  }, [allListings, dashPeriod])
 
   if (!userId && !loading) return null
 
