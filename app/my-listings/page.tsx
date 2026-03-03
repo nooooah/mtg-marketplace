@@ -65,6 +65,10 @@ function MyListingsContent() {
   const [bulkLoading, setBulkLoading] = useState(false)
   const [confirmBulkDelete, setConfirmBulkDelete] = useState(false)
 
+  // Dashboard period
+  type DashPeriod = 'today' | 'week' | 'month' | 'lifetime'
+  const [dashPeriod, setDashPeriod] = useState<DashPeriod>('lifetime')
+
   // Binders
   const [binders, setBinders] = useState<Binder[]>([])
   const [selectedBinderId, setSelectedBinderId] = useState<string | 'unsorted'>('unsorted')
@@ -271,6 +275,26 @@ function MyListingsContent() {
 
   const activeFilterCount = conditions.size + (minPrice ? 1 : 0) + (maxPrice ? 1 : 0)
 
+  const dashStats = useMemo(() => {
+    const now = Date.now()
+    const cutoff: Record<string, number> = {
+      today:    now - 1 * 24 * 60 * 60 * 1000,
+      week:     now - 7 * 24 * 60 * 60 * 1000,
+      month:    now - 30 * 24 * 60 * 60 * 1000,
+      lifetime: 0,
+    }
+    const since = cutoff[dashPeriod]
+    const filtered = listings.filter(l => new Date(l.created_at).getTime() >= since)
+    const listed = filtered.filter(l => (l.status ?? 'listed') === 'listed')
+    const sold   = filtered.filter(l => l.status === 'sold')
+    return {
+      totalListed:  listed.length,
+      totalSold:    sold.length,
+      totalValue:   listed.reduce((s, l) => s + l.price * l.quantity, 0),
+      amountEarned: sold.reduce((s, l) => s + l.price * l.quantity, 0),
+    }
+  }, [listings, dashPeriod])
+
   if (!userId && !loading) return null
 
   return (
@@ -294,6 +318,62 @@ function MyListingsContent() {
         }}>
           <PlusIcon /> New listing
         </Link>
+      </div>
+
+      {/* Seller Dashboard */}
+      <div style={{
+        background: 'var(--color-surface)', border: '1px solid var(--color-border)',
+        borderRadius: '14px', padding: '18px 20px', marginBottom: '24px',
+      }}>
+        {/* Tile header */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
+          <p style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', margin: 0 }}>
+            Seller Dashboard
+          </p>
+          <div style={{ display: 'flex', gap: '4px' }}>
+            {(['today', 'week', 'month', 'lifetime'] as const).map(p => (
+              <button
+                key={p}
+                onClick={() => setDashPeriod(p)}
+                style={{
+                  padding: '4px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: dashPeriod === p ? 700 : 500,
+                  border: `1px solid ${dashPeriod === p ? 'var(--color-blue)' : 'var(--color-border)'}`,
+                  background: dashPeriod === p ? 'var(--color-blue-glow)' : 'transparent',
+                  color: dashPeriod === p ? 'var(--color-blue)' : 'var(--color-muted)',
+                  cursor: 'pointer', transition: 'all 0.12s ease',
+                }}
+              >
+                {p === 'today' ? 'Today' : p === 'week' ? 'Past Week' : p === 'month' ? 'Past Month' : 'Lifetime'}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Stats grid */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '16px' }}>
+          {[
+            { label: 'Total Listed',   value: dashStats.totalListed,                              suffix: 'cards',   color: 'var(--color-text)' },
+            { label: 'Cards Sold',     value: dashStats.totalSold,                                suffix: 'cards',   color: '#10b981' },
+            { label: 'Total Value',    value: `₱${dashStats.totalValue.toLocaleString('en-PH')}`, suffix: null,      color: 'var(--color-text)' },
+            { label: 'Amount Earned',  value: `₱${dashStats.amountEarned.toLocaleString('en-PH')}`, suffix: null,   color: '#10b981' },
+          ].map((stat, i, arr) => (
+            <div key={stat.label} style={{
+              display: 'flex', flexDirection: 'column', gap: '4px',
+              paddingRight: i < arr.length - 1 ? '16px' : 0,
+              borderRight: i < arr.length - 1 ? '1px solid var(--color-border)' : 'none',
+            }}>
+              <p style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-subtle)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: 0 }}>
+                {stat.label}
+              </p>
+              <p style={{ fontSize: '22px', fontWeight: 800, color: stat.color, letterSpacing: '-0.03em', margin: 0, lineHeight: 1 }}>
+                {stat.value}
+              </p>
+              {stat.suffix && (
+                <p style={{ fontSize: '11px', color: 'var(--color-subtle)', margin: 0 }}>{stat.suffix}</p>
+              )}
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Binder Tabs */}
