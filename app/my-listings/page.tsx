@@ -371,8 +371,12 @@ function MyListingsContent() {
         if (!activeBinder) return null
         const binderAll = listings.filter(l => l.binder_id === selectedBinderId)
         const totalCards = binderAll.length
-        const totalToEarn = binderAll
+        const totalSold = binderAll.filter(l => l.status === 'sold').length
+        const binderTotalValue = binderAll
           .filter(l => (l.status ?? 'listed') === 'listed')
+          .reduce((sum, l) => sum + l.price * l.quantity, 0)
+        const valueEarned = binderAll
+          .filter(l => l.status === 'sold')
           .reduce((sum, l) => sum + l.price * l.quantity, 0)
         const isEditingDesc = editingDescId === selectedBinderId
         return (
@@ -413,19 +417,31 @@ function MyListingsContent() {
             </div>
 
             {/* Stats row */}
-            <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap' }}>
-              <div>
-                <p style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-subtle)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '3px' }}>Cards</p>
-                <p style={{ fontSize: '18px', fontWeight: 700, color: 'var(--color-text)', letterSpacing: '-0.02em' }}>
-                  {totalCards}
-                </p>
+            <div style={{ display: 'flex', gap: '0', flexWrap: 'wrap' }}>
+              {/* Group 1: Total Cards | Total Sold */}
+              <div style={{ display: 'flex', gap: '24px', paddingRight: '24px', flexWrap: 'wrap' }}>
+                <div>
+                  <p style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-subtle)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '3px' }}>Total Cards</p>
+                  <p style={{ fontSize: '18px', fontWeight: 700, color: 'var(--color-text)', letterSpacing: '-0.02em' }}>{totalCards}</p>
+                </div>
+                <div>
+                  <p style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-subtle)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '3px' }}>Total Sold</p>
+                  <p style={{ fontSize: '18px', fontWeight: 700, color: 'var(--color-text)', letterSpacing: '-0.02em' }}>{totalSold}</p>
+                </div>
               </div>
-              <div style={{ width: '1px', background: 'var(--color-border)', alignSelf: 'stretch' }} />
-              <div>
-                <p style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-subtle)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '3px' }}>Total to Earn</p>
-                <p style={{ fontSize: '18px', fontWeight: 700, color: 'var(--color-text)', letterSpacing: '-0.02em' }}>
-                  ₱{totalToEarn.toLocaleString('en-PH')}
-                </p>
+
+              <div style={{ width: '1px', background: 'var(--color-border)', alignSelf: 'stretch', marginRight: '24px' }} />
+
+              {/* Group 2: Binder Total Value | Value Earned */}
+              <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap' }}>
+                <div>
+                  <p style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-subtle)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '3px' }}>Binder Total Value</p>
+                  <p style={{ fontSize: '18px', fontWeight: 700, color: 'var(--color-text)', letterSpacing: '-0.02em' }}>₱{binderTotalValue.toLocaleString('en-PH')}</p>
+                </div>
+                <div>
+                  <p style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-subtle)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '3px' }}>Value Earned</p>
+                  <p style={{ fontSize: '18px', fontWeight: 700, color: '#10b981', letterSpacing: '-0.02em' }}>₱{valueEarned.toLocaleString('en-PH')}</p>
+                </div>
               </div>
             </div>
           </div>
