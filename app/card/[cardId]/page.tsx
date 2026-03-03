@@ -125,7 +125,7 @@ export default async function CardPage({ params }: { params: Promise<{ cardId: s
       .eq('card_id', cardId)
       .eq('status', 'listed')
       .not('binder_id', 'is', null)
-      .gt('quantity', 0)
+      .order('quantity', { ascending: false })
       .order('price', { ascending: true }),
   ])
 

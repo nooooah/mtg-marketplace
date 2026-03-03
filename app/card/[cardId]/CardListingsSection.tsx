@@ -253,8 +253,13 @@ function ListingRow({ listing, isLast }: { listing: Listing; isLast: boolean }) 
       </span>
 
       {/* Qty */}
-      <span style={{ fontSize: '13px', color: 'var(--color-muted)', textAlign: 'center' }}>
-        {listing.quantity}
+      <span style={{
+        fontSize: listing.quantity === 0 ? '11px' : '13px',
+        fontWeight: listing.quantity === 0 ? 700 : 400,
+        color: listing.quantity === 0 ? '#ef4444' : 'var(--color-muted)',
+        textAlign: 'center',
+      }}>
+        {listing.quantity === 0 ? 'Sold Out' : listing.quantity}
       </span>
 
       {/* Price */}

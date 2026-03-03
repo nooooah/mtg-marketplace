@@ -107,6 +107,26 @@ export default function CardTile({ listing, noPreview = false, compact = false, 
             </div>
           )}
 
+          {/* Sold out overlay */}
+          {listing.quantity === 0 && (
+            <div style={{
+              position: 'absolute', inset: 0,
+              background: 'rgba(0,0,0,0.55)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              pointerEvents: 'none',
+            }}>
+              <span style={{
+                fontSize: '11px', fontWeight: 800, letterSpacing: '0.08em',
+                color: '#fff', background: 'rgba(239,68,68,0.85)',
+                padding: '4px 10px', borderRadius: '6px',
+                border: '1px solid rgba(239,68,68,0.6)',
+                textTransform: 'uppercase',
+              }}>
+                Sold Out
+              </span>
+            </div>
+          )}
+
           {/* Bottom overlay: foil badge only */}
           {listing.is_foil && (
             <div style={{
@@ -225,10 +245,10 @@ export default function CardTile({ listing, noPreview = false, compact = false, 
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <span style={{
                 fontSize: compact ? '9px' : '10px',
-                color: listing.quantity === 1 ? '#f97316' : 'var(--color-subtle)',
-                fontWeight: listing.quantity === 1 ? 600 : 400,
+                color: listing.quantity === 0 ? '#ef4444' : listing.quantity === 1 ? '#f97316' : 'var(--color-subtle)',
+                fontWeight: listing.quantity <= 1 ? 600 : 400,
               }}>
-                {listing.quantity === 1 ? 'Last one' : `${listing.quantity} available`}
+                {listing.quantity === 0 ? 'Sold Out' : listing.quantity === 1 ? 'Last one' : `${listing.quantity} available`}
               </span>
               <span style={{ fontSize: compact ? '9px' : '10px', color: 'var(--color-subtle)' }}>
                 {daysAgo(listing.created_at)}
