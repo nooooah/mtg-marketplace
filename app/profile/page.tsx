@@ -59,6 +59,7 @@ function ProfileContent({ userId, initialProfile }: { userId: string; initialPro
   const [profile, setProfile] = useState(initialProfile)
   const [listings, setListings] = useState<Listing[]>([])
   const [binders, setBinders] = useState<Binder[]>([])
+  const [soldCount, setSoldCount] = useState(0)
   const [listingsLoading, setListingsLoading] = useState(true)
 
   useEffect(() => {
@@ -66,6 +67,8 @@ function ProfileContent({ userId, initialProfile }: { userId: string; initialPro
       .then(({ data }) => { setListings((data ?? []) as Listing[]); setListingsLoading(false) })
     supabase.from('binders').select('*').eq('user_id', userId).order('display_order')
       .then(({ data }) => { if (data) setBinders(data as Binder[]) })
+    supabase.from('listings').select('id', { count: 'exact', head: true }).eq('user_id', userId).eq('status', 'sold')
+      .then(({ count }) => { setSoldCount(count ?? 0) })
   }, [userId])
 
   return (
@@ -76,6 +79,7 @@ function ProfileContent({ userId, initialProfile }: { userId: string; initialPro
           profile={profile}
           listingCount={listings.length}
           binderCount={binders.filter(b => listings.some(l => l.binder_id === b.id)).length}
+          soldCount={soldCount}
           onSave={updated => setProfile(updated)}
         />
 
@@ -181,10 +185,11 @@ function BindersDisplay({ listings, binders, loading, displayName }: {
 
 /* ─── Profile Card ────────────────────────────────────────────────────── */
 
-function ProfileCard({ profile, listingCount, binderCount, onSave }: {
+function ProfileCard({ profile, listingCount, binderCount, soldCount, onSave }: {
   profile: Profile
   listingCount: number
   binderCount: number
+  soldCount: number
   onSave: (p: Profile) => void
 }) {
   const supabase = createClient()
@@ -321,6 +326,7 @@ function ProfileCard({ profile, listingCount, binderCount, onSave }: {
               <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                 <StatBadge value={listingCount} label="Listings" />
                 <StatBadge value={binderCount} label="Binders" />
+                <StatBadge value={soldCount} label="Sold" color="#10b981" />
               </div>
             </div>
           </div>
@@ -395,15 +401,16 @@ function MetaBadge({ icon, text, clickable }: { icon: React.ReactNode; text: str
   )
 }
 
-function StatBadge({ value, label }: { value: number; label: string }) {
+function StatBadge({ value, label, color }: { value: number; label: string; color?: string }) {
   return (
     <span style={{
       display: 'inline-flex', alignItems: 'center', gap: '4px',
       fontSize: '12px', color: 'var(--color-muted)',
-      background: 'var(--color-surface-2)', border: '1px solid var(--color-border)',
+      background: color ? `${color}12` : 'var(--color-surface-2)',
+      border: `1px solid ${color ? `${color}30` : 'var(--color-border)'}`,
       padding: '3px 8px', borderRadius: '20px',
     }}>
-      <strong style={{ color: 'var(--color-text)', fontWeight: 700 }}>{value}</strong> {label}
+      <strong style={{ color: color ?? 'var(--color-text)', fontWeight: 700 }}>{value}</strong> {label}
     </span>
   )
 }

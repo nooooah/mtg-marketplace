@@ -19,9 +19,10 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
 
   if (!profile) notFound()
 
-  const [{ data: listings }, { data: binders }] = await Promise.all([
+  const [{ data: listings }, { data: binders }, { count: soldCount }] = await Promise.all([
     supabase.from('listings').select('*, profiles(username, avatar_url)').eq('user_id', profile.id).eq('status', 'listed').not('binder_id', 'is', null).order('created_at', { ascending: false }),
     supabase.from('binders').select('*').eq('user_id', profile.id).order('display_order'),
+    supabase.from('listings').select('id', { count: 'exact', head: true }).eq('user_id', profile.id).eq('status', 'sold'),
   ])
 
   const p = profile as Profile
@@ -63,6 +64,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
             <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
               <Stat value={l.length} label="Listings" />
               <Stat value={activeBinders.length} label="Binders" />
+              <Stat value={soldCount ?? 0} label="Sold" color="#10b981" />
             </div>
           </div>
         </div>
@@ -113,15 +115,16 @@ function MetaBadge({ icon, text }: { icon: string; text: string }) {
   )
 }
 
-function Stat({ value, label }: { value: number; label: string }) {
+function Stat({ value, label, color }: { value: number; label: string; color?: string }) {
   return (
     <span style={{
       display: 'inline-flex', alignItems: 'center', gap: '4px',
       fontSize: '12px', color: 'var(--color-muted)',
-      background: 'var(--color-surface-2)', border: '1px solid var(--color-border)',
+      background: color ? `${color}12` : 'var(--color-surface-2)',
+      border: `1px solid ${color ? `${color}30` : 'var(--color-border)'}`,
       padding: '3px 8px', borderRadius: '20px',
     }}>
-      <strong style={{ color: 'var(--color-text)', fontWeight: 700 }}>{value}</strong> {label}
+      <strong style={{ color: color ?? 'var(--color-text)', fontWeight: 700 }}>{value}</strong> {label}
     </span>
   )
 }
