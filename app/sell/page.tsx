@@ -166,28 +166,54 @@ function SingleCardForm({ userId }: { userId: string }) {
     if (!price || parseFloat(price) <= 0) { setError('Please enter a valid price.'); return }
     setSubmitting(true)
     try {
-      const { error: insertError } = await supabase.from('listings').insert({
-        user_id: userId,
-        card_id: selectedCard.id,
-        card_name: selectedCard.name,
-        card_set: selectedCard.set,
-        card_set_name: selectedCard.set_name,
-        card_image_uri: getCardImage(selectedCard),
-        card_rarity: selectedCard.rarity,
-        card_mana_cost: selectedCard.mana_cost,
-        card_type: selectedCard.type_line,
-        condition,
-        is_foil: isFoil,
-        price: parseFloat(price),
-        quantity: parseInt(quantity) || 1,
-        notes: notes.trim() || null,
-        usd_price: isFoil
-          ? parseFloat(selectedCard?.prices?.usd_foil ?? selectedCard?.prices?.usd ?? '0') || null
-          : parseFloat(selectedCard?.prices?.usd ?? '0') || null,
-        binder_id: selectedBinderId,
-      })
-      if (insertError) setError(insertError.message)
-      else setSuccess(true)
+      const newQty   = parseInt(quantity) || 1
+      const newPrice = parseFloat(price)
+
+      // Check for an identical existing listed entry to merge into
+      const { data: existing } = await supabase
+        .from('listings')
+        .select('id, quantity')
+        .eq('user_id', userId)
+        .eq('card_id', selectedCard.id)
+        .eq('condition', condition)
+        .eq('is_foil', isFoil)
+        .eq('price', newPrice)
+        .eq('status', 'listed')
+        .maybeSingle()
+
+      if (existing) {
+        // Duplicate found — increment quantity instead of creating a new row
+        const { error: updateError } = await supabase
+          .from('listings')
+          .update({ quantity: existing.quantity + newQty })
+          .eq('id', existing.id)
+        if (updateError) setError(updateError.message)
+        else setSuccess(true)
+      } else {
+        // No duplicate — create new listing
+        const { error: insertError } = await supabase.from('listings').insert({
+          user_id: userId,
+          card_id: selectedCard.id,
+          card_name: selectedCard.name,
+          card_set: selectedCard.set,
+          card_set_name: selectedCard.set_name,
+          card_image_uri: getCardImage(selectedCard),
+          card_rarity: selectedCard.rarity,
+          card_mana_cost: selectedCard.mana_cost,
+          card_type: selectedCard.type_line,
+          condition,
+          is_foil: isFoil,
+          price: newPrice,
+          quantity: newQty,
+          notes: notes.trim() || null,
+          usd_price: isFoil
+            ? parseFloat(selectedCard?.prices?.usd_foil ?? selectedCard?.prices?.usd ?? '0') || null
+            : parseFloat(selectedCard?.prices?.usd ?? '0') || null,
+          binder_id: selectedBinderId,
+        })
+        if (insertError) setError(insertError.message)
+        else setSuccess(true)
+      }
     } catch { setError('Something went wrong. Please try again.') }
     finally { setSubmitting(false) }
   }
@@ -521,35 +547,84 @@ function BulkImportForm({ userId }: { userId: string }) {
 
   const handleSubmit = async () => {
     setSubmitError('')
-    const toInsert = foundRows.filter(r => r.price && parseInt(r.price) > 0)
-    if (toInsert.length === 0) { setSubmitError('No valid listings to submit.'); return }
+    const toProcess = foundRows.filter(r => r.price && parseInt(r.price) > 0)
+    if (toProcess.length === 0) { setSubmitError('No valid listings to submit.'); return }
 
     setSubmitting(true)
     try {
-      const { error: insertError } = await supabase.from('listings').insert(
-        toInsert.map(r => ({
-          user_id: userId,
-          card_id: r.scryfallId,
-          card_name: r.cardName,
-          card_set: r.setCode,
-          card_set_name: r.setName,
-          card_image_uri: r.imageUri,
-          card_rarity: r.rarity,
-          card_mana_cost: r.manaCost,
-          card_type: r.typeLine,
-          condition: r.condition,
-          is_foil: r.isFoil,
-          price: parseInt(r.price, 10),
-          quantity: r.quantity,
-          notes: null,
-          usd_price: r.isFoil
-            ? parseFloat(r.usdFoilPrice ?? r.usdPrice ?? '0') || null
-            : parseFloat(r.usdPrice ?? '0') || null,
-          binder_id: selectedBinderId,
-        }))
+      // Fetch existing listed listings for this user so we can detect duplicates
+      const { data: existingListings } = await supabase
+        .from('listings')
+        .select('id, card_id, condition, is_foil, price, quantity')
+        .eq('user_id', userId)
+        .eq('status', 'listed')
+
+      const existing = existingListings ?? []
+
+      // First, collapse any duplicates within the bulk import itself
+      const collapsed = new Map<string, typeof toProcess[0] & { quantity: number }>()
+      for (const r of toProcess) {
+        const key = `${r.scryfallId}|${r.condition}|${r.isFoil}|${parseInt(r.price, 10)}`
+        const prev = collapsed.get(key)
+        if (prev) {
+          prev.quantity += r.quantity
+        } else {
+          collapsed.set(key, { ...r, quantity: r.quantity })
+        }
+      }
+
+      const toUpdate: { id: string; newQty: number }[] = []
+      const toInsert: typeof toProcess = []
+
+      for (const r of collapsed.values()) {
+        const match = existing.find(e =>
+          e.card_id    === r.scryfallId &&
+          e.condition  === r.condition  &&
+          e.is_foil    === r.isFoil     &&
+          e.price      === parseInt(r.price, 10)
+        )
+        if (match) {
+          toUpdate.push({ id: match.id, newQty: match.quantity + r.quantity })
+        } else {
+          toInsert.push(r)
+        }
+      }
+
+      // Apply updates
+      await Promise.all(
+        toUpdate.map(({ id, newQty }) =>
+          supabase.from('listings').update({ quantity: newQty }).eq('id', id)
+        )
       )
-      if (insertError) { setSubmitError(insertError.message); setSubmitting(false); return }
-      setSuccessCount(toInsert.length)
+
+      // Apply inserts
+      if (toInsert.length > 0) {
+        const { error: insertError } = await supabase.from('listings').insert(
+          toInsert.map(r => ({
+            user_id: userId,
+            card_id: r.scryfallId,
+            card_name: r.cardName,
+            card_set: r.setCode,
+            card_set_name: r.setName,
+            card_image_uri: r.imageUri,
+            card_rarity: r.rarity,
+            card_mana_cost: r.manaCost,
+            card_type: r.typeLine,
+            condition: r.condition,
+            is_foil: r.isFoil,
+            price: parseInt(r.price, 10),
+            quantity: r.quantity,
+            notes: null,
+            usd_price: r.isFoil
+              ? parseFloat(r.usdFoilPrice ?? r.usdPrice ?? '0') || null
+              : parseFloat(r.usdPrice ?? '0') || null,
+            binder_id: selectedBinderId,
+          }))
+        )
+        if (insertError) { setSubmitError(insertError.message); setSubmitting(false); return }
+      }
+
+      setSuccessCount(toProcess.length)
     } catch {
       setSubmitError('Something went wrong. Please try again.')
     }
