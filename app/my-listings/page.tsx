@@ -475,7 +475,6 @@ function MyListingsContent() {
         const totalCards = binderAll.length
         const totalSold = binderAll.filter(l => l.status === 'sold').length
         const binderTotalValue = binderAll
-          .filter(l => (l.status ?? 'listed') === 'listed')
           .reduce((sum, l) => sum + l.price * l.quantity, 0)
         const valueEarned = binderAll
           .filter(l => l.status === 'sold')
