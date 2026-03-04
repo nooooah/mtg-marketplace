@@ -133,8 +133,13 @@ export default function CardListingsSection({
         {filtered.length} of {listings.length} listing{listings.length !== 1 ? 's' : ''}
       </p>
 
-      {/* Listings table */}
-      <div style={{ border: '1px solid var(--color-border)', borderRadius: '14px', background: 'var(--color-surface)', overflowX: 'auto' }}>
+      <style>{`
+        @media (max-width: 640px) { .cls-desktop { display: none !important; } }
+        @media (min-width: 641px) { .cls-mobile  { display: none !important; } }
+      `}</style>
+
+      {/* Desktop: horizontal scrolling table */}
+      <div className="cls-desktop" style={{ border: '1px solid var(--color-border)', borderRadius: '14px', background: 'var(--color-surface)', overflowX: 'auto' }}>
         <div style={{ minWidth: '480px' }}>
         {/* Header */}
         <div style={{
@@ -163,6 +168,99 @@ export default function CardListingsSection({
           ))
         )}
         </div>
+      </div>
+
+      {/* Mobile: stacked cards */}
+      <div className="cls-mobile" style={{ border: '1px solid var(--color-border)', borderRadius: '14px', background: 'var(--color-surface)', overflow: 'hidden' }}>
+        {filtered.length === 0 ? (
+          <div style={{ padding: '24px', textAlign: 'center', color: 'var(--color-muted)', fontSize: '13px' }}>
+            No listings match your filters.
+          </div>
+        ) : (
+          filtered.map((listing, i) => (
+            <MobileListingRow key={listing.id} listing={listing} isLast={i === filtered.length - 1} />
+          ))
+        )}
+      </div>
+    </div>
+  )
+}
+
+function MobileListingRow({ listing, isLast }: { listing: Listing; isLast: boolean }) {
+  const seller = listing.profiles
+  const sellerInitial = (seller?.display_name ?? seller?.username ?? '?')[0].toUpperCase()
+
+  return (
+    <div style={{
+      padding: '12px 14px',
+      borderBottom: isLast ? 'none' : '1px solid var(--color-border)',
+    }}>
+      {/* Row 1: avatar + seller name + binder + messenger */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+        <Link
+          href={`/profile/${seller?.username}`}
+          style={{ display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none', flex: 1, minWidth: 0 }}
+        >
+          <div style={{
+            width: '30px', height: '30px', borderRadius: '50%', flexShrink: 0,
+            background: 'var(--color-blue)', display: 'flex', alignItems: 'center',
+            justifyContent: 'center', fontSize: '12px', fontWeight: 700, color: '#fff',
+          }}>
+            {sellerInitial}
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 0 }}>
+            <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {seller?.display_name ?? seller?.username ?? 'Seller'}
+            </span>
+            {listing.binders?.name && (
+              <span style={{ fontSize: '10px', fontWeight: 600, color: 'var(--color-muted)', display: 'flex', alignItems: 'center', gap: '3px', whiteSpace: 'nowrap' }}>
+                <BinderIcon />
+                {listing.binders.name}
+              </span>
+            )}
+          </div>
+        </Link>
+        {seller?.messenger_link && (
+          <a
+            href={seller.messenger_link}
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Message seller"
+            style={{
+              flexShrink: 0, width: '28px', height: '28px', borderRadius: '50%',
+              background: 'linear-gradient(135deg, #0099ff 0%, #a033ff 60%, #ff5c87 100%)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none',
+            }}
+          >
+            <MessengerIcon />
+          </a>
+        )}
+      </div>
+
+      {/* Row 2: condition + finish + qty + price */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+        <span style={{
+          fontSize: '11px', fontWeight: 700,
+          color: conditionColor(listing.condition),
+          background: `${conditionColor(listing.condition)}18`,
+          border: `1px solid ${conditionColor(listing.condition)}40`,
+          padding: '2px 8px', borderRadius: '5px',
+        }}>
+          {listing.condition}
+        </span>
+        <span style={{ fontSize: '12px', color: listing.is_foil ? '#fbbf24' : 'var(--color-muted)', fontWeight: listing.is_foil ? 700 : 400 }}>
+          {listing.is_foil ? '✦ Foil' : 'Non-Foil'}
+        </span>
+        <span style={{
+          fontSize: listing.quantity === 0 ? '11px' : '12px',
+          fontWeight: listing.quantity === 0 ? 700 : 400,
+          color: listing.quantity === 0 ? '#ef4444' : 'var(--color-muted)',
+        }}>
+          {listing.quantity === 0 ? 'Sold Out' : `${listing.quantity} avail.`}
+        </span>
+        <span style={{ marginLeft: 'auto', fontSize: '16px', fontWeight: 800, color: 'var(--color-text)', letterSpacing: '-0.02em' }}>
+          ₱{listing.price.toLocaleString('en-PH')}
+        </span>
       </div>
     </div>
   )
