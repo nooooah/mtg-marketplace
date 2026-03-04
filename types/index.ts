@@ -54,6 +54,7 @@ export interface Listing {
   binder_id: string | null
   created_at: string
   profiles?: Profile
+  binders?: { id: string; name: string } | null
 }
 
 export type CardCondition = 'NM' | 'LP' | 'MP' | 'HP' | 'DMG'

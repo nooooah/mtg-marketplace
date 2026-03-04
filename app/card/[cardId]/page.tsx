@@ -121,7 +121,7 @@ export default async function CardPage({ params }: { params: Promise<{ cardId: s
     fetchScryfallCard(cardId),
     supabase
       .from('listings')
-      .select('*, profiles(id, username, avatar_url, display_name, created_at, messenger_link)')
+      .select('*, profiles(id, username, avatar_url, display_name, created_at, messenger_link), binders(id, name)')
       .eq('card_id', cardId)
       .eq('status', 'listed')
       .not('binder_id', 'is', null)

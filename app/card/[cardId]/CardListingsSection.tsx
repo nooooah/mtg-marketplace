@@ -200,12 +200,24 @@ function ListingRow({ listing, isLast }: { listing: Listing; isLast: boolean }) 
           }}>
             {sellerInitial}
           </div>
-          <span style={{
-            fontSize: '13px', fontWeight: 500, color: 'var(--color-text)',
-            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-          }}>
-            {seller?.display_name ?? seller?.username ?? 'Seller'}
-          </span>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 0 }}>
+            <span style={{
+              fontSize: '13px', fontWeight: 500, color: 'var(--color-text)',
+              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            }}>
+              {seller?.display_name ?? seller?.username ?? 'Seller'}
+            </span>
+            {listing.binders?.name && (
+              <span style={{
+                fontSize: '10px', fontWeight: 600, color: 'var(--color-muted)',
+                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                display: 'flex', alignItems: 'center', gap: '3px',
+              }}>
+                <BinderIcon />
+                {listing.binders.name}
+              </span>
+            )}
+          </div>
         </Link>
 
         {/* Messenger button — only shown if seller has a link */}
@@ -275,6 +287,15 @@ function conditionColor(c: string) {
     NM: '#22c55e', LP: '#3b82f6', MP: '#f59e0b', HP: '#f97316', DMG: '#ef4444',
   }
   return map[c] ?? '#94a3b8'
+}
+
+function BinderIcon() {
+  return (
+    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+      <rect x="3" y="3" width="18" height="18" rx="2" />
+      <line x1="9" y1="3" x2="9" y2="21" />
+    </svg>
+  )
 }
 
 // Messenger "M" lightning-bolt icon (white on gradient circle)
