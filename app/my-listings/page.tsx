@@ -1414,7 +1414,7 @@ function EditPanel({ listing, onSave, onCancel, binders, onMoveToBinder }: {
               return base ? (
                 <div style={{ marginTop: '8px' }}>
                   <p style={{ fontSize: '11px', color: 'var(--color-subtle)', marginBottom: '6px' }}>
-                    Manabox{isFoil ? ' foil' : ''}: <span style={{ color: 'var(--color-muted)' }}>${base} USD</span> — suggest PHP:
+                    TCGPlayer{isFoil ? ' foil' : ''}: <span style={{ color: 'var(--color-muted)' }}>${base} USD</span> — suggest PHP:
                   </p>
                   <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                     {[30, 40, 50, 60, 70].map(rate => (

@@ -230,7 +230,7 @@ export default async function CardPage({ params }: { params: Promise<{ cardId: s
               {(refUsd || refFoil) && (
                 <div className="cdp-ref-prices" style={{ padding: '14px 16px', background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: '12px' }}>
                   <p style={{ fontSize: '10px', fontWeight: 700, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 10px' }}>
-                    Manabox Prices
+                    TCGPlayer Prices
                   </p>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '7px' }}>
                     {refUsd && (

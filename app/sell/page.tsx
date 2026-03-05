@@ -255,7 +255,7 @@ function SingleCardForm({ userId }: { userId: string }) {
                 <p style={{ fontSize: '12px', color: 'var(--color-subtle)', margin: 0, textTransform: 'capitalize' }}>{selectedCard.rarity} · {selectedCard.type_line}</p>
                 {selectedCard.prices?.usd && (
                   <p style={{ fontSize: '11px', color: 'var(--color-muted)', margin: '4px 0 0' }}>
-                    Manabox: <strong style={{ color: 'var(--color-text)' }}>${selectedCard.prices.usd} USD</strong>
+                    TCGPlayer: <strong style={{ color: 'var(--color-text)' }}>${selectedCard.prices.usd} USD</strong>
                   </p>
                 )}
               </div>
@@ -319,7 +319,7 @@ function SingleCardForm({ userId }: { userId: string }) {
               return base ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '2px' }}>
                   <p style={{ fontSize: '11px', color: 'var(--color-muted)', margin: 0 }}>
-                    Manabox{isFoil ? ' foil' : ''}: <strong style={{ color: 'var(--color-text)' }}>${base} USD</strong> — suggest PHP:
+                    TCGPlayer{isFoil ? ' foil' : ''}: <strong style={{ color: 'var(--color-text)' }}>${base} USD</strong> — suggest PHP:
                   </p>
                   <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                     {[30, 40, 50, 60, 70].map(rate => (
