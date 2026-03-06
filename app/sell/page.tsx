@@ -447,7 +447,7 @@ function BulkImportForm({ userId }: { userId: string }) {
     setParseError('')
     const lines = rawText.split('\n').filter(l => l.trim())
     if (lines.length === 0) { setParseError('Paste at least one card line.'); return }
-    if (lines.length > 75) { setParseError('Maximum 75 cards per import.'); return }
+    if (lines.length > 100) { setParseError('Maximum 100 cards per import.'); return }
 
     const parsed = lines.map(l => parseMoxfieldLine(l)).filter(Boolean) as ReturnType<typeof parseMoxfieldLine>[]
     const failed = lines.length - parsed.length

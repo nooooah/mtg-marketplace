@@ -34,11 +34,13 @@ function BuyPageContent() {
   const searchParams = useSearchParams()
 
   const initialQuery = searchParams.get('q') ?? ''
-  const initialSort = (searchParams.get('sort') as SortOption) ?? 'newest'
+  const initialSort = (searchParams.get('sort') as SortOption) ?? 'price_desc'
   const initialLtm = searchParams.get('ltm') === '1'
 
   const [query, setQuery] = useState(initialQuery)
   const [sort, setSort] = useState<SortOption>(initialSort)
+  const [page, setPage] = useState(1)
+  const [perPage, setPerPage] = useState(24)
   const [conditions, setConditions] = useState<Set<CardCondition>>(new Set())
   const [minPrice, setMinPrice] = useState('')
   const [maxPrice, setMaxPrice] = useState('')
@@ -122,15 +124,15 @@ function BuyPageContent() {
       case 'alpha':     q = q.order('card_name', { ascending: true }); break
     }
 
-    const { data } = await q.limit(lowerThanMarket ? 300 : 48)
+    const { data } = await q.limit(2000)
     let results = (data as Listing[]) ?? []
 
     if (lowerThanMarket) {
-      results = results
-        .filter(l => l.usd_price && Math.round(l.price / l.usd_price) <= 40)
+      results = results.filter(l => l.usd_price && Math.round(l.price / l.usd_price) <= 40)
     }
 
     setListings(results)
+    setPage(1)   // reset to first page whenever results change
     setLoading(false)
   }, [query, sort, conditions, minPrice, maxPrice, lowerThanMarket])
 
@@ -254,10 +256,10 @@ function BuyPageContent() {
           onChange={e => setSort(e.target.value as SortOption)}
           style={{ padding: '10px 12px', borderRadius: '9px', minWidth: '160px', fontSize: '13px', cursor: 'pointer' }}
         >
+          <option value="price_desc">Price: High → Low</option>
+          <option value="price_asc">Price: Low → High</option>
           <option value="newest">Newest first</option>
           <option value="oldest">Oldest first</option>
-          <option value="price_asc">Price: Low → High</option>
-          <option value="price_desc">Price: High → Low</option>
           <option value="hot">Most viewed</option>
           <option value="alpha">A → Z</option>
         </select>
@@ -407,32 +409,100 @@ function BuyPageContent() {
           <p style={{ fontSize: '13px', color: 'var(--color-subtle)' }}>Try a different search or clear your filters.</p>
         </div>
       ) : (
-        <>
-          {(() => {
-            const grouped = groupListings(listings)
-            return (
-              <>
-                <p style={{ fontSize: '12px', color: 'var(--color-subtle)', marginBottom: '16px' }}>
+        (() => {
+          const grouped = groupListings(listings)
+          const totalPages = Math.ceil(grouped.length / perPage)
+          const safePage = Math.min(page, Math.max(1, totalPages))
+          const pageGrouped = grouped.slice((safePage - 1) * perPage, safePage * perPage)
+
+          return (
+            <>
+              {/* Count + per-page */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', marginBottom: '16px' }}>
+                <p style={{ fontSize: '12px', color: 'var(--color-subtle)', margin: 0 }}>
                   {grouped.length} card{grouped.length !== 1 ? 's' : ''} found
                   {grouped.length !== listings.length && (
-                    <span style={{ color: 'var(--color-subtle)' }}> ({listings.length} listing{listings.length !== 1 ? 's' : ''})</span>
+                    <span> ({listings.length} listing{listings.length !== 1 ? 's' : ''})</span>
                   )}
                 </p>
-                <div className="card-grid">
-                  {grouped.map(listing => (
-                    <CardTile
-                      key={listing.card_id}
-                      listing={listing}
-                      sellerCount={listing.sellerCount}
-                      href={`/card/${listing.card_id}`}
-                    />
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ fontSize: '12px', color: 'var(--color-muted)' }}>Show</span>
+                  {[24, 48, 96].map(n => (
+                    <button key={n} onClick={() => { setPerPage(n); setPage(1) }} style={{
+                      padding: '3px 9px', borderRadius: '6px', fontSize: '12px', fontWeight: perPage === n ? 700 : 400,
+                      border: `1px solid ${perPage === n ? 'var(--color-blue)' : 'var(--color-border)'}`,
+                      background: perPage === n ? 'var(--color-blue-glow)' : 'transparent',
+                      color: perPage === n ? 'var(--color-blue)' : 'var(--color-muted)',
+                      cursor: 'pointer', transition: 'all 0.12s ease',
+                    }}>{n}</button>
                   ))}
                 </div>
-              </>
-            )
-          })()}
-        </>
+              </div>
+
+              <div className="card-grid">
+                {pageGrouped.map(listing => (
+                  <CardTile
+                    key={listing.card_id}
+                    listing={listing}
+                    sellerCount={listing.sellerCount}
+                    href={`/card/${listing.card_id}`}
+                  />
+                ))}
+              </div>
+
+              {totalPages > 1 && (
+                <Pagination page={safePage} totalPages={totalPages} onPage={p => { setPage(p); window.scrollTo({ top: 0, behavior: 'smooth' }) }} />
+              )}
+            </>
+          )
+        })()
       )}
+    </div>
+  )
+}
+
+function Pagination({ page, totalPages, onPage }: { page: number; totalPages: number; onPage: (p: number) => void }) {
+  // Build page number list with ellipsis
+  const nums: (number | '…')[] = []
+  const addNum = (n: number) => { if (!nums.includes(n)) nums.push(n) }
+  addNum(1)
+  for (let i = Math.max(2, page - 2); i <= Math.min(totalPages - 1, page + 2); i++) addNum(i)
+  if (totalPages > 1) addNum(totalPages)
+
+  const withEllipsis: (number | '…')[] = []
+  let prev = 0
+  for (const n of nums as number[]) {
+    if (n - prev > 1) withEllipsis.push('…')
+    withEllipsis.push(n)
+    prev = n
+  }
+
+  const btn = (label: React.ReactNode, target: number, active = false, disabled = false) => (
+    <button
+      key={String(label)}
+      onClick={() => !disabled && onPage(target)}
+      disabled={disabled}
+      style={{
+        minWidth: '32px', height: '32px', padding: '0 6px',
+        borderRadius: '7px', fontSize: '13px', fontWeight: active ? 700 : 400,
+        border: `1px solid ${active ? 'var(--color-blue)' : 'var(--color-border)'}`,
+        background: active ? 'var(--color-blue-glow)' : 'transparent',
+        color: active ? 'var(--color-blue)' : disabled ? 'var(--color-subtle)' : 'var(--color-muted)',
+        cursor: disabled ? 'default' : 'pointer',
+        transition: 'all 0.12s ease',
+      }}
+    >{label}</button>
+  )
+
+  return (
+    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '4px', marginTop: '32px', flexWrap: 'wrap' }}>
+      {btn('←', page - 1, false, page <= 1)}
+      {withEllipsis.map((n, i) =>
+        n === '…'
+          ? <span key={`e${i}`} style={{ padding: '0 4px', color: 'var(--color-subtle)', fontSize: '13px' }}>…</span>
+          : btn(n, n as number, n === page)
+      )}
+      {btn('→', page + 1, false, page >= totalPages)}
     </div>
   )
 }

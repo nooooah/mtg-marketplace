@@ -48,7 +48,7 @@ function MyListingsContent() {
 
   const [userId, setUserId] = useState<string | null>(null)
   const [query, setQuery] = useState('')
-  const [sort, setSort] = useState<SortOption>('newest')
+  const [sort, setSort] = useState<SortOption>('price_desc')
   const [conditions, setConditions] = useState<Set<CardCondition>>(new Set())
   const [minPrice, setMinPrice] = useState('')
   const [maxPrice, setMaxPrice] = useState('')
@@ -620,10 +620,10 @@ function MyListingsContent() {
 
         <select value={sort} onChange={e => setSort(e.target.value as SortOption)}
           style={{ padding: '10px 12px', borderRadius: '9px', minWidth: '160px', fontSize: '13px', cursor: 'pointer' }}>
+          <option value="price_desc">Price: High → Low</option>
+          <option value="price_asc">Price: Low → High</option>
           <option value="newest">Newest first</option>
           <option value="oldest">Oldest first</option>
-          <option value="price_asc">Price: Low → High</option>
-          <option value="price_desc">Price: High → Low</option>
           <option value="most_viewed">Most viewed</option>
           <option value="alpha">A → Z</option>
         </select>
