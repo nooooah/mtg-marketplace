@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react'
 import CardTile from './CardTile'
 import type { Listing, CardCondition } from '@/types'
 
-type SortOption = 'newest' | 'oldest' | 'price_asc' | 'price_desc' | 'alpha'
+type SortOption = 'price_desc' | 'price_asc' | 'newest' | 'oldest' | 'alpha'
 
 const CONDITIONS: CardCondition[] = ['NM', 'LP', 'MP', 'HP', 'DMG']
 const CONDITION_COLORS: Record<CardCondition, string> = {
@@ -15,21 +15,25 @@ const CONDITION_COLORS: Record<CardCondition, string> = {
   DMG: 'var(--color-dmg)',
 }
 
-const SORT_LABELS: Record<SortOption, string> = {
-  newest: 'Newest first',
-  oldest: 'Oldest first',
-  price_asc: 'Price: low to high',
-  price_desc: 'Price: high to low',
-  alpha: 'A → Z',
-}
+const SORT_OPTIONS: { value: SortOption; label: string }[] = [
+  { value: 'price_desc', label: 'Price: high to low' },
+  { value: 'price_asc',  label: 'Price: low to high' },
+  { value: 'newest',     label: 'Newest first' },
+  { value: 'oldest',     label: 'Oldest first' },
+  { value: 'alpha',      label: 'A → Z' },
+]
+
+const PER_PAGE_OPTIONS = [24, 48, 96]
 
 export default function ProfileListingsSection({ listings }: { listings: Listing[] }) {
   const [query, setQuery] = useState('')
-  const [sort, setSort] = useState<SortOption>('newest')
+  const [sort, setSort] = useState<SortOption>('price_desc')
   const [conditions, setConditions] = useState<Set<CardCondition>>(new Set())
   const [minPrice, setMinPrice] = useState('')
   const [maxPrice, setMaxPrice] = useState('')
   const [filtersOpen, setFiltersOpen] = useState(false)
+  const [page, setPage] = useState(1)
+  const [perPage, setPerPage] = useState(24)
 
   const toggleCondition = (c: CardCondition) => {
     setConditions(prev => {
@@ -37,6 +41,7 @@ export default function ProfileListingsSection({ listings }: { listings: Listing
       next.has(c) ? next.delete(c) : next.add(c)
       return next
     })
+    setPage(1)
   }
 
   const filtered = useMemo(() => {
@@ -63,7 +68,17 @@ export default function ProfileListingsSection({ listings }: { listings: Listing
     return result
   }, [listings, query, sort, conditions, minPrice, maxPrice])
 
+  const totalPages = Math.max(1, Math.ceil(filtered.length / perPage))
+  const safePage = Math.min(page, totalPages)
+  const paginated = filtered.slice((safePage - 1) * perPage, safePage * perPage)
+
   const activeFilterCount = conditions.size + (minPrice ? 1 : 0) + (maxPrice ? 1 : 0)
+
+  const handleQueryChange = (v: string) => { setQuery(v); setPage(1) }
+  const handleSortChange = (v: SortOption) => { setSort(v); setPage(1) }
+  const handleMinPriceChange = (v: string) => { setMinPrice(v); setPage(1) }
+  const handleMaxPriceChange = (v: string) => { setMaxPrice(v); setPage(1) }
+  const handlePerPageChange = (v: number) => { setPerPage(v); setPage(1) }
 
   return (
     <div>
@@ -78,7 +93,7 @@ export default function ProfileListingsSection({ listings }: { listings: Listing
             type="text"
             placeholder="Search listings…"
             value={query}
-            onChange={e => setQuery(e.target.value)}
+            onChange={e => handleQueryChange(e.target.value)}
             style={{ paddingLeft: '34px', paddingRight: '10px', fontSize: '13px' }}
           />
         </div>
@@ -86,11 +101,11 @@ export default function ProfileListingsSection({ listings }: { listings: Listing
         {/* Sort */}
         <select
           value={sort}
-          onChange={e => setSort(e.target.value as SortOption)}
+          onChange={e => handleSortChange(e.target.value as SortOption)}
           style={{ fontSize: '13px', padding: '8px 10px', minWidth: '160px' }}
         >
-          {(Object.keys(SORT_LABELS) as SortOption[]).map(s => (
-            <option key={s} value={s}>{SORT_LABELS[s]}</option>
+          {SORT_OPTIONS.map(s => (
+            <option key={s.value} value={s.value}>{s.label}</option>
           ))}
         </select>
 
@@ -148,11 +163,11 @@ export default function ProfileListingsSection({ listings }: { listings: Listing
           <div>
             <p style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 8px' }}>Price Range (₱)</p>
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-              <input type="number" placeholder="Min ₱" value={minPrice} onChange={e => setMinPrice(e.target.value)} min="0" step="1" style={{ width: '100px', fontSize: '13px' }} />
+              <input type="number" placeholder="Min ₱" value={minPrice} onChange={e => handleMinPriceChange(e.target.value)} min="0" step="1" style={{ width: '100px', fontSize: '13px' }} />
               <span style={{ color: 'var(--color-subtle)', fontSize: '12px' }}>–</span>
-              <input type="number" placeholder="Max ₱" value={maxPrice} onChange={e => setMaxPrice(e.target.value)} min="0" step="1" style={{ width: '100px', fontSize: '13px' }} />
+              <input type="number" placeholder="Max ₱" value={maxPrice} onChange={e => handleMaxPriceChange(e.target.value)} min="0" step="1" style={{ width: '100px', fontSize: '13px' }} />
               {(minPrice || maxPrice) && (
-                <button onClick={() => { setMinPrice(''); setMaxPrice('') }} style={{
+                <button onClick={() => { handleMinPriceChange(''); handleMaxPriceChange('') }} style={{
                   fontSize: '12px', color: 'var(--color-subtle)', background: 'transparent',
                   border: 'none', cursor: 'pointer', padding: '2px 6px',
                 }}>Clear</button>
@@ -162,7 +177,7 @@ export default function ProfileListingsSection({ listings }: { listings: Listing
 
           {/* Clear all */}
           {activeFilterCount > 0 && (
-            <button onClick={() => { setConditions(new Set()); setMinPrice(''); setMaxPrice('') }} style={{
+            <button onClick={() => { setConditions(new Set()); setMinPrice(''); setMaxPrice(''); setPage(1) }} style={{
               alignSelf: 'flex-start', fontSize: '12px', color: 'var(--color-muted)',
               background: 'transparent', border: '1px solid var(--color-border)',
               borderRadius: '6px', padding: '4px 10px', cursor: 'pointer',
@@ -173,11 +188,31 @@ export default function ProfileListingsSection({ listings }: { listings: Listing
         </div>
       )}
 
-      {/* Result count */}
-      <p style={{ fontSize: '12px', color: 'var(--color-subtle)', marginBottom: '14px' }}>
-        {filtered.length} {filtered.length === 1 ? 'listing' : 'listings'}
-        {filtered.length !== listings.length && ` of ${listings.length}`}
-      </p>
+      {/* Result count + per-page selector */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', flexWrap: 'wrap', gap: '8px' }}>
+        <p style={{ fontSize: '12px', color: 'var(--color-subtle)', margin: 0 }}>
+          {filtered.length} {filtered.length === 1 ? 'listing' : 'listings'}
+          {filtered.length !== listings.length && ` of ${listings.length}`}
+        </p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <span style={{ fontSize: '11px', color: 'var(--color-subtle)' }}>Per page:</span>
+          {PER_PAGE_OPTIONS.map(n => (
+            <button
+              key={n}
+              onClick={() => handlePerPageChange(n)}
+              style={{
+                padding: '3px 9px', borderRadius: '6px', fontSize: '12px', fontWeight: perPage === n ? 700 : 500,
+                border: `1px solid ${perPage === n ? 'var(--color-blue)' : 'var(--color-border)'}`,
+                background: perPage === n ? 'var(--color-blue-glow)' : 'transparent',
+                color: perPage === n ? 'var(--color-blue)' : 'var(--color-muted)',
+                cursor: 'pointer',
+              }}
+            >
+              {n}
+            </button>
+          ))}
+        </div>
+      </div>
 
       {/* Grid */}
       {filtered.length === 0 ? (
@@ -186,9 +221,64 @@ export default function ProfileListingsSection({ listings }: { listings: Listing
         </div>
       ) : (
         <div className="card-grid" style={{ gap: '12px' }}>
-          {filtered.map(l => <CardTile key={l.id} listing={l} compact href={`/card/${l.card_id}`} />)}
+          {paginated.map(l => <CardTile key={l.id} listing={l} compact href={`/card/${l.card_id}`} />)}
         </div>
       )}
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <Pagination
+          page={safePage}
+          totalPages={totalPages}
+          onPageChange={p => { setPage(p); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
+        />
+      )}
+    </div>
+  )
+}
+
+/* ─── Pagination ──────────────────────────────────────────────────────── */
+
+function Pagination({ page, totalPages, onPageChange }: { page: number; totalPages: number; onPageChange: (p: number) => void }) {
+  const pages: (number | '…')[] = []
+  if (totalPages <= 7) {
+    for (let i = 1; i <= totalPages; i++) pages.push(i)
+  } else {
+    pages.push(1)
+    if (page > 3) pages.push('…')
+    for (let i = Math.max(2, page - 1); i <= Math.min(totalPages - 1, page + 1); i++) pages.push(i)
+    if (page < totalPages - 2) pages.push('…')
+    pages.push(totalPages)
+  }
+
+  const btn = (content: React.ReactNode, onClick: () => void, active = false, disabled = false) => (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      style={{
+        minWidth: '32px', height: '32px', padding: '0 8px',
+        borderRadius: '7px', fontSize: '13px', fontWeight: active ? 700 : 500,
+        border: `1px solid ${active ? 'var(--color-blue)' : 'var(--color-border)'}`,
+        background: active ? 'var(--color-blue-glow)' : 'transparent',
+        color: active ? 'var(--color-blue)' : disabled ? 'var(--color-subtle)' : 'var(--color-muted)',
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        opacity: disabled ? 0.5 : 1,
+        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+      }}
+    >
+      {content}
+    </button>
+  )
+
+  return (
+    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '4px', marginTop: '28px', flexWrap: 'wrap' }}>
+      {btn('←', () => onPageChange(page - 1), false, page === 1)}
+      {pages.map((p, i) =>
+        p === '…'
+          ? <span key={`ellipsis-${i}`} style={{ padding: '0 4px', color: 'var(--color-subtle)', fontSize: '13px' }}>…</span>
+          : btn(p, () => onPageChange(p as number), p === page)
+      )}
+      {btn('→', () => onPageChange(page + 1), false, page === totalPages)}
     </div>
   )
 }
