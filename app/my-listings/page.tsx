@@ -239,7 +239,7 @@ function MyListingsContent() {
     setEditingId(null)
     setConfirmDeleteId(null)
     setConfirmBulkDelete(false)
-    setActiveTab('listed')
+    setActiveTab(id === 'unsorted' ? 'unlisted' : 'listed')
   }
 
   const toggleSelect = (id: string) => {
@@ -559,7 +559,7 @@ function MyListingsContent() {
         borderBottom: '1px solid var(--color-border)',
         marginBottom: '20px',
       }}>
-        {(['listed', 'unlisted', 'sold'] as ListingStatus[]).map(tab => {
+        {(selectedBinderId === 'unsorted' ? ['unlisted'] : ['listed', 'unlisted', 'sold'] as ListingStatus[]).map(tab => {
           const isActive = activeTab === tab
           return (
             <button
@@ -713,8 +713,14 @@ function MyListingsContent() {
                 <PlusIcon /> List your first card
               </Link>
             </>
-          ) : activeTab === 'unlisted' ? (
+          ) : activeTab === 'unlisted' && selectedBinderId !== 'unsorted' ? (
             <p style={{ fontSize: '15px', color: 'var(--color-muted)' }}>No unlisted cards. Move listed cards here to hide them from buyers.</p>
+          ) : activeTab === 'unlisted' && selectedBinderId === 'unsorted' ? (
+            <>
+              <p style={{ fontSize: '22px', marginBottom: '8px' }}>🎉</p>
+              <p style={{ fontSize: '15px', fontWeight: 600, color: 'var(--color-text)', marginBottom: '6px' }}>All sorted!</p>
+              <p style={{ fontSize: '13px', color: 'var(--color-muted)' }}>Every card is in a binder. Nice work keeping things tidy!</p>
+            </>
           ) : (
             <p style={{ fontSize: '15px', color: 'var(--color-muted)' }}>No sold cards yet. Mark listings as sold when you complete a sale.</p>
           )}
