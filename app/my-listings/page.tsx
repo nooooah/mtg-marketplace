@@ -78,6 +78,8 @@ function MyListingsContent() {
   const [renameValue, setRenameValue] = useState('')
   const [editingDescId, setEditingDescId] = useState<string | null>(null)
   const [descValue, setDescValue] = useState('')
+  const [confirmDeleteBinderId, setConfirmDeleteBinderId] = useState<string | null>(null)
+  const [deletingBinderId, setDeletingBinderId] = useState<string | null>(null)
 
   // Auth guard
   useEffect(() => {
@@ -130,6 +132,18 @@ function MyListingsContent() {
     await supabase.from('binders').update({ name: trimmed }).eq('id', id)
     setBinders(prev => prev.map(b => b.id === id ? { ...b, name: trimmed } : b))
     setRenamingBinderId(null)
+  }
+
+  const handleDeleteBinder = async (id: string) => {
+    setDeletingBinderId(id)
+    await supabase.from('listings').delete().eq('binder_id', id)
+    await supabase.from('binders').delete().eq('id', id)
+    setListings(prev => prev.filter(l => l.binder_id !== id))
+    setAllListings(prev => prev.filter(l => l.binder_id !== id))
+    setBinders(prev => prev.filter(b => b.id !== id))
+    setConfirmDeleteBinderId(null)
+    setDeletingBinderId(null)
+    setSelectedBinderId('unsorted')
   }
 
   const handleDescribeBinder = async (id: string, description: string) => {
@@ -462,12 +476,41 @@ function MyListingsContent() {
                   )}
                 </button>
               )}
-              {!isUnsorted && !isRenaming && (
-                <button
-                  onClick={() => { setRenamingBinderId(b.id); setRenameValue(b.name) }}
-                  title="Rename binder"
-                  style={{ background: 'transparent', border: 'none', color: 'var(--color-subtle)', cursor: 'pointer', padding: '4px', fontSize: '11px', lineHeight: 1 }}
-                >✏️</button>
+              {!isUnsorted && !isRenaming && confirmDeleteBinderId !== b.id && (
+                <>
+                  <button
+                    onClick={() => { setRenamingBinderId(b.id); setRenameValue(b.name) }}
+                    title="Rename binder"
+                    style={{ background: 'transparent', border: 'none', color: 'var(--color-subtle)', cursor: 'pointer', padding: '4px', lineHeight: 1 }}
+                  >
+                    <TrashPencilIcon type="pencil" />
+                  </button>
+                  <button
+                    onClick={() => setConfirmDeleteBinderId(b.id)}
+                    title="Delete binder"
+                    style={{ background: 'transparent', border: 'none', color: 'var(--color-subtle)', cursor: 'pointer', padding: '4px', lineHeight: 1 }}
+                  >
+                    <TrashPencilIcon type="trash" />
+                  </button>
+                </>
+              )}
+              {!isUnsorted && !isRenaming && confirmDeleteBinderId === b.id && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '4px 8px', borderRadius: '8px', background: 'var(--color-surface)', border: '1px solid #f87171' }}>
+                  <span style={{ fontSize: '11px', color: '#f87171', fontWeight: 600, whiteSpace: 'nowrap' }}>Delete + all cards?</span>
+                  <button
+                    onClick={() => handleDeleteBinder(b.id)}
+                    disabled={deletingBinderId === b.id}
+                    style={{ fontSize: '11px', fontWeight: 700, padding: '2px 8px', borderRadius: '5px', border: 'none', background: '#ef4444', color: '#fff', cursor: 'pointer', opacity: deletingBinderId === b.id ? 0.6 : 1 }}
+                  >
+                    {deletingBinderId === b.id ? '…' : 'Yes'}
+                  </button>
+                  <button
+                    onClick={() => setConfirmDeleteBinderId(null)}
+                    style={{ fontSize: '11px', fontWeight: 600, padding: '2px 8px', borderRadius: '5px', border: '1px solid var(--color-border)', background: 'transparent', color: 'var(--color-muted)', cursor: 'pointer' }}
+                  >
+                    Cancel
+                  </button>
+                </div>
               )}
             </div>
           )
@@ -506,9 +549,20 @@ function MyListingsContent() {
           }}>
             {/* Description row */}
             <div style={{ marginBottom: '14px' }}>
-              <p style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-subtle)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>
-                Description
-              </p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
+                <p style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-subtle)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: 0 }}>
+                  Description
+                </p>
+                {!isEditingDesc && (
+                  <button
+                    onClick={() => { setEditingDescId(selectedBinderId); setDescValue(activeBinder.description ?? '') }}
+                    title="Edit description"
+                    style={{ background: 'transparent', border: 'none', color: 'var(--color-subtle)', cursor: 'pointer', padding: '1px', lineHeight: 1, display: 'flex', alignItems: 'center' }}
+                  >
+                    <TrashPencilIcon type="pencil" size={11} />
+                  </button>
+                )}
+              </div>
               {isEditingDesc ? (
                 <input
                   autoFocus
@@ -1544,6 +1598,19 @@ function SkeletonGrid() {
 }
 
 /* ─── Icons ───────────────────────────────────────────────────────────── */
+
+function TrashPencilIcon({ type, size = 13 }: { type: 'trash' | 'pencil'; size?: number }) {
+  if (type === 'trash') return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+      <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14H6L5 6" /><path d="M10 11v6" /><path d="M14 11v6" /><path d="M9 6V4h6v2" />
+    </svg>
+  )
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+    </svg>
+  )
+}
 
 function SearchIcon() {
   return <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
