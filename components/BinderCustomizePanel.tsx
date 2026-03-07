@@ -1,6 +1,6 @@
 'use client'
 
-import { ManaIcon, binderTabStyle, ALL_MANA_COLORS, type ManaColor } from './ManaIcon'
+import { ManaIcon, binderTabStyle, ALL_MANA_COLORS, MANA_LABEL, type ManaColor } from './ManaIcon'
 import type { Binder } from '@/types'
 
 interface Props {
@@ -81,7 +81,7 @@ export default function BinderCustomizePanel({ binder, onColorChange, onColorCle
                   opacity: atMax ? 0.4 : 1, transition: 'all 0.12s ease',
                 }}
               >
-                <ManaIcon color={c} size={16} />{c}
+                <ManaIcon color={c} size={16} />{MANA_LABEL[c]}
               </button>
             )
           })}

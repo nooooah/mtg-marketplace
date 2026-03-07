@@ -4,30 +4,53 @@ export type ManaColor = 'W' | 'U' | 'B' | 'R' | 'G' | 'C'
 
 export const ALL_MANA_COLORS: ManaColor[] = ['W', 'U', 'B', 'R', 'G', 'C']
 
-const MANA_STYLE: Record<ManaColor, { bg: string; border: string; text: string; label: string }> = {
-  W: { bg: '#f9f6e4', border: '#c8b870', text: '#5a3e00', label: 'White' },
-  U: { bg: '#0e68ab', border: '#085490', text: '#ffffff', label: 'Blue'  },
-  B: { bg: '#1a1008', border: '#6a4030', text: '#d4c4b8', label: 'Black' },
-  R: { bg: '#d9202a', border: '#b01020', text: '#ffffff', label: 'Red'   },
-  G: { bg: '#007038', border: '#00552a', text: '#ffffff', label: 'Green' },
-  C: { bg: '#cdc4c0', border: '#a09090', text: '#5a4840', label: 'Colorless' },
+/** Display name for each mana color code */
+export const MANA_LABEL: Record<ManaColor, string> = {
+  W: 'White', U: 'Blue', B: 'Black', R: 'Red', G: 'Green', C: 'Colorless',
+}
+
+/** Filename in /public/mana/ for WUBRG (no SVG for C) */
+const MANA_FILE: Partial<Record<ManaColor, string>> = {
+  W: 'plains',
+  U: 'island',
+  B: 'swamp',
+  R: 'mountain',
+  G: 'forest',
 }
 
 export function ManaIcon({ color, size = 18 }: { color: string; size?: number }) {
-  const m = MANA_STYLE[color as ManaColor] ?? MANA_STYLE.C
+  const key = color as ManaColor
+  const label = MANA_LABEL[key] ?? color
+  const file = MANA_FILE[key]
+
+  if (file) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={`/mana/${file}.svg`}
+        alt={label}
+        title={label}
+        width={size}
+        height={size}
+        style={{ display: 'inline-block', flexShrink: 0, verticalAlign: 'middle' }}
+      />
+    )
+  }
+
+  // Fallback for C (Colorless) — no SVG available
   return (
     <span
-      title={m.label}
+      title={label}
       style={{
         display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
         width: size, height: size, borderRadius: '50%',
-        background: m.bg, border: `1.5px solid ${m.border}`,
-        color: m.text, fontSize: Math.round(size * 0.54), fontWeight: 800,
+        background: '#cdc4c0', border: '1.5px solid #a09090',
+        color: '#5a4840', fontSize: Math.round(size * 0.54), fontWeight: 800,
         lineHeight: 1, flexShrink: 0, boxShadow: '0 1px 3px rgba(0,0,0,0.25)',
         fontFamily: 'system-ui, sans-serif', userSelect: 'none',
       }}
     >
-      {color}
+      C
     </span>
   )
 }
