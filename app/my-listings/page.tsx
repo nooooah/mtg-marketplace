@@ -411,6 +411,9 @@ function MyListingsContent() {
           const count = isUnsorted
             ? listings.filter(l => !l.binder_id).length
             : listings.filter(l => l.binder_id === b.id).length
+          const unlistedCount = isUnsorted
+            ? listings.filter(l => !l.binder_id && l.status === 'unlisted').length
+            : listings.filter(l => l.binder_id === b.id && l.status === 'unlisted').length
           const isRenaming = !isUnsorted && renamingBinderId === b.id
           return (
             <div key={b.id} style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
@@ -445,6 +448,18 @@ function MyListingsContent() {
                     color: isActive ? 'var(--color-blue)' : 'var(--color-subtle)',
                     border: `1px solid ${isActive ? 'rgba(59,130,246,0.25)' : 'var(--color-border)'}`,
                   }}>{count}</span>
+                  {unlistedCount > 0 && (
+                    <span
+                      title={`${unlistedCount} unlisted ${unlistedCount === 1 ? 'card' : 'cards'} in this binder`}
+                      style={{
+                        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                        width: '16px', height: '16px', borderRadius: '50%',
+                        background: '#f59e0b', color: '#fff',
+                        fontSize: '10px', fontWeight: 800, lineHeight: 1,
+                        flexShrink: 0, cursor: 'default',
+                      }}
+                    >!</span>
+                  )}
                 </button>
               )}
               {!isUnsorted && !isRenaming && (
