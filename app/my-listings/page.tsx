@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef, Suspense } from 'react'
 import confetti from 'canvas-confetti'
-import { ManaIcon, binderTabStyle, ALL_MANA_COLORS, type ManaColor } from '@/components/ManaIcon'
+import { ManaIcon, binderTabStyle, type ManaColor } from '@/components/ManaIcon'
+import BinderCustomizePanel from '@/components/BinderCustomizePanel'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
@@ -81,7 +82,7 @@ function MyListingsContent() {
   const [descValue, setDescValue] = useState('')
   const [confirmDeleteBinderId, setConfirmDeleteBinderId] = useState<string | null>(null)
   const [deletingBinderId, setDeletingBinderId] = useState<string | null>(null)
-  const [customizingOpen, setCustomizingOpen] = useState(false)
+  const [binderEditMode, setBinderEditMode] = useState(false)
   const saveColorTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Auth guard
@@ -290,7 +291,7 @@ function MyListingsContent() {
     setConfirmDeleteId(null)
     setConfirmBulkDelete(false)
     setActiveTab(id === 'unsorted' ? 'unlisted' : 'listed')
-    setCustomizingOpen(false)
+    setBinderEditMode(false)
   }
 
   const toggleSelect = (id: string) => {
@@ -569,7 +570,41 @@ function MyListingsContent() {
         >
           + Add Binder
         </button>
+
+        <button
+          onClick={() => setBinderEditMode(v => !v)}
+          style={{
+            display: 'flex', alignItems: 'center', gap: '5px',
+            padding: '6px 12px', borderRadius: '8px', fontSize: '13px', fontWeight: binderEditMode ? 600 : 400,
+            border: `1px solid ${binderEditMode ? 'var(--color-blue)' : 'var(--color-border)'}`,
+            background: binderEditMode ? 'var(--color-blue-glow)' : 'transparent',
+            color: binderEditMode ? 'var(--color-blue)' : 'var(--color-subtle)',
+            cursor: 'pointer', transition: 'all 0.12s ease',
+          }}
+        >
+          🎨 {binderEditMode ? 'Done' : 'Edit Binders'}
+        </button>
       </div>
+
+      {/* Binder customize panel */}
+      {binderEditMode && selectedBinderId !== 'unsorted' && (() => {
+        const b = binders.find(x => x.id === selectedBinderId)
+        if (!b) return null
+        return (
+          <div style={{ background: 'var(--color-surface)', border: '1px solid var(--color-blue)', borderRadius: '12px', padding: '20px 24px', marginBottom: '4px' }}>
+            <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-blue)', margin: '0 0 16px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              🎨 Customizing: <span style={{ color: 'var(--color-text)' }}>{b.name}</span>
+            </p>
+            <BinderCustomizePanel
+              binder={b}
+              onColorChange={(field, value) => handleBinderColorChange(b.id, field, value)}
+              onColorClear={field => clearBinderColor(b.id, field)}
+              onManaToggle={color => toggleManaPip(b.id, color)}
+              onReset={() => resetBinderStyle(b.id)}
+            />
+          </div>
+        )
+      })()}
 
       {/* Active binder info tile */}
       {selectedBinderId !== 'unsorted' && (() => {
@@ -659,140 +694,6 @@ function MyListingsContent() {
                   <p style={{ fontSize: '18px', fontWeight: 700, color: '#10b981', letterSpacing: '-0.02em' }}>₱{valueEarned.toLocaleString('en-PH')}</p>
                 </div>
               </div>
-            </div>
-
-            {/* Customize section */}
-            <div style={{ borderTop: '1px solid var(--color-border)', marginTop: '16px', paddingTop: '14px' }}>
-              <button
-                onClick={() => setCustomizingOpen(v => !v)}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: '6px',
-                  background: 'transparent', border: 'none', cursor: 'pointer',
-                  fontSize: '12px', fontWeight: 600, color: 'var(--color-muted)', padding: 0,
-                }}
-              >
-                <span>🎨</span> Customize binder
-                <span style={{ fontSize: '10px', color: 'var(--color-subtle)' }}>{customizingOpen ? '▲' : '▼'}</span>
-              </button>
-
-              {customizingOpen && (
-                <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '18px' }}>
-
-                  {/* Gradient colours */}
-                  <div>
-                    <p style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-subtle)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 10px' }}>Background gradient</p>
-                    <div style={{ display: 'flex', alignItems: 'flex-end', gap: '16px', flexWrap: 'wrap' }}>
-                      <ColorSwatch
-                        label="Color 1"
-                        value={activeBinder.color1}
-                        onChange={v => handleBinderColorChange(activeBinder.id, 'color1', v)}
-                        onClear={() => clearBinderColor(activeBinder.id, 'color1')}
-                      />
-                      <ColorSwatch
-                        label="Color 2"
-                        value={activeBinder.color2}
-                        disabled={!activeBinder.color1}
-                        onChange={v => handleBinderColorChange(activeBinder.id, 'color2', v)}
-                        onClear={() => clearBinderColor(activeBinder.id, 'color2')}
-                      />
-                      {/* Gradient preview strip */}
-                      {activeBinder.color1 && (
-                        <div style={{
-                          height: '28px', flex: 1, minWidth: '80px', borderRadius: '6px',
-                          background: activeBinder.color2
-                            ? `linear-gradient(90deg, ${activeBinder.color1}, ${activeBinder.color2})`
-                            : activeBinder.color1,
-                          border: '1px solid var(--color-border)',
-                        }} />
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Text colour */}
-                  <div>
-                    <p style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-subtle)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 10px' }}>Text color</p>
-                    <ColorSwatch
-                      label="Text"
-                      value={activeBinder.text_color}
-                      onChange={v => handleBinderColorChange(activeBinder.id, 'text_color', v)}
-                      onClear={() => clearBinderColor(activeBinder.id, 'text_color')}
-                    />
-                  </div>
-
-                  {/* Mana pips */}
-                  <div>
-                    <p style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-subtle)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 10px' }}>
-                      Mana colors <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>— max 5, shown in binder tab</span>
-                    </p>
-                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
-                      {ALL_MANA_COLORS.map(c => {
-                        const selected = (activeBinder.mana_colors ?? []).includes(c)
-                        const atMax = (activeBinder.mana_colors ?? []).length >= 5 && !selected
-                        return (
-                          <button
-                            key={c}
-                            onClick={() => toggleManaPip(activeBinder.id, c)}
-                            disabled={atMax}
-                            title={atMax ? 'Max 5 mana colors' : undefined}
-                            style={{
-                              display: 'flex', alignItems: 'center', gap: '5px',
-                              padding: '4px 10px', borderRadius: '8px', fontSize: '12px', fontWeight: 600,
-                              border: `1px solid ${selected ? 'var(--color-blue)' : 'var(--color-border)'}`,
-                              background: selected ? 'var(--color-blue-glow)' : 'transparent',
-                              color: selected ? 'var(--color-blue)' : 'var(--color-muted)',
-                              cursor: atMax ? 'not-allowed' : 'pointer',
-                              opacity: atMax ? 0.4 : 1,
-                              transition: 'all 0.12s ease',
-                            }}
-                          >
-                            <ManaIcon color={c} size={16} />
-                            {c}
-                          </button>
-                        )
-                      })}
-                    </div>
-                    {/* Selected pips in order */}
-                    {(activeBinder.mana_colors ?? []).length > 0 && (
-                      <div style={{ display: 'flex', gap: '6px', marginTop: '10px', alignItems: 'center' }}>
-                        <span style={{ fontSize: '11px', color: 'var(--color-subtle)' }}>Preview:</span>
-                        {(activeBinder.mana_colors ?? []).map((c, i) => <ManaIcon key={i} color={c} size={18} />)}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Tab preview */}
-                  <div>
-                    <p style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-subtle)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 10px' }}>Tab preview</p>
-                    <div style={{
-                      display: 'inline-flex', alignItems: 'center', gap: '6px',
-                      padding: '6px 12px', borderRadius: '8px', fontSize: '13px', fontWeight: 600,
-                      ...binderTabStyle(activeBinder, true),
-                    }}>
-                      {activeBinder.name}
-                      {(activeBinder.mana_colors ?? []).map((c, i) => <ManaIcon key={i} color={c} size={14} />)}
-                      <span style={{
-                        fontSize: '10px', fontWeight: 700, padding: '1px 5px', borderRadius: '8px',
-                        background: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.3)',
-                      }}>5</span>
-                    </div>
-                  </div>
-
-                  {/* Reset */}
-                  {(activeBinder.color1 || activeBinder.text_color || (activeBinder.mana_colors ?? []).length > 0) && (
-                    <button
-                      onClick={() => resetBinderStyle(activeBinder.id)}
-                      style={{
-                        alignSelf: 'flex-start', fontSize: '12px', color: 'var(--color-muted)',
-                        background: 'transparent', border: '1px solid var(--color-border)',
-                        borderRadius: '6px', padding: '5px 12px', cursor: 'pointer',
-                      }}
-                    >
-                      Reset to default
-                    </button>
-                  )}
-
-                </div>
-              )}
             </div>
 
           </div>
@@ -1775,43 +1676,6 @@ function SkeletonGrid() {
 }
 
 /* ─── Icons ───────────────────────────────────────────────────────────── */
-
-function ColorSwatch({ label, value, onChange, onClear, disabled }: {
-  label: string
-  value: string | null
-  onChange: (v: string) => void
-  onClear: () => void
-  disabled?: boolean
-}) {
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', opacity: disabled ? 0.4 : 1 }}>
-      <span style={{ fontSize: '11px', color: 'var(--color-subtle)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</span>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-        <label style={{ position: 'relative', cursor: disabled ? 'not-allowed' : 'pointer', display: 'inline-block' }}>
-          <div style={{
-            width: '32px', height: '32px', borderRadius: '7px',
-            background: value ?? '#e8e8e8',
-            border: `2px solid ${value ? value + '90' : 'var(--color-border)'}`,
-            boxShadow: value ? `0 0 0 1px ${value}40` : 'none',
-          }} />
-          {!disabled && (
-            <input
-              type="color"
-              value={value ?? '#ffffff'}
-              onChange={e => onChange(e.target.value)}
-              style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer', width: '100%', height: '100%', padding: 0, margin: 0 }}
-            />
-          )}
-        </label>
-        {value ? (
-          <button onClick={onClear} title="Clear" style={{ background: 'transparent', border: 'none', color: 'var(--color-subtle)', cursor: 'pointer', fontSize: '18px', lineHeight: 1, padding: 0 }}>×</button>
-        ) : (
-          <span style={{ fontSize: '11px', color: 'var(--color-subtle)', fontStyle: 'italic' }}>none</span>
-        )}
-      </div>
-    </div>
-  )
-}
 
 function TrashPencilIcon({ type, size = 13 }: { type: 'trash' | 'pencil'; size?: number }) {
   if (type === 'trash') return (

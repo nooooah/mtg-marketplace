@@ -1,11 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { ManaIcon, binderTabStyle } from '@/components/ManaIcon'
+import { useState, useEffect, useRef } from 'react'
+import { ManaIcon, binderTabStyle, type ManaColor } from '@/components/ManaIcon'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import type { Profile, Listing, Binder } from '@/types'
 import ProfileListingsSection from '@/components/ProfileListingsSection'
+import BinderCustomizePanel from '@/components/BinderCustomizePanel'
 
 /* ─── Helpers ─────────────────────────────────────────────────────────── */
 
@@ -84,7 +85,16 @@ function ProfileContent({ userId, initialProfile }: { userId: string; initialPro
           onSave={updated => setProfile(updated)}
         />
 
-        <BindersDisplay listings={listings} binders={binders} loading={listingsLoading} displayName={profile.display_name ?? profile.username} />
+        <BindersDisplay
+          listings={listings}
+          binders={binders}
+          loading={listingsLoading}
+          displayName={profile.display_name ?? profile.username}
+          onUpdateBinder={(id, patch) => setBinders(prev => prev.map(b => b.id === id ? { ...b, ...patch } : b))}
+          saveBinder={async (id, patch) => {
+            await supabase.from('binders').update(patch).eq('id', id)
+          }}
+        />
 
       </div>
     </PageShell>
@@ -93,11 +103,13 @@ function ProfileContent({ userId, initialProfile }: { userId: string; initialPro
 
 /* ─── Binders Display ─────────────────────────────────────────────────── */
 
-function BindersDisplay({ listings, binders, loading, displayName }: {
+function BindersDisplay({ listings, binders, loading, displayName, onUpdateBinder, saveBinder }: {
   listings: Listing[]
   binders: Binder[]
   loading: boolean
   displayName: string
+  onUpdateBinder: (id: string, patch: Partial<Binder>) => void
+  saveBinder: (id: string, patch: Partial<Binder>) => Promise<void>
 }) {
   // Group by binder, filter to only non-empty
   const binderGroups = binders.map(b => ({
@@ -106,9 +118,41 @@ function BindersDisplay({ listings, binders, loading, displayName }: {
   })).filter(g => g.cards.length > 0)
 
   const [selectedBinderId, setSelectedBinderId] = useState<string>(binderGroups[0]?.binder.id ?? '')
+  const [editingBinders, setEditingBinders] = useState(false)
+  const saveColorTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Keep selected tab valid when binders load
   const activeGroup = binderGroups.find(g => g.binder.id === selectedBinderId) ?? binderGroups[0]
+
+  const handleColorChange = (binderId: string, field: 'color1' | 'color2' | 'text_color', value: string) => {
+    onUpdateBinder(binderId, { [field]: value })
+    if (saveColorTimer.current) clearTimeout(saveColorTimer.current)
+    saveColorTimer.current = setTimeout(() => saveBinder(binderId, { [field]: value }), 400)
+  }
+
+  const clearBinderColor = (binderId: string, field: 'color1' | 'color2' | 'text_color') => {
+    const patch: Partial<Binder> = { [field]: null }
+    if (field === 'color1') patch.color2 = null
+    onUpdateBinder(binderId, patch)
+    saveBinder(binderId, patch)
+  }
+
+  const toggleManaPip = (binderId: string, color: ManaColor) => {
+    const binder = binders.find(b => b.id === binderId)
+    if (!binder) return
+    const current = binder.mana_colors ?? []
+    const next = current.includes(color)
+      ? current.filter(c => c !== color)
+      : current.length < 5 ? [...current, color] : current
+    onUpdateBinder(binderId, { mana_colors: next })
+    saveBinder(binderId, { mana_colors: next })
+  }
+
+  const resetBinderStyle = (binderId: string) => {
+    const patch = { color1: null, color2: null, text_color: null, mana_colors: [] as string[] }
+    onUpdateBinder(binderId, patch)
+    saveBinder(binderId, patch)
+  }
 
   if (loading) {
     return (
@@ -134,9 +178,26 @@ function BindersDisplay({ listings, binders, loading, displayName }: {
 
       {/* Binder selector tile */}
       <div style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: '16px', padding: '24px 28px' }}>
-        <h2 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--color-text)', margin: '0 0 16px', letterSpacing: '-0.02em' }}>
-          {displayName}'s Binders
-        </h2>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+          <h2 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--color-text)', margin: 0, letterSpacing: '-0.02em' }}>
+            {displayName}'s Binders
+          </h2>
+          {binderGroups.length > 0 && (
+            <button
+              onClick={() => setEditingBinders(v => !v)}
+              style={{
+                padding: '6px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: 600,
+                border: editingBinders ? '1px solid var(--color-blue)' : '1px solid var(--color-border)',
+                background: editingBinders ? 'var(--color-blue-glow)' : 'transparent',
+                color: editingBinders ? 'var(--color-blue)' : 'var(--color-muted)',
+                cursor: 'pointer', transition: 'all 0.12s ease',
+                display: 'flex', alignItems: 'center', gap: '5px',
+              }}
+            >
+              {editingBinders ? '✓ Done' : '🎨 Edit Binders'}
+            </button>
+          )}
+        </div>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
           {binderGroups.map(({ binder, cards }) => {
             const isActive = binder.id === activeGroup?.binder.id
@@ -173,6 +234,28 @@ function BindersDisplay({ listings, binders, loading, displayName }: {
           </p>
         )}
       </div>
+
+      {/* Customize panel */}
+      {editingBinders && activeGroup && (() => {
+        const b = activeGroup.binder
+        return (
+          <div style={{
+            background: 'var(--color-surface)', border: '1px solid var(--color-blue)',
+            borderRadius: '12px', padding: '20px 24px',
+          }}>
+            <p style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-blue)', margin: '0 0 16px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              🎨 Customizing: {b.name}
+            </p>
+            <BinderCustomizePanel
+              binder={b}
+              onColorChange={(field, value) => handleColorChange(b.id, field, value)}
+              onColorClear={field => clearBinderColor(b.id, field)}
+              onManaToggle={color => toggleManaPip(b.id, color)}
+              onReset={() => resetBinderStyle(b.id)}
+            />
+          </div>
+        )
+      })()}
 
       {/* Cards tile */}
       <div style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: '16px', padding: '28px' }}>
