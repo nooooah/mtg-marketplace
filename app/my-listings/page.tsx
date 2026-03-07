@@ -64,7 +64,7 @@ function MyListingsContent() {
   const [editingId, setEditingId] = useState<string | null>(null)
 
   // Status tabs + bulk selection
-  const [activeTab, setActiveTab] = useState<ListingStatus>('listed')
+  const [activeTab, setActiveTab] = useState<ListingStatus>('unlisted') // default binder is Unsorted, which only shows unlisted
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [bulkLoading, setBulkLoading] = useState(false)
   const [confirmBulkDelete, setConfirmBulkDelete] = useState(false)
