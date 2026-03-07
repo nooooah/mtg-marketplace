@@ -207,21 +207,29 @@ function BindersDisplay({ listings, binders, loading, displayName, onUpdateBinde
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
           {binderGroups.map(({ binder, cards }) => {
             const isActive = binder.id === activeGroup?.binder.id
+            const hidden = binder.show_on_profile === false
             return (
               <button
                 key={binder.id}
                 onClick={() => setSelectedBinderId(binder.id)}
+                title={hidden ? 'Hidden from public profile' : undefined}
                 style={{
                   display: 'flex', alignItems: 'center', gap: '7px',
                   padding: '8px 16px', borderRadius: '10px',
                   fontSize: '14px', fontWeight: isActive ? 700 : 500,
                   cursor: 'pointer', transition: 'all 0.12s ease',
                   whiteSpace: 'nowrap',
+                  opacity: hidden && !isActive ? 0.55 : 1,
                   ...binderTabStyle(binder, isActive),
                 }}
               >
                 {binder.name}
                 {(binder.mana_colors ?? []).map((c, i) => <ManaIcon key={i} color={c} size={15} />)}
+                {hidden && (
+                  <span style={{ color: '#f59e0b', display: 'flex', alignItems: 'center' }} title="Hidden from public profile">
+                    <EyeSlashIcon />
+                  </span>
+                )}
                 <span style={{
                   fontSize: '11px', fontWeight: 700, padding: '1px 7px', borderRadius: '10px',
                   background: isActive ? 'rgba(59,130,246,0.15)' : 'var(--color-surface)',
@@ -591,4 +599,7 @@ function LinkIcon() {
 }
 function EyeIcon() {
   return <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></svg>
+}
+function EyeSlashIcon() {
+  return <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" /><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" /><line x1="1" y1="1" x2="23" y2="23" /></svg>
 }
