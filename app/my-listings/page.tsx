@@ -2,8 +2,6 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef, Suspense } from 'react'
 import confetti from 'canvas-confetti'
-import { ManaIcon, binderTabStyle, type ManaColor } from '@/components/ManaIcon'
-import BinderCustomizePanel from '@/components/BinderCustomizePanel'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
@@ -82,8 +80,6 @@ function MyListingsContent() {
   const [descValue, setDescValue] = useState('')
   const [confirmDeleteBinderId, setConfirmDeleteBinderId] = useState<string | null>(null)
   const [deletingBinderId, setDeletingBinderId] = useState<string | null>(null)
-  const [binderEditMode, setBinderEditMode] = useState(false)
-  const saveColorTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Auth guard
   useEffect(() => {
@@ -148,39 +144,6 @@ function MyListingsContent() {
     setConfirmDeleteBinderId(null)
     setDeletingBinderId(null)
     setSelectedBinderId('unsorted')
-  }
-
-  const handleBinderColorChange = (id: string, field: 'color1' | 'color2' | 'text_color', value: string) => {
-    setBinders(prev => prev.map(b => b.id === id ? { ...b, [field]: value } : b))
-    if (saveColorTimer.current) clearTimeout(saveColorTimer.current)
-    saveColorTimer.current = setTimeout(() => {
-      supabase.from('binders').update({ [field]: value }).eq('id', id)
-    }, 400)
-  }
-
-  const clearBinderColor = async (id: string, field: 'color1' | 'color2' | 'text_color') => {
-    const updates: Record<string, null> = { [field]: null }
-    if (field === 'color1') updates.color2 = null        // can't have gradient without start colour
-    setBinders(prev => prev.map(b => b.id === id ? { ...b, ...updates } : b))
-    await supabase.from('binders').update(updates).eq('id', id)
-  }
-
-  const toggleManaPip = async (binderId: string, color: ManaColor) => {
-    const binder = binders.find(b => b.id === binderId)
-    if (!binder) return
-    const current = binder.mana_colors ?? []
-    const next = current.includes(color)
-      ? current.filter(c => c !== color)
-      : current.length < 5 ? [...current, color] : current
-    if (next === current) return
-    setBinders(prev => prev.map(b => b.id === binderId ? { ...b, mana_colors: next } : b))
-    await supabase.from('binders').update({ mana_colors: next }).eq('id', binderId)
-  }
-
-  const resetBinderStyle = async (id: string) => {
-    const updates = { color1: null, color2: null, text_color: null, mana_colors: [] }
-    setBinders(prev => prev.map(b => b.id === id ? { ...b, ...updates } : b))
-    await supabase.from('binders').update(updates).eq('id', id)
   }
 
   const handleDescribeBinder = async (id: string, description: string) => {
@@ -291,7 +254,6 @@ function MyListingsContent() {
     setConfirmDeleteId(null)
     setConfirmBulkDelete(false)
     setActiveTab(id === 'unsorted' ? 'unlisted' : 'listed')
-    setBinderEditMode(false)
   }
 
   const toggleSelect = (id: string) => {
@@ -488,17 +450,12 @@ function MyListingsContent() {
                     display: 'flex', alignItems: 'center', gap: '6px',
                     padding: '6px 12px', borderRadius: '8px', fontSize: '13px', fontWeight: isActive ? 600 : 400,
                     cursor: 'pointer', transition: 'all 0.12s ease',
-                    ...(isUnsorted ? {
-                      border: `1px solid ${isActive ? 'var(--color-blue)' : 'var(--color-border)'}`,
-                      background: isActive ? 'var(--color-blue-glow)' : 'var(--color-surface)',
-                      color: isActive ? 'var(--color-blue)' : 'var(--color-muted)',
-                    } : binderTabStyle(b as Binder, isActive)),
+                    border: `1px solid ${isActive ? 'var(--color-blue)' : 'var(--color-border)'}`,
+                    background: isActive ? 'var(--color-blue-glow)' : 'var(--color-surface)',
+                    color: isActive ? 'var(--color-blue)' : 'var(--color-muted)',
                   }}
                 >
                   {b.name}
-                  {!isUnsorted && ((b as Binder).mana_colors ?? []).map((c, i) => (
-                    <ManaIcon key={i} color={c} size={14} />
-                  ))}
                   <span style={{
                     fontSize: '10px', fontWeight: 700, padding: '1px 5px', borderRadius: '8px',
                     background: isActive ? 'rgba(59,130,246,0.15)' : 'var(--color-surface-2)',
@@ -571,40 +528,7 @@ function MyListingsContent() {
           + Add Binder
         </button>
 
-        <button
-          onClick={() => setBinderEditMode(v => !v)}
-          style={{
-            display: 'flex', alignItems: 'center', gap: '5px',
-            padding: '6px 12px', borderRadius: '8px', fontSize: '13px', fontWeight: binderEditMode ? 600 : 400,
-            border: `1px solid ${binderEditMode ? 'var(--color-blue)' : 'var(--color-border)'}`,
-            background: binderEditMode ? 'var(--color-blue-glow)' : 'transparent',
-            color: binderEditMode ? 'var(--color-blue)' : 'var(--color-subtle)',
-            cursor: 'pointer', transition: 'all 0.12s ease',
-          }}
-        >
-          <PaletteIcon /> {binderEditMode ? 'Done' : 'Edit Binders'}
-        </button>
       </div>
-
-      {/* Binder customize panel */}
-      {binderEditMode && selectedBinderId !== 'unsorted' && (() => {
-        const b = binders.find(x => x.id === selectedBinderId)
-        if (!b) return null
-        return (
-          <div style={{ background: 'var(--color-surface)', border: '1px solid var(--color-blue)', borderRadius: '12px', padding: '20px 24px', marginBottom: '4px' }}>
-            <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-blue)', margin: '0 0 16px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <PaletteIcon /> Customizing: <span style={{ color: 'var(--color-text)' }}>{b.name}</span>
-            </p>
-            <BinderCustomizePanel
-              binder={b}
-              onColorChange={(field, value) => handleBinderColorChange(b.id, field, value)}
-              onColorClear={field => clearBinderColor(b.id, field)}
-              onManaToggle={color => toggleManaPip(b.id, color)}
-              onReset={() => resetBinderStyle(b.id)}
-            />
-          </div>
-        )
-      })()}
 
       {/* Active binder info tile */}
       {selectedBinderId !== 'unsorted' && (() => {
@@ -1714,9 +1638,7 @@ function CardPlaceholderIcon() {
 function CheckIcon() {
   return <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><polyline points="20 6 9 17 4 12" /></svg>
 }
-function PaletteIcon() {
-  return <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><circle cx="13.5" cy="6.5" r=".5" fill="currentColor" /><circle cx="17.5" cy="10.5" r=".5" fill="currentColor" /><circle cx="8.5" cy="7.5" r=".5" fill="currentColor" /><circle cx="6.5" cy="12.5" r=".5" fill="currentColor" /><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z" /></svg>
-}
+
 function SparkleIcon() {
   return <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5Z" /><path d="M19 13l.75 2.25L22 16l-2.25.75L19 19l-.75-2.25L16 16l2.25-.75Z" /><path d="M5 17l.5 1.5L7 19l-1.5.5L5 21l-.5-1.5L3 19l1.5-.5Z" /></svg>
 }
