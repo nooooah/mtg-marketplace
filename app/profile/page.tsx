@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { ManaIcon, binderTabStyle } from '@/components/ManaIcon'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import type { Profile, Listing, Binder } from '@/types'
@@ -146,15 +147,14 @@ function BindersDisplay({ listings, binders, loading, displayName }: {
                 style={{
                   display: 'flex', alignItems: 'center', gap: '7px',
                   padding: '8px 16px', borderRadius: '10px',
-                  border: `1px solid ${isActive ? 'var(--color-blue)' : 'var(--color-border)'}`,
-                  background: isActive ? 'var(--color-blue-glow)' : 'var(--color-surface-2)',
-                  color: isActive ? 'var(--color-blue)' : 'var(--color-muted)',
                   fontSize: '14px', fontWeight: isActive ? 700 : 500,
                   cursor: 'pointer', transition: 'all 0.12s ease',
                   whiteSpace: 'nowrap',
+                  ...binderTabStyle(binder, isActive),
                 }}
               >
                 {binder.name}
+                {(binder.mana_colors ?? []).map((c, i) => <ManaIcon key={i} color={c} size={15} />)}
                 <span style={{
                   fontSize: '11px', fontWeight: 700, padding: '1px 7px', borderRadius: '10px',
                   background: isActive ? 'rgba(59,130,246,0.15)' : 'var(--color-surface)',

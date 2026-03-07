@@ -30,6 +30,10 @@ export interface Binder {
   description: string | null
   display_order: number
   created_at: string
+  color1: string | null
+  color2: string | null
+  text_color: string | null
+  mana_colors: string[]
 }
 
 export interface Listing {

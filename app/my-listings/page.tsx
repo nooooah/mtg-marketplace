@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef, Suspense } from 'react'
 import confetti from 'canvas-confetti'
+import { ManaIcon, binderTabStyle, ALL_MANA_COLORS, type ManaColor } from '@/components/ManaIcon'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
@@ -80,6 +81,8 @@ function MyListingsContent() {
   const [descValue, setDescValue] = useState('')
   const [confirmDeleteBinderId, setConfirmDeleteBinderId] = useState<string | null>(null)
   const [deletingBinderId, setDeletingBinderId] = useState<string | null>(null)
+  const [customizingOpen, setCustomizingOpen] = useState(false)
+  const saveColorTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Auth guard
   useEffect(() => {
@@ -144,6 +147,39 @@ function MyListingsContent() {
     setConfirmDeleteBinderId(null)
     setDeletingBinderId(null)
     setSelectedBinderId('unsorted')
+  }
+
+  const handleBinderColorChange = (id: string, field: 'color1' | 'color2' | 'text_color', value: string) => {
+    setBinders(prev => prev.map(b => b.id === id ? { ...b, [field]: value } : b))
+    if (saveColorTimer.current) clearTimeout(saveColorTimer.current)
+    saveColorTimer.current = setTimeout(() => {
+      supabase.from('binders').update({ [field]: value }).eq('id', id)
+    }, 400)
+  }
+
+  const clearBinderColor = async (id: string, field: 'color1' | 'color2' | 'text_color') => {
+    const updates: Record<string, null> = { [field]: null }
+    if (field === 'color1') updates.color2 = null        // can't have gradient without start colour
+    setBinders(prev => prev.map(b => b.id === id ? { ...b, ...updates } : b))
+    await supabase.from('binders').update(updates).eq('id', id)
+  }
+
+  const toggleManaPip = async (binderId: string, color: ManaColor) => {
+    const binder = binders.find(b => b.id === binderId)
+    if (!binder) return
+    const current = binder.mana_colors ?? []
+    const next = current.includes(color)
+      ? current.filter(c => c !== color)
+      : current.length < 5 ? [...current, color] : current
+    if (next === current) return
+    setBinders(prev => prev.map(b => b.id === binderId ? { ...b, mana_colors: next } : b))
+    await supabase.from('binders').update({ mana_colors: next }).eq('id', binderId)
+  }
+
+  const resetBinderStyle = async (id: string) => {
+    const updates = { color1: null, color2: null, text_color: null, mana_colors: [] }
+    setBinders(prev => prev.map(b => b.id === id ? { ...b, ...updates } : b))
+    await supabase.from('binders').update(updates).eq('id', id)
   }
 
   const handleDescribeBinder = async (id: string, description: string) => {
@@ -254,6 +290,7 @@ function MyListingsContent() {
     setConfirmDeleteId(null)
     setConfirmBulkDelete(false)
     setActiveTab(id === 'unsorted' ? 'unlisted' : 'listed')
+    setCustomizingOpen(false)
   }
 
   const toggleSelect = (id: string) => {
@@ -449,13 +486,18 @@ function MyListingsContent() {
                   style={{
                     display: 'flex', alignItems: 'center', gap: '6px',
                     padding: '6px 12px', borderRadius: '8px', fontSize: '13px', fontWeight: isActive ? 600 : 400,
-                    border: `1px solid ${isActive ? 'var(--color-blue)' : 'var(--color-border)'}`,
-                    background: isActive ? 'var(--color-blue-glow)' : 'var(--color-surface)',
-                    color: isActive ? 'var(--color-blue)' : 'var(--color-muted)',
                     cursor: 'pointer', transition: 'all 0.12s ease',
+                    ...(isUnsorted ? {
+                      border: `1px solid ${isActive ? 'var(--color-blue)' : 'var(--color-border)'}`,
+                      background: isActive ? 'var(--color-blue-glow)' : 'var(--color-surface)',
+                      color: isActive ? 'var(--color-blue)' : 'var(--color-muted)',
+                    } : binderTabStyle(b as Binder, isActive)),
                   }}
                 >
                   {b.name}
+                  {!isUnsorted && ((b as Binder).mana_colors ?? []).map((c, i) => (
+                    <ManaIcon key={i} color={c} size={14} />
+                  ))}
                   <span style={{
                     fontSize: '10px', fontWeight: 700, padding: '1px 5px', borderRadius: '8px',
                     background: isActive ? 'rgba(59,130,246,0.15)' : 'var(--color-surface-2)',
@@ -618,6 +660,141 @@ function MyListingsContent() {
                 </div>
               </div>
             </div>
+
+            {/* Customize section */}
+            <div style={{ borderTop: '1px solid var(--color-border)', marginTop: '16px', paddingTop: '14px' }}>
+              <button
+                onClick={() => setCustomizingOpen(v => !v)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '6px',
+                  background: 'transparent', border: 'none', cursor: 'pointer',
+                  fontSize: '12px', fontWeight: 600, color: 'var(--color-muted)', padding: 0,
+                }}
+              >
+                <span>🎨</span> Customize binder
+                <span style={{ fontSize: '10px', color: 'var(--color-subtle)' }}>{customizingOpen ? '▲' : '▼'}</span>
+              </button>
+
+              {customizingOpen && (
+                <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '18px' }}>
+
+                  {/* Gradient colours */}
+                  <div>
+                    <p style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-subtle)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 10px' }}>Background gradient</p>
+                    <div style={{ display: 'flex', alignItems: 'flex-end', gap: '16px', flexWrap: 'wrap' }}>
+                      <ColorSwatch
+                        label="Color 1"
+                        value={activeBinder.color1}
+                        onChange={v => handleBinderColorChange(activeBinder.id, 'color1', v)}
+                        onClear={() => clearBinderColor(activeBinder.id, 'color1')}
+                      />
+                      <ColorSwatch
+                        label="Color 2"
+                        value={activeBinder.color2}
+                        disabled={!activeBinder.color1}
+                        onChange={v => handleBinderColorChange(activeBinder.id, 'color2', v)}
+                        onClear={() => clearBinderColor(activeBinder.id, 'color2')}
+                      />
+                      {/* Gradient preview strip */}
+                      {activeBinder.color1 && (
+                        <div style={{
+                          height: '28px', flex: 1, minWidth: '80px', borderRadius: '6px',
+                          background: activeBinder.color2
+                            ? `linear-gradient(90deg, ${activeBinder.color1}, ${activeBinder.color2})`
+                            : activeBinder.color1,
+                          border: '1px solid var(--color-border)',
+                        }} />
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Text colour */}
+                  <div>
+                    <p style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-subtle)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 10px' }}>Text color</p>
+                    <ColorSwatch
+                      label="Text"
+                      value={activeBinder.text_color}
+                      onChange={v => handleBinderColorChange(activeBinder.id, 'text_color', v)}
+                      onClear={() => clearBinderColor(activeBinder.id, 'text_color')}
+                    />
+                  </div>
+
+                  {/* Mana pips */}
+                  <div>
+                    <p style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-subtle)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 10px' }}>
+                      Mana colors <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>— max 5, shown in binder tab</span>
+                    </p>
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+                      {ALL_MANA_COLORS.map(c => {
+                        const selected = (activeBinder.mana_colors ?? []).includes(c)
+                        const atMax = (activeBinder.mana_colors ?? []).length >= 5 && !selected
+                        return (
+                          <button
+                            key={c}
+                            onClick={() => toggleManaPip(activeBinder.id, c)}
+                            disabled={atMax}
+                            title={atMax ? 'Max 5 mana colors' : undefined}
+                            style={{
+                              display: 'flex', alignItems: 'center', gap: '5px',
+                              padding: '4px 10px', borderRadius: '8px', fontSize: '12px', fontWeight: 600,
+                              border: `1px solid ${selected ? 'var(--color-blue)' : 'var(--color-border)'}`,
+                              background: selected ? 'var(--color-blue-glow)' : 'transparent',
+                              color: selected ? 'var(--color-blue)' : 'var(--color-muted)',
+                              cursor: atMax ? 'not-allowed' : 'pointer',
+                              opacity: atMax ? 0.4 : 1,
+                              transition: 'all 0.12s ease',
+                            }}
+                          >
+                            <ManaIcon color={c} size={16} />
+                            {c}
+                          </button>
+                        )
+                      })}
+                    </div>
+                    {/* Selected pips in order */}
+                    {(activeBinder.mana_colors ?? []).length > 0 && (
+                      <div style={{ display: 'flex', gap: '6px', marginTop: '10px', alignItems: 'center' }}>
+                        <span style={{ fontSize: '11px', color: 'var(--color-subtle)' }}>Preview:</span>
+                        {(activeBinder.mana_colors ?? []).map((c, i) => <ManaIcon key={i} color={c} size={18} />)}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Tab preview */}
+                  <div>
+                    <p style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-subtle)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 10px' }}>Tab preview</p>
+                    <div style={{
+                      display: 'inline-flex', alignItems: 'center', gap: '6px',
+                      padding: '6px 12px', borderRadius: '8px', fontSize: '13px', fontWeight: 600,
+                      ...binderTabStyle(activeBinder, true),
+                    }}>
+                      {activeBinder.name}
+                      {(activeBinder.mana_colors ?? []).map((c, i) => <ManaIcon key={i} color={c} size={14} />)}
+                      <span style={{
+                        fontSize: '10px', fontWeight: 700, padding: '1px 5px', borderRadius: '8px',
+                        background: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.3)',
+                      }}>5</span>
+                    </div>
+                  </div>
+
+                  {/* Reset */}
+                  {(activeBinder.color1 || activeBinder.text_color || (activeBinder.mana_colors ?? []).length > 0) && (
+                    <button
+                      onClick={() => resetBinderStyle(activeBinder.id)}
+                      style={{
+                        alignSelf: 'flex-start', fontSize: '12px', color: 'var(--color-muted)',
+                        background: 'transparent', border: '1px solid var(--color-border)',
+                        borderRadius: '6px', padding: '5px 12px', cursor: 'pointer',
+                      }}
+                    >
+                      Reset to default
+                    </button>
+                  )}
+
+                </div>
+              )}
+            </div>
+
           </div>
         )
       })()}
@@ -1598,6 +1775,43 @@ function SkeletonGrid() {
 }
 
 /* ─── Icons ───────────────────────────────────────────────────────────── */
+
+function ColorSwatch({ label, value, onChange, onClear, disabled }: {
+  label: string
+  value: string | null
+  onChange: (v: string) => void
+  onClear: () => void
+  disabled?: boolean
+}) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', opacity: disabled ? 0.4 : 1 }}>
+      <span style={{ fontSize: '11px', color: 'var(--color-subtle)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+        <label style={{ position: 'relative', cursor: disabled ? 'not-allowed' : 'pointer', display: 'inline-block' }}>
+          <div style={{
+            width: '32px', height: '32px', borderRadius: '7px',
+            background: value ?? '#e8e8e8',
+            border: `2px solid ${value ? value + '90' : 'var(--color-border)'}`,
+            boxShadow: value ? `0 0 0 1px ${value}40` : 'none',
+          }} />
+          {!disabled && (
+            <input
+              type="color"
+              value={value ?? '#ffffff'}
+              onChange={e => onChange(e.target.value)}
+              style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer', width: '100%', height: '100%', padding: 0, margin: 0 }}
+            />
+          )}
+        </label>
+        {value ? (
+          <button onClick={onClear} title="Clear" style={{ background: 'transparent', border: 'none', color: 'var(--color-subtle)', cursor: 'pointer', fontSize: '18px', lineHeight: 1, padding: 0 }}>×</button>
+        ) : (
+          <span style={{ fontSize: '11px', color: 'var(--color-subtle)', fontStyle: 'italic' }}>none</span>
+        )}
+      </div>
+    </div>
+  )
+}
 
 function TrashPencilIcon({ type, size = 13 }: { type: 'trash' | 'pencil'; size?: number }) {
   if (type === 'trash') return (
