@@ -119,7 +119,9 @@ function BindersDisplay({ listings, binders, loading, displayName, onUpdateBinde
 
   const [selectedBinderId, setSelectedBinderId] = useState<string>(binderGroups[0]?.binder.id ?? '')
   const [editingBinders, setEditingBinders] = useState(false)
+  const [hiddenNoticeBinderName, setHiddenNoticeBinderName] = useState<string | null>(null)
   const saveColorTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const noticeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Keep selected tab valid when binders load
   const activeGroup = binderGroups.find(g => g.binder.id === selectedBinderId) ?? binderGroups[0]
@@ -154,10 +156,19 @@ function BindersDisplay({ listings, binders, loading, displayName, onUpdateBinde
     saveBinder(binderId, patch)
   }
 
-  const toggleShowOnProfile = (binderId: string, current: boolean) => {
-    const patch = { show_on_profile: !current }
-    onUpdateBinder(binderId, patch)
-    saveBinder(binderId, patch)
+  const toggleShowOnProfile = (e: React.MouseEvent, binder: Binder) => {
+    e.stopPropagation()
+    const willBeHidden = binder.show_on_profile !== false
+    const patch = { show_on_profile: !willBeHidden }
+    onUpdateBinder(binder.id, patch)
+    saveBinder(binder.id, patch)
+    if (willBeHidden) {
+      setHiddenNoticeBinderName(binder.name)
+      if (noticeTimer.current) clearTimeout(noticeTimer.current)
+      noticeTimer.current = setTimeout(() => setHiddenNoticeBinderName(null), 6000)
+    } else {
+      setHiddenNoticeBinderName(null)
+    }
   }
 
   if (loading) {
@@ -212,10 +223,9 @@ function BindersDisplay({ listings, binders, loading, displayName, onUpdateBinde
               <button
                 key={binder.id}
                 onClick={() => setSelectedBinderId(binder.id)}
-                title={hidden ? 'Hidden from public profile' : undefined}
                 style={{
                   display: 'flex', alignItems: 'center', gap: '7px',
-                  padding: '8px 16px', borderRadius: '10px',
+                  padding: '8px 14px 8px 16px', borderRadius: '10px',
                   fontSize: '14px', fontWeight: isActive ? 700 : 500,
                   cursor: 'pointer', transition: 'all 0.12s ease',
                   whiteSpace: 'nowrap',
@@ -225,11 +235,6 @@ function BindersDisplay({ listings, binders, loading, displayName, onUpdateBinde
               >
                 {binder.name}
                 {(binder.mana_colors ?? []).map((c, i) => <ManaIcon key={i} color={c} size={15} />)}
-                {hidden && (
-                  <span style={{ color: '#f59e0b', display: 'flex', alignItems: 'center' }} title="Hidden from public profile">
-                    <EyeSlashIcon />
-                  </span>
-                )}
                 <span style={{
                   fontSize: '11px', fontWeight: 700, padding: '1px 7px', borderRadius: '10px',
                   background: isActive ? 'rgba(59,130,246,0.15)' : 'var(--color-surface)',
@@ -238,10 +243,46 @@ function BindersDisplay({ listings, binders, loading, displayName, onUpdateBinde
                 }}>
                   {cards.length}
                 </span>
+                {/* Eye visibility toggle — always shown, independent click */}
+                <span
+                  onClick={e => toggleShowOnProfile(e, binder)}
+                  title={hidden ? 'Show on public profile' : 'Hide from public profile'}
+                  style={{
+                    display: 'flex', alignItems: 'center',
+                    color: hidden ? '#f59e0b' : 'currentColor',
+                    opacity: hidden ? 1 : 0.35,
+                    marginLeft: '2px',
+                    transition: 'opacity 0.15s ease, color 0.15s ease',
+                  }}
+                >
+                  {hidden ? <EyeSlashIcon /> : <EyeIcon size={13} />}
+                </span>
               </button>
             )
           })}
         </div>
+
+        {/* Hidden binder notice */}
+        {hiddenNoticeBinderName && (
+          <div style={{
+            marginTop: '12px', display: 'flex', alignItems: 'flex-start', gap: '10px',
+            background: '#fefce8', border: '1px solid #fde68a',
+            borderRadius: '8px', padding: '10px 14px', fontSize: '13px', color: '#92400e',
+          }}>
+            <span style={{ fontSize: '15px', flexShrink: 0 }}>👁️</span>
+            <span style={{ flex: 1, lineHeight: 1.5 }}>
+              <strong>"{hiddenNoticeBinderName}"</strong> is now hidden from your public profile.
+              {' '}Cards in this binder are still searchable — to unlist them, go to{' '}
+              <a href="/my-listings" style={{ color: '#b45309', fontWeight: 600, textDecoration: 'underline' }}>My Listings</a>.
+            </span>
+            <button
+              onClick={() => setHiddenNoticeBinderName(null)}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#b45309', fontSize: '16px', padding: '0', lineHeight: 1, flexShrink: 0 }}
+            >
+              ×
+            </button>
+          </div>
+        )}
         {activeGroup?.binder.description && (
           <p style={{ fontSize: '13px', color: 'var(--color-muted)', margin: '16px 0 0', fontStyle: 'italic', lineHeight: 1.5 }}>
             {activeGroup.binder.description}
@@ -252,7 +293,6 @@ function BindersDisplay({ listings, binders, loading, displayName, onUpdateBinde
       {/* Customize panel */}
       {editingBinders && activeGroup && (() => {
         const b = activeGroup.binder
-        const visible = b.show_on_profile !== false // default true if undefined
         return (
           <div style={{
             background: 'var(--color-surface)', border: '1px solid var(--color-blue)',
@@ -261,48 +301,6 @@ function BindersDisplay({ listings, binders, loading, displayName, onUpdateBinde
             <p style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-blue)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               🎨 Customizing: {b.name}
             </p>
-
-            {/* Visibility toggle */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div>
-                  <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text)', margin: '0 0 2px' }}>
-                    Show in public profile
-                  </p>
-                  <p style={{ fontSize: '12px', color: 'var(--color-muted)', margin: 0 }}>
-                    Controls whether this binder appears on your public page
-                  </p>
-                </div>
-                {/* Toggle switch */}
-                <button
-                  onClick={() => toggleShowOnProfile(b.id, visible)}
-                  style={{
-                    width: '44px', height: '24px', borderRadius: '12px', border: 'none',
-                    background: visible ? 'var(--color-blue)' : 'var(--color-border)',
-                    cursor: 'pointer', position: 'relative', transition: 'background 0.2s ease',
-                    flexShrink: 0,
-                  }}
-                  title={visible ? 'Hide from public profile' : 'Show on public profile'}
-                >
-                  <span style={{
-                    position: 'absolute', top: '3px',
-                    left: visible ? '23px' : '3px',
-                    width: '18px', height: '18px', borderRadius: '50%',
-                    background: '#fff', transition: 'left 0.2s ease',
-                    boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
-                  }} />
-                </button>
-              </div>
-              {!visible && (
-                <p style={{
-                  fontSize: '12px', color: 'var(--color-muted)', margin: 0,
-                  background: 'var(--color-surface-2)', border: '1px solid var(--color-border)',
-                  borderRadius: '8px', padding: '8px 12px', lineHeight: 1.5,
-                }}>
-                  ℹ️ This binder is hidden from your public profile. Cards are still searchable — to unlist them, go to <a href="/my-listings" style={{ color: 'var(--color-blue)', textDecoration: 'none' }}>My Listings</a>.
-                </p>
-              )}
-            </div>
 
             {/* Cosmetic customization */}
             <BinderCustomizePanel
@@ -597,8 +595,8 @@ function MessengerIcon() {
 function LinkIcon() {
   return <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" /><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" /></svg>
 }
-function EyeIcon() {
-  return <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></svg>
+function EyeIcon({ size = 13 }: { size?: number }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></svg>
 }
 function EyeSlashIcon() {
   return <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" /><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" /><line x1="1" y1="1" x2="23" y2="23" /></svg>
