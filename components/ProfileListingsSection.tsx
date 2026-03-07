@@ -26,14 +26,16 @@ const SORT_OPTIONS: { value: SortOption; label: string }[] = [
 const PER_PAGE_OPTIONS = [24, 48, 96]
 
 export default function ProfileListingsSection({ listings }: { listings: Listing[] }) {
-  const [query, setQuery] = useState('')
-  const [sort, setSort] = useState<SortOption>('price_desc')
+  const [query, setQuery]         = useState('')
+  const [sort, setSort]           = useState<SortOption>('price_desc')
   const [conditions, setConditions] = useState<Set<CardCondition>>(new Set())
-  const [minPrice, setMinPrice] = useState('')
-  const [maxPrice, setMaxPrice] = useState('')
+  const [minPrice, setMinPrice]   = useState('')
+  const [maxPrice, setMaxPrice]   = useState('')
   const [filtersOpen, setFiltersOpen] = useState(false)
-  const [page, setPage] = useState(1)
-  const [perPage, setPerPage] = useState(24)
+  const [page, setPage]           = useState(1)
+  const [perPage, setPerPage]     = useState(24)
+
+  const resetPage = () => setPage(1)
 
   const toggleCondition = (c: CardCondition) => {
     setConditions(prev => {
@@ -41,50 +43,45 @@ export default function ProfileListingsSection({ listings }: { listings: Listing
       next.has(c) ? next.delete(c) : next.add(c)
       return next
     })
-    setPage(1)
+    resetPage()
+  }
+
+  const clearFilters = () => {
+    setConditions(new Set())
+    setMinPrice('')
+    setMaxPrice('')
+    resetPage()
   }
 
   const filtered = useMemo(() => {
     let result = [...listings]
 
-    if (query.trim()) {
-      const q = query.toLowerCase()
-      result = result.filter(l => l.card_name.toLowerCase().includes(q))
-    }
-    if (conditions.size > 0) {
-      result = result.filter(l => conditions.has(l.condition as CardCondition))
-    }
-    if (minPrice) result = result.filter(l => l.price >= parseFloat(minPrice))
-    if (maxPrice) result = result.filter(l => l.price <= parseFloat(maxPrice))
+    if (query.trim())      result = result.filter(l => l.card_name.toLowerCase().includes(query.toLowerCase()))
+    if (conditions.size > 0) result = result.filter(l => conditions.has(l.condition as CardCondition))
+    if (minPrice)          result = result.filter(l => l.price >= +minPrice)
+    if (maxPrice)          result = result.filter(l => l.price <= +maxPrice)
 
     switch (sort) {
-      case 'newest':     result.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()); break
-      case 'oldest':     result.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()); break
-      case 'price_asc':  result.sort((a, b) => a.price - b.price); break
-      case 'price_desc': result.sort((a, b) => b.price - a.price); break
-      case 'alpha':      result.sort((a, b) => a.card_name.localeCompare(b.card_name)); break
+      case 'price_desc': return result.sort((a, b) => b.price - a.price)
+      case 'price_asc':  return result.sort((a, b) => a.price - b.price)
+      case 'newest':     return result.sort((a, b) => +new Date(b.created_at) - +new Date(a.created_at))
+      case 'oldest':     return result.sort((a, b) => +new Date(a.created_at) - +new Date(b.created_at))
+      case 'alpha':      return result.sort((a, b) => a.card_name.localeCompare(b.card_name))
     }
-
-    return result
   }, [listings, query, sort, conditions, minPrice, maxPrice])
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / perPage))
-  const safePage = Math.min(page, totalPages)
-  const paginated = filtered.slice((safePage - 1) * perPage, safePage * perPage)
+  const safePage   = Math.min(page, totalPages)
+  const paginated  = filtered.slice((safePage - 1) * perPage, safePage * perPage)
 
   const activeFilterCount = conditions.size + (minPrice ? 1 : 0) + (maxPrice ? 1 : 0)
-
-  const handleQueryChange = (v: string) => { setQuery(v); setPage(1) }
-  const handleSortChange = (v: SortOption) => { setSort(v); setPage(1) }
-  const handleMinPriceChange = (v: string) => { setMinPrice(v); setPage(1) }
-  const handleMaxPriceChange = (v: string) => { setMaxPrice(v); setPage(1) }
-  const handlePerPageChange = (v: number) => { setPerPage(v); setPage(1) }
+  const filterActive = filtersOpen || activeFilterCount > 0
 
   return (
     <div>
-      {/* Search + sort toolbar */}
+      {/* Toolbar */}
       <div style={{ display: 'flex', gap: '10px', marginBottom: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
-        {/* Search */}
+
         <div style={{ position: 'relative', flex: 1, minWidth: '180px' }}>
           <div style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-subtle)', pointerEvents: 'none' }}>
             <SearchIcon />
@@ -93,15 +90,14 @@ export default function ProfileListingsSection({ listings }: { listings: Listing
             type="text"
             placeholder="Search listings…"
             value={query}
-            onChange={e => handleQueryChange(e.target.value)}
+            onChange={e => { setQuery(e.target.value); resetPage() }}
             style={{ paddingLeft: '34px', paddingRight: '10px', fontSize: '13px' }}
           />
         </div>
 
-        {/* Sort */}
         <select
           value={sort}
-          onChange={e => handleSortChange(e.target.value as SortOption)}
+          onChange={e => { setSort(e.target.value as SortOption); resetPage() }}
           style={{ fontSize: '13px', padding: '8px 10px', minWidth: '160px' }}
         >
           {SORT_OPTIONS.map(s => (
@@ -109,15 +105,14 @@ export default function ProfileListingsSection({ listings }: { listings: Listing
           ))}
         </select>
 
-        {/* Filter toggle */}
         <button
           onClick={() => setFiltersOpen(v => !v)}
           style={{
             display: 'flex', alignItems: 'center', gap: '6px',
             padding: '8px 14px', borderRadius: '8px', fontSize: '13px', fontWeight: 600,
-            border: `1px solid ${filtersOpen || activeFilterCount > 0 ? 'rgba(59,130,246,0.4)' : 'var(--color-border)'}`,
-            background: filtersOpen || activeFilterCount > 0 ? 'var(--color-blue-glow)' : 'transparent',
-            color: filtersOpen || activeFilterCount > 0 ? 'var(--color-blue)' : 'var(--color-muted)',
+            border: `1px solid ${filterActive ? 'rgba(59,130,246,0.4)' : 'var(--color-border)'}`,
+            background: filterActive ? 'var(--color-blue-glow)' : 'transparent',
+            color: filterActive ? 'var(--color-blue)' : 'var(--color-muted)',
             cursor: 'pointer', transition: 'all 0.15s ease', whiteSpace: 'nowrap',
           }}
         >
@@ -138,7 +133,6 @@ export default function ProfileListingsSection({ listings }: { listings: Listing
           borderRadius: '10px', padding: '16px 18px', marginBottom: '16px',
           display: 'flex', flexDirection: 'column', gap: '14px',
         }}>
-          {/* Condition */}
           <div>
             <p style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 8px' }}>Condition</p>
             <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
@@ -159,15 +153,14 @@ export default function ProfileListingsSection({ listings }: { listings: Listing
             </div>
           </div>
 
-          {/* Price range */}
           <div>
             <p style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 8px' }}>Price Range (₱)</p>
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-              <input type="number" placeholder="Min ₱" value={minPrice} onChange={e => handleMinPriceChange(e.target.value)} min="0" step="1" style={{ width: '100px', fontSize: '13px' }} />
+              <input type="number" placeholder="Min ₱" value={minPrice} onChange={e => { setMinPrice(e.target.value); resetPage() }} min="0" step="1" style={{ width: '100px', fontSize: '13px' }} />
               <span style={{ color: 'var(--color-subtle)', fontSize: '12px' }}>–</span>
-              <input type="number" placeholder="Max ₱" value={maxPrice} onChange={e => handleMaxPriceChange(e.target.value)} min="0" step="1" style={{ width: '100px', fontSize: '13px' }} />
+              <input type="number" placeholder="Max ₱" value={maxPrice} onChange={e => { setMaxPrice(e.target.value); resetPage() }} min="0" step="1" style={{ width: '100px', fontSize: '13px' }} />
               {(minPrice || maxPrice) && (
-                <button onClick={() => { handleMinPriceChange(''); handleMaxPriceChange('') }} style={{
+                <button onClick={() => { setMinPrice(''); setMaxPrice(''); resetPage() }} style={{
                   fontSize: '12px', color: 'var(--color-subtle)', background: 'transparent',
                   border: 'none', cursor: 'pointer', padding: '2px 6px',
                 }}>Clear</button>
@@ -175,9 +168,8 @@ export default function ProfileListingsSection({ listings }: { listings: Listing
             </div>
           </div>
 
-          {/* Clear all */}
           {activeFilterCount > 0 && (
-            <button onClick={() => { setConditions(new Set()); setMinPrice(''); setMaxPrice(''); setPage(1) }} style={{
+            <button onClick={clearFilters} style={{
               alignSelf: 'flex-start', fontSize: '12px', color: 'var(--color-muted)',
               background: 'transparent', border: '1px solid var(--color-border)',
               borderRadius: '6px', padding: '4px 10px', cursor: 'pointer',
@@ -188,7 +180,7 @@ export default function ProfileListingsSection({ listings }: { listings: Listing
         </div>
       )}
 
-      {/* Result count + per-page selector */}
+      {/* Result count + per-page */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', flexWrap: 'wrap', gap: '8px' }}>
         <p style={{ fontSize: '12px', color: 'var(--color-subtle)', margin: 0 }}>
           {filtered.length} {filtered.length === 1 ? 'listing' : 'listings'}
@@ -199,7 +191,7 @@ export default function ProfileListingsSection({ listings }: { listings: Listing
           {PER_PAGE_OPTIONS.map(n => (
             <button
               key={n}
-              onClick={() => handlePerPageChange(n)}
+              onClick={() => { setPerPage(n); resetPage() }}
               style={{
                 padding: '3px 9px', borderRadius: '6px', fontSize: '12px', fontWeight: perPage === n ? 700 : 500,
                 border: `1px solid ${perPage === n ? 'var(--color-blue)' : 'var(--color-border)'}`,
@@ -225,7 +217,6 @@ export default function ProfileListingsSection({ listings }: { listings: Listing
         </div>
       )}
 
-      {/* Pagination */}
       {totalPages > 1 && (
         <Pagination
           page={safePage}
@@ -239,7 +230,11 @@ export default function ProfileListingsSection({ listings }: { listings: Listing
 
 /* ─── Pagination ──────────────────────────────────────────────────────── */
 
-function Pagination({ page, totalPages, onPageChange }: { page: number; totalPages: number; onPageChange: (p: number) => void }) {
+function Pagination({ page, totalPages, onPageChange }: {
+  page: number
+  totalPages: number
+  onPageChange: (p: number) => void
+}) {
   const pages: (number | '…')[] = []
   if (totalPages <= 7) {
     for (let i = 1; i <= totalPages; i++) pages.push(i)
@@ -251,7 +246,26 @@ function Pagination({ page, totalPages, onPageChange }: { page: number; totalPag
     pages.push(totalPages)
   }
 
-  const btn = (content: React.ReactNode, onClick: () => void, active = false, disabled = false) => (
+  return (
+    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '4px', marginTop: '28px', flexWrap: 'wrap' }}>
+      <PageBtn onClick={() => onPageChange(page - 1)} disabled={page === 1}>←</PageBtn>
+      {pages.map((p, i) =>
+        p === '…'
+          ? <span key={`ellipsis-${i}`} style={{ padding: '0 4px', color: 'var(--color-subtle)', fontSize: '13px' }}>…</span>
+          : <PageBtn key={p} onClick={() => onPageChange(p as number)} active={p === page}>{p}</PageBtn>
+      )}
+      <PageBtn onClick={() => onPageChange(page + 1)} disabled={page === totalPages}>→</PageBtn>
+    </div>
+  )
+}
+
+function PageBtn({ children, onClick, active = false, disabled = false }: {
+  children: string | number
+  onClick: () => void
+  active?: boolean
+  disabled?: boolean
+}) {
+  return (
     <button
       onClick={onClick}
       disabled={disabled}
@@ -266,20 +280,8 @@ function Pagination({ page, totalPages, onPageChange }: { page: number; totalPag
         display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
       }}
     >
-      {content}
+      {children}
     </button>
-  )
-
-  return (
-    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '4px', marginTop: '28px', flexWrap: 'wrap' }}>
-      {btn('←', () => onPageChange(page - 1), false, page === 1)}
-      {pages.map((p, i) =>
-        p === '…'
-          ? <span key={`ellipsis-${i}`} style={{ padding: '0 4px', color: 'var(--color-subtle)', fontSize: '13px' }}>…</span>
-          : btn(p, () => onPageChange(p as number), p === page)
-      )}
-      {btn('→', () => onPageChange(page + 1), false, page === totalPages)}
-    </div>
   )
 }
 

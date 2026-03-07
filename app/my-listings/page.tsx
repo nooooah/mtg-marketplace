@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useMemo, useRef, Suspense } from 'react'
+import confetti from 'canvas-confetti'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
@@ -265,6 +266,9 @@ function MyListingsContent() {
     setAllListings(prev => prev.map(l => ids.includes(l.id) ? { ...l, status: newStatus } : l))
     setSelectedIds(new Set())
     setBulkLoading(false)
+    if (newStatus === 'sold') {
+      confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 }, colors: ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6'] })
+    }
   }, [supabase])
 
   const handleDelete = async (id: string) => {
