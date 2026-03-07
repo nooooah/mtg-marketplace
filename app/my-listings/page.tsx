@@ -805,7 +805,7 @@ function MyListingsContent() {
         borderBottom: '1px solid var(--color-border)',
         marginBottom: '20px',
       }}>
-        {(selectedBinderId === 'unsorted' ? ['unlisted'] : ['listed', 'unlisted', 'sold'] as ListingStatus[]).map(tab => {
+        {(selectedBinderId === 'unsorted' ? ['unlisted'] as ListingStatus[] : ['listed', 'unlisted', 'sold'] as ListingStatus[]).map(tab => {
           const isActive = activeTab === tab
           return (
             <button
