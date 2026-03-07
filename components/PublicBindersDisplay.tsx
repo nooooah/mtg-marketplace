@@ -15,6 +15,7 @@ export default function PublicBindersDisplay({
   displayName: string
 }) {
   const binderGroups = binders
+    .filter(b => b.show_on_profile !== false) // hide binders owner chose to hide
     .map(b => ({ binder: b, cards: listings.filter(l => l.binder_id === b.id) }))
     .filter(g => g.cards.length > 0)
 

@@ -154,6 +154,12 @@ function BindersDisplay({ listings, binders, loading, displayName, onUpdateBinde
     saveBinder(binderId, patch)
   }
 
+  const toggleShowOnProfile = (binderId: string, current: boolean) => {
+    const patch = { show_on_profile: !current }
+    onUpdateBinder(binderId, patch)
+    saveBinder(binderId, patch)
+  }
+
   if (loading) {
     return (
       <div style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: '16px', padding: '48px 24px', textAlign: 'center', color: 'var(--color-muted)', fontSize: '14px' }}>
@@ -238,14 +244,59 @@ function BindersDisplay({ listings, binders, loading, displayName, onUpdateBinde
       {/* Customize panel */}
       {editingBinders && activeGroup && (() => {
         const b = activeGroup.binder
+        const visible = b.show_on_profile !== false // default true if undefined
         return (
           <div style={{
             background: 'var(--color-surface)', border: '1px solid var(--color-blue)',
-            borderRadius: '12px', padding: '20px 24px',
+            borderRadius: '12px', padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: '20px',
           }}>
-            <p style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-blue)', margin: '0 0 16px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            <p style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-blue)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               🎨 Customizing: {b.name}
             </p>
+
+            {/* Visibility toggle */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div>
+                  <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text)', margin: '0 0 2px' }}>
+                    Show in public profile
+                  </p>
+                  <p style={{ fontSize: '12px', color: 'var(--color-muted)', margin: 0 }}>
+                    Controls whether this binder appears on your public page
+                  </p>
+                </div>
+                {/* Toggle switch */}
+                <button
+                  onClick={() => toggleShowOnProfile(b.id, visible)}
+                  style={{
+                    width: '44px', height: '24px', borderRadius: '12px', border: 'none',
+                    background: visible ? 'var(--color-blue)' : 'var(--color-border)',
+                    cursor: 'pointer', position: 'relative', transition: 'background 0.2s ease',
+                    flexShrink: 0,
+                  }}
+                  title={visible ? 'Hide from public profile' : 'Show on public profile'}
+                >
+                  <span style={{
+                    position: 'absolute', top: '3px',
+                    left: visible ? '23px' : '3px',
+                    width: '18px', height: '18px', borderRadius: '50%',
+                    background: '#fff', transition: 'left 0.2s ease',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+                  }} />
+                </button>
+              </div>
+              {!visible && (
+                <p style={{
+                  fontSize: '12px', color: 'var(--color-muted)', margin: 0,
+                  background: 'var(--color-surface-2)', border: '1px solid var(--color-border)',
+                  borderRadius: '8px', padding: '8px 12px', lineHeight: 1.5,
+                }}>
+                  ℹ️ This binder is hidden from your public profile. Cards are still searchable — to unlist them, go to <a href="/my-listings" style={{ color: 'var(--color-blue)', textDecoration: 'none' }}>My Listings</a>.
+                </p>
+              )}
+            </div>
+
+            {/* Cosmetic customization */}
             <BinderCustomizePanel
               binder={b}
               onColorChange={(field, value) => handleColorChange(b.id, field, value)}

@@ -34,6 +34,7 @@ export interface Binder {
   color2: string | null
   text_color: string | null
   mana_colors: string[]
+  show_on_profile: boolean
 }
 
 export interface Listing {
