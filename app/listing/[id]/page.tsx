@@ -83,7 +83,7 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
                   background: 'rgba(234,179,8,0.1)', border: '1px solid rgba(234,179,8,0.35)',
                   padding: '2px 8px', borderRadius: '6px',
                 }}>
-                  ✦ Foil
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="#fbbf24" stroke="#fbbf24" strokeWidth={1}><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg> Foil
                 </span>
               )}
               {l.card_rarity && (

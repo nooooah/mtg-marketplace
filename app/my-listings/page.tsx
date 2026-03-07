@@ -582,7 +582,7 @@ function MyListingsContent() {
             cursor: 'pointer', transition: 'all 0.12s ease',
           }}
         >
-          🎨 {binderEditMode ? 'Done' : 'Edit Binders'}
+          <PaletteIcon /> {binderEditMode ? 'Done' : 'Edit Binders'}
         </button>
       </div>
 
@@ -593,7 +593,7 @@ function MyListingsContent() {
         return (
           <div style={{ background: 'var(--color-surface)', border: '1px solid var(--color-blue)', borderRadius: '12px', padding: '20px 24px', marginBottom: '4px' }}>
             <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-blue)', margin: '0 0 16px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              🎨 Customizing: <span style={{ color: 'var(--color-text)' }}>{b.name}</span>
+              <PaletteIcon /> Customizing: <span style={{ color: 'var(--color-text)' }}>{b.name}</span>
             </p>
             <BinderCustomizePanel
               binder={b}
@@ -763,8 +763,8 @@ function MyListingsContent() {
             style={{ flex: 1, border: 'none', borderRadius: 0, padding: '10px 0', background: 'transparent', fontSize: '14px' }}
           />
           {query && (
-            <button onClick={() => setQuery('')} style={{ padding: '0 12px', background: 'transparent', color: 'var(--color-subtle)', border: 'none', fontSize: '16px', cursor: 'pointer' }}>
-              ×
+            <button onClick={() => setQuery('')} style={{ padding: '0 12px', background: 'transparent', color: 'var(--color-subtle)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+              <XSmallIcon />
             </button>
           )}
         </div>
@@ -864,7 +864,7 @@ function MyListingsContent() {
             <p style={{ fontSize: '15px', color: 'var(--color-muted)' }}>No unlisted cards. Move listed cards here to hide them from buyers.</p>
           ) : activeTab === 'unlisted' && selectedBinderId === 'unsorted' ? (
             <>
-              <p style={{ fontSize: '22px', marginBottom: '8px' }}>🎉</p>
+              <div style={{ marginBottom: '8px', color: 'var(--color-blue)', display: 'flex', justifyContent: 'center' }}><SparkleIcon /></div>
               <p style={{ fontSize: '15px', fontWeight: 600, color: 'var(--color-text)', marginBottom: '6px' }}>All sorted!</p>
               <p style={{ fontSize: '13px', color: 'var(--color-muted)' }}>Every card is in a binder. Nice work keeping things tidy!</p>
             </>
@@ -1548,7 +1548,7 @@ function EditPanel({ listing, onSave, onCancel, binders, onMoveToBinder }: {
               cursor: 'pointer', transition: 'all 0.15s ease',
             }}>
               <svg width="13" height="13" viewBox="0 0 24 24" fill={isFoil ? '#fbbf24' : 'none'} stroke={isFoil ? '#fbbf24' : 'currentColor'} strokeWidth={2}><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
-              {isFoil ? 'Foil ✓' : 'Non-foil'}
+              {isFoil ? <><CheckIcon /> Foil</> : 'Non-foil'}
             </button>
           </div>
 
@@ -1713,6 +1713,15 @@ function CardPlaceholderIcon() {
 }
 function CheckIcon() {
   return <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><polyline points="20 6 9 17 4 12" /></svg>
+}
+function PaletteIcon() {
+  return <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><circle cx="13.5" cy="6.5" r=".5" fill="currentColor" /><circle cx="17.5" cy="10.5" r=".5" fill="currentColor" /><circle cx="8.5" cy="7.5" r=".5" fill="currentColor" /><circle cx="6.5" cy="12.5" r=".5" fill="currentColor" /><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z" /></svg>
+}
+function SparkleIcon() {
+  return <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5Z" /><path d="M19 13l.75 2.25L22 16l-2.25.75L19 19l-.75-2.25L16 16l2.25-.75Z" /><path d="M5 17l.5 1.5L7 19l-1.5.5L5 21l-.5-1.5L3 19l1.5-.5Z" /></svg>
+}
+function XSmallIcon() {
+  return <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
 }
 
 export default function MyListingsPage() {

@@ -167,7 +167,7 @@ function ColorSwatch({ label, value, onChange, onClear, disabled }: {
           )}
         </label>
         {value
-          ? <button onClick={onClear} title="Clear" style={{ background: 'transparent', border: 'none', color: 'var(--color-subtle)', cursor: 'pointer', fontSize: '20px', lineHeight: 1, padding: 0 }}>×</button>
+          ? <button onClick={onClear} title="Clear" style={{ background: 'transparent', border: 'none', color: 'var(--color-subtle)', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center' }}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg></button>
           : <span style={{ fontSize: '11px', color: 'var(--color-subtle)', fontStyle: 'italic' }}>none</span>
         }
       </div>

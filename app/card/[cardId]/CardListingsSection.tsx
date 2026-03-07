@@ -108,7 +108,7 @@ export default function CardListingsSection({
             cursor: 'pointer', transition: 'all 0.15s ease',
           }}
         >
-          ✦ Foil only
+          <svg width="12" height="12" viewBox="0 0 24 24" fill={foilOnly ? '#fbbf24' : 'none'} stroke="#fbbf24" strokeWidth={1.5}><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg> Foil only
         </button>
 
         {/* Sort */}
@@ -249,7 +249,9 @@ function MobileListingRow({ listing, isLast }: { listing: Listing; isLast: boole
           {listing.condition}
         </span>
         <span style={{ fontSize: '12px', color: listing.is_foil ? '#fbbf24' : 'var(--color-muted)', fontWeight: listing.is_foil ? 700 : 400 }}>
-          {listing.is_foil ? '✦ Foil' : 'Non-Foil'}
+          {listing.is_foil
+            ? <><svg width="11" height="11" viewBox="0 0 24 24" fill="#fbbf24" stroke="#fbbf24" strokeWidth={1}><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg> Foil</>
+            : 'Non-Foil'}
         </span>
         <span style={{
           fontSize: listing.quantity === 0 ? '11px' : '12px',

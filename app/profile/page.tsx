@@ -211,7 +211,7 @@ function BindersDisplay({ listings, binders, loading, displayName, onUpdateBinde
                 display: 'flex', alignItems: 'center', gap: '5px',
               }}
             >
-              {editingBinders ? '✓ Done' : '🎨 Edit Binders'}
+              {editingBinders ? <><CheckIcon /> Done</> : <><PaletteIcon /> Edit Binders</>}
             </button>
           )}
         </div>
@@ -269,7 +269,7 @@ function BindersDisplay({ listings, binders, loading, displayName, onUpdateBinde
             background: '#fefce8', border: '1px solid #fde68a',
             borderRadius: '8px', padding: '10px 14px', fontSize: '13px', color: '#92400e',
           }}>
-            <span style={{ fontSize: '15px', flexShrink: 0 }}>👁️</span>
+            <span style={{ flexShrink: 0, display: 'flex', alignItems: 'center', color: '#b45309' }}><InfoIcon /></span>
             <span style={{ flex: 1, lineHeight: 1.5 }}>
               <strong>"{hiddenNoticeBinderName}"</strong> is now hidden from your public profile.
               {' '}Cards in this binder are still searchable — to unlist them, go to{' '}
@@ -277,9 +277,9 @@ function BindersDisplay({ listings, binders, loading, displayName, onUpdateBinde
             </span>
             <button
               onClick={() => setHiddenNoticeBinderName(null)}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#b45309', fontSize: '16px', padding: '0', lineHeight: 1, flexShrink: 0 }}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#b45309', padding: '0', lineHeight: 1, flexShrink: 0, display: 'flex', alignItems: 'center' }}
             >
-              ×
+              <XIcon />
             </button>
           </div>
         )}
@@ -298,8 +298,8 @@ function BindersDisplay({ listings, binders, loading, displayName, onUpdateBinde
             background: 'var(--color-surface)', border: '1px solid var(--color-blue)',
             borderRadius: '12px', padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: '20px',
           }}>
-            <p style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-blue)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              🎨 Customizing: {b.name}
+            <p style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-blue)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <PaletteIcon /> Customizing: {b.name}
             </p>
 
             {/* Cosmetic customization */}
@@ -600,4 +600,16 @@ function EyeIcon({ size = 13 }: { size?: number }) {
 }
 function EyeSlashIcon() {
   return <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" /><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" /><line x1="1" y1="1" x2="23" y2="23" /></svg>
+}
+function PaletteIcon() {
+  return <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><circle cx="13.5" cy="6.5" r=".5" fill="currentColor" /><circle cx="17.5" cy="10.5" r=".5" fill="currentColor" /><circle cx="8.5" cy="7.5" r=".5" fill="currentColor" /><circle cx="6.5" cy="12.5" r=".5" fill="currentColor" /><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z" /></svg>
+}
+function CheckIcon() {
+  return <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+}
+function XIcon() {
+  return <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+}
+function InfoIcon() {
+  return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" /></svg>
 }

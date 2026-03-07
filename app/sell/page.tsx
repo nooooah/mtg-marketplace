@@ -303,7 +303,7 @@ function SingleCardForm({ userId }: { userId: string }) {
               cursor: 'pointer', transition: 'all 0.15s ease', width: 'fit-content',
             }}>
               <FoilStarIcon active={isFoil} />
-              {isFoil ? 'Foil ✓' : 'Non-foil'}
+              {isFoil ? <><CheckIcon size={13} color="currentColor" /> Foil</> : 'Non-foil'}
             </button>
           </FieldLabel>
 
