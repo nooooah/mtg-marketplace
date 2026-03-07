@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import CardListingsSection from './CardListingsSection'
+import { ManaIcon } from '@/components/ManaIcon'
 import type { Listing, ScryfallCard } from '@/types'
 import { formatDate } from '@/lib/utils'
 
@@ -22,22 +23,14 @@ const FORMAT_LABELS: Record<string, string> = {
   pauper: 'Pauper', historic: 'Historic', brawl: 'Brawl', alchemy: 'Alchemy',
 }
 
-const MANA_COLORS: Record<string, { bg: string; color: string; border: string }> = {
-  W: { bg: '#f5f0e0', color: '#92742a', border: '#d4a82050' },
-  U: { bg: '#1a3a6e', color: '#93c5fd', border: '#3b82f650' },
-  B: { bg: '#1a1a2e', color: '#c084fc', border: '#7c3aed50' },
-  R: { bg: '#5a1a1a', color: '#fca5a5', border: '#dc262650' },
-  G: { bg: '#1a3a2e', color: '#86efac', border: '#16a34a50' },
-  C: { bg: '#2a2a3a', color: '#94a3b8', border: '#47556950' },
-}
+const COLOR_SYMBOLS = new Set(['W', 'U', 'B', 'R', 'G', 'C'])
 
-function parseMana(cost: string | null): Array<{ symbol: string; type: string }> {
+function parseMana(cost: string | null): Array<{ symbol: string; isColor: boolean }> {
   if (!cost) return []
   const matches = cost.match(/\{[^}]+\}/g) ?? []
   return matches.map(m => {
     const inner = m.slice(1, -1)
-    const type = ['W', 'U', 'B', 'R', 'G', 'C'].includes(inner) ? inner : 'generic'
-    return { symbol: inner, type }
+    return { symbol: inner, isColor: COLOR_SYMBOLS.has(inner) }
   })
 }
 
@@ -46,24 +39,25 @@ function ManaCost({ cost }: { cost: string | null }) {
   if (!symbols.length) return null
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: '3px', flexWrap: 'wrap' }}>
-      {symbols.map((s, i) => {
-        const style = MANA_COLORS[s.type] ?? { bg: 'var(--color-surface-2)', color: 'var(--color-muted)', border: 'var(--color-border)' }
-        return (
+      {symbols.map((s, i) =>
+        s.isColor ? (
+          <ManaIcon key={i} color={s.symbol} size={22} />
+        ) : (
           <span
             key={i}
             style={{
               display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
               width: '22px', height: '22px', borderRadius: '50%',
-              fontSize: '10px', fontWeight: 800, letterSpacing: 0,
-              background: style.bg, color: style.color,
-              border: `1.5px solid ${style.border}`,
+              fontSize: '10px', fontWeight: 800,
+              background: 'var(--color-surface-2)', color: 'var(--color-muted)',
+              border: '1.5px solid var(--color-border)',
               flexShrink: 0,
             }}
           >
             {s.symbol}
           </span>
         )
-      })}
+      )}
     </div>
   )
 }
@@ -324,7 +318,12 @@ export default async function CardPage({ params }: { params: Promise<{ cardId: s
             {/* Stats grid */}
             <div className="cdp-stats">
               {[
-                { label: 'Colors', value: card.colors?.length ? card.colors.join(', ') : 'Colorless' },
+                {
+                  label: 'Colors',
+                  value: card.colors?.length
+                    ? <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>{card.colors.map((c: string, i: number) => <ManaIcon key={i} color={c} size={18} />)}</div>
+                    : 'Colorless',
+                },
                 { label: 'CMC', value: card.cmc ?? '—' },
                 { label: 'Collector #', value: `#${card.collector_number}` },
                 { label: 'Released', value: card.released_at ?? '—' },
@@ -334,7 +333,7 @@ export default async function CardPage({ params }: { params: Promise<{ cardId: s
               ].map(({ label, value }) => (
                 <div key={label} style={{ padding: '11px 13px', background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: '10px' }}>
                   <p style={{ fontSize: '10px', fontWeight: 600, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 3px' }}>{label}</p>
-                  <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text)', margin: 0 }}>{value}</p>
+                  <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text)', margin: 0 }}>{value}</div>
                 </div>
               ))}
             </div>
