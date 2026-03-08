@@ -107,7 +107,7 @@ export default function CardTile({ listing, noPreview = false, compact = false, 
             </div>
           )}
 
-          {/* Sold out overlay */}
+          {/* Not available overlay */}
           {listing.quantity === 0 && (
             <div style={{
               position: 'absolute', inset: 0,
@@ -116,13 +116,13 @@ export default function CardTile({ listing, noPreview = false, compact = false, 
               pointerEvents: 'none',
             }}>
               <span style={{
-                fontSize: '11px', fontWeight: 800, letterSpacing: '0.08em',
-                color: '#fff', background: 'rgba(239,68,68,0.85)',
-                padding: '4px 10px', borderRadius: '6px',
-                border: '1px solid rgba(239,68,68,0.6)',
-                textTransform: 'uppercase',
+                fontSize: '10px', fontWeight: 700, letterSpacing: '0.04em',
+                color: '#fff', background: 'rgba(0,0,0,0.7)',
+                padding: '5px 10px', borderRadius: '6px',
+                border: '1px solid rgba(255,255,255,0.15)',
+                textAlign: 'center', lineHeight: 1.3,
               }}>
-                Sold Out
+                Currently Not Available
               </span>
             </div>
           )}
@@ -255,7 +255,7 @@ export default function CardTile({ listing, noPreview = false, compact = false, 
                 color: listing.quantity === 0 ? '#ef4444' : listing.quantity === 1 ? '#f97316' : 'var(--color-subtle)',
                 fontWeight: listing.quantity <= 1 ? 600 : 400,
               }}>
-                {listing.quantity === 0 ? 'Sold Out' : listing.quantity === 1 ? 'Last one' : `${listing.quantity} available`}
+                {listing.quantity === 0 ? 'No Stock' : listing.quantity === 1 ? 'Last one' : `${listing.quantity} available`}
               </span>
               <span style={{ fontSize: compact ? '9px' : '10px', color: 'var(--color-subtle)' }}>
                 {daysAgo(listing.created_at)}
