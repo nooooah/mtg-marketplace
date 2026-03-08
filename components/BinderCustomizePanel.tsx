@@ -5,16 +5,19 @@ import type { Binder } from '@/types'
 
 /* ─── Preset palettes ─────────────────────────────────────────────────── */
 
-const BG_PRESETS = [
-  { label: 'White',     hex: '#F8F6D8' },
+const BG_PRESETS: { label: string; hex: string | null }[] = [
+  { label: 'Default',   hex: null },
+  { label: 'White',     hex: '#FFFFFF' },
+  { label: 'MTG White', hex: '#F8F6D8' },
   { label: 'Blue',      hex: '#C1D7E9' },
-  { label: 'Black',     hex: '#BAB1AB' },
+  { label: 'Black',     hex: '#000000' },
+  { label: 'MTG Black', hex: '#BAB1AB' },
   { label: 'Red',       hex: '#E49977' },
   { label: 'Green',     hex: '#A3C095' },
   { label: 'Colorless', hex: '#C9C4BE' },
   { label: 'Gold',      hex: '#DFC98A' },
   { label: 'Brown',     hex: '#D6CAC2' },
-] as const
+]
 
 const TEXT_COLORS = [
   { label: 'Black', hex: '#000000' },
@@ -54,21 +57,29 @@ export default function BinderCustomizePanel({ binder, onUpdate, onManaToggle, o
         <Label>Background color</Label>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
           {BG_PRESETS.map(preset => {
-            const isSelected = binder.color1 === preset.hex
+            const isSelected = (binder.color1 ?? null) === preset.hex
+            const isDefault = preset.hex === null
             return (
               <button
-                key={preset.hex}
-                onClick={() => onUpdate({ color1: isSelected ? null : preset.hex, color2: null })}
+                key={preset.label}
+                onClick={() => onUpdate({ color1: preset.hex, color2: null })}
                 title={preset.label}
                 style={{
                   width: '32px', height: '32px', borderRadius: '8px',
-                  background: preset.hex,
+                  background: isDefault ? 'var(--color-surface-2)' : preset.hex!,
                   border: isSelected ? '3px solid var(--color-blue)' : '2px solid var(--color-border)',
                   boxShadow: isSelected ? '0 0 0 2px var(--color-blue-glow)' : 'none',
                   cursor: 'pointer', flexShrink: 0, transition: 'all 0.12s ease',
-                  outline: 'none',
+                  outline: 'none', position: 'relative', overflow: 'hidden',
                 }}
-              />
+              >
+                {isDefault && (
+                  /* diagonal slash to indicate "none" */
+                  <svg viewBox="0 0 32 32" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}>
+                    <line x1="4" y1="4" x2="28" y2="28" stroke="var(--color-subtle)" strokeWidth="2.5" strokeLinecap="round" />
+                  </svg>
+                )}
+              </button>
             )
           })}
         </div>

@@ -62,7 +62,7 @@ export function binderTabStyle(
 ): React.CSSProperties {
   const hasBg = !!binder.color1
   const borderCol = binder.border_color ?? (hasBg ? `${binder.color1}80` : isActive ? 'var(--color-blue)' : 'var(--color-border)')
-  const borderWidth = binder.border_color ? '10px' : '1px'
+  const borderWidth = binder.border_color ? '5px' : '1px'
   return {
     background: hasBg
       ? binder.color2
