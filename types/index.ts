@@ -35,6 +35,8 @@ export interface Binder {
   text_color: string | null
   mana_colors: string[]
   show_on_profile: boolean
+  font_family: string | null
+  border_color: string | null
 }
 
 export interface Listing {

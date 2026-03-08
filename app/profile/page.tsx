@@ -126,17 +126,10 @@ function BindersDisplay({ listings, binders, loading, displayName, onUpdateBinde
   // Keep selected tab valid when binders load
   const activeGroup = binderGroups.find(g => g.binder.id === selectedBinderId) ?? binderGroups[0]
 
-  const handleColorChange = (binderId: string, field: 'color1' | 'color2' | 'text_color', value: string) => {
-    onUpdateBinder(binderId, { [field]: value })
-    if (saveColorTimer.current) clearTimeout(saveColorTimer.current)
-    saveColorTimer.current = setTimeout(() => saveBinder(binderId, { [field]: value }), 400)
-  }
-
-  const clearBinderColor = (binderId: string, field: 'color1' | 'color2' | 'text_color') => {
-    const patch: Partial<Binder> = { [field]: null }
-    if (field === 'color1') patch.color2 = null
+  const handleBinderUpdate = (binderId: string, patch: Partial<Binder>) => {
     onUpdateBinder(binderId, patch)
-    saveBinder(binderId, patch)
+    if (saveColorTimer.current) clearTimeout(saveColorTimer.current)
+    saveColorTimer.current = setTimeout(() => saveBinder(binderId, patch), 400)
   }
 
   const toggleManaPip = (binderId: string, color: ManaColor) => {
@@ -151,7 +144,7 @@ function BindersDisplay({ listings, binders, loading, displayName, onUpdateBinde
   }
 
   const resetBinderStyle = (binderId: string) => {
-    const patch = { color1: null, color2: null, text_color: null, mana_colors: [] as string[] }
+    const patch = { color1: null, color2: null, text_color: null, mana_colors: [] as string[], font_family: null, border_color: null }
     onUpdateBinder(binderId, patch)
     saveBinder(binderId, patch)
   }
@@ -304,8 +297,7 @@ function BindersDisplay({ listings, binders, loading, displayName, onUpdateBinde
             {/* Cosmetic customization */}
             <BinderCustomizePanel
               binder={b}
-              onColorChange={(field, value) => handleColorChange(b.id, field, value)}
-              onColorClear={field => clearBinderColor(b.id, field)}
+              onUpdate={patch => handleBinderUpdate(b.id, patch)}
               onManaToggle={color => toggleManaPip(b.id, color)}
               onReset={() => resetBinderStyle(b.id)}
             />

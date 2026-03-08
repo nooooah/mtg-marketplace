@@ -3,59 +3,191 @@
 import { ManaIcon, binderTabStyle, ALL_MANA_COLORS, MANA_LABEL, type ManaColor } from './ManaIcon'
 import type { Binder } from '@/types'
 
+/* ─── Preset palettes ─────────────────────────────────────────────────── */
+
+const BG_PRESETS = [
+  { label: 'White',     hex: '#F8F6D8' },
+  { label: 'Blue',      hex: '#C1D7E9' },
+  { label: 'Black',     hex: '#BAB1AB' },
+  { label: 'Red',       hex: '#E49977' },
+  { label: 'Green',     hex: '#A3C095' },
+  { label: 'Colorless', hex: '#C9C4BE' },
+  { label: 'Gold',      hex: '#DFC98A' },
+  { label: 'Brown',     hex: '#D6CAC2' },
+] as const
+
+const TEXT_COLORS = [
+  { label: 'Black', hex: '#000000' },
+  { label: 'White', hex: '#FFFFFF' },
+] as const
+
+const BORDER_COLORS = [
+  { label: 'None',  hex: null },
+  { label: 'Black', hex: '#000000' },
+  { label: 'White', hex: '#FFFFFF' },
+  { label: 'Gold',  hex: '#DFC98A' },
+] as const
+
+const FONTS = [
+  { label: 'Default',      value: null },
+  { label: 'Beleren',      value: 'Beleren2016' },
+  { label: 'Receipt',      value: 'FakeReceipt' },
+  { label: 'Sage Sans',    value: 'SageSans' },
+] as const
+
 interface Props {
   binder: Binder
-  onColorChange: (field: 'color1' | 'color2' | 'text_color', value: string) => void
-  onColorClear:  (field: 'color1' | 'color2' | 'text_color') => void
+  onUpdate: (patch: Partial<Binder>) => void
   onManaToggle:  (color: ManaColor) => void
   onReset:       () => void
 }
 
-export default function BinderCustomizePanel({ binder, onColorChange, onColorClear, onManaToggle, onReset }: Props) {
+export default function BinderCustomizePanel({ binder, onUpdate, onManaToggle, onReset }: Props) {
   const mana = binder.mana_colors ?? []
-  const hasCustom = !!(binder.color1 || binder.text_color || mana.length > 0)
+  const hasCustom = !!(binder.color1 || binder.text_color || binder.font_family || binder.border_color || mana.length > 0)
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
 
-      {/* Background gradient */}
+      {/* Background color */}
       <div>
-        <Label>Background gradient</Label>
-        <div style={{ display: 'flex', alignItems: 'flex-end', gap: '16px', flexWrap: 'wrap' }}>
-          <ColorSwatch
-            label="Color 1"
-            value={binder.color1}
-            onChange={v => onColorChange('color1', v)}
-            onClear={() => onColorClear('color1')}
-          />
-          <ColorSwatch
-            label="Color 2"
-            value={binder.color2}
-            disabled={!binder.color1}
-            onChange={v => onColorChange('color2', v)}
-            onClear={() => onColorClear('color2')}
-          />
-          {binder.color1 && (
-            <div style={{
-              height: '32px', flex: 1, minWidth: '80px', borderRadius: '8px',
-              background: binder.color2
-                ? `linear-gradient(90deg, ${binder.color1}, ${binder.color2})`
-                : binder.color1,
-              border: '1px solid var(--color-border)',
-            }} />
+        <Label>Background color</Label>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          {BG_PRESETS.map(preset => {
+            const isSelected = binder.color1 === preset.hex
+            return (
+              <button
+                key={preset.hex}
+                onClick={() => onUpdate({ color1: isSelected ? null : preset.hex, color2: null })}
+                title={preset.label}
+                style={{
+                  width: '32px', height: '32px', borderRadius: '8px',
+                  background: preset.hex,
+                  border: isSelected ? '3px solid var(--color-blue)' : '2px solid var(--color-border)',
+                  boxShadow: isSelected ? '0 0 0 2px var(--color-blue-glow)' : 'none',
+                  cursor: 'pointer', flexShrink: 0, transition: 'all 0.12s ease',
+                  outline: 'none',
+                }}
+              />
+            )
+          })}
+        </div>
+        {binder.color1 && (
+          <p style={{ fontSize: '11px', color: 'var(--color-subtle)', margin: '6px 0 0', fontStyle: 'italic' }}>
+            {BG_PRESETS.find(p => p.hex === binder.color1)?.label ?? binder.color1}
+          </p>
+        )}
+      </div>
+
+      {/* Text color */}
+      <div>
+        <Label>Text color</Label>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          {TEXT_COLORS.map(tc => {
+            const isSelected = binder.text_color === tc.hex
+            return (
+              <button
+                key={tc.hex}
+                onClick={() => onUpdate({ text_color: isSelected ? null : tc.hex })}
+                title={tc.label}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '7px',
+                  padding: '5px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: 600,
+                  border: `1px solid ${isSelected ? 'var(--color-blue)' : 'var(--color-border)'}`,
+                  background: isSelected ? 'var(--color-blue-glow)' : 'transparent',
+                  color: isSelected ? 'var(--color-blue)' : 'var(--color-muted)',
+                  cursor: 'pointer', transition: 'all 0.12s ease',
+                }}
+              >
+                <span style={{
+                  width: '14px', height: '14px', borderRadius: '50%',
+                  background: tc.hex,
+                  border: tc.hex === '#FFFFFF' ? '1.5px solid var(--color-border)' : 'none',
+                  flexShrink: 0,
+                }} />
+                {tc.label}
+              </button>
+            )
+          })}
+          {binder.text_color && (
+            <button
+              onClick={() => onUpdate({ text_color: null })}
+              style={{
+                padding: '5px 10px', borderRadius: '8px', fontSize: '11px',
+                border: '1px solid var(--color-border)', background: 'transparent',
+                color: 'var(--color-subtle)', cursor: 'pointer',
+              }}
+            >
+              Clear
+            </button>
           )}
         </div>
       </div>
 
-      {/* Text colour */}
+      {/* Font */}
       <div>
-        <Label>Text color</Label>
-        <ColorSwatch
-          label="Text"
-          value={binder.text_color}
-          onChange={v => onColorChange('text_color', v)}
-          onClear={() => onColorClear('text_color')}
-        />
+        <Label>Font</Label>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          {FONTS.map(font => {
+            const isSelected = (binder.font_family ?? null) === font.value
+            return (
+              <button
+                key={font.label}
+                onClick={() => onUpdate({ font_family: font.value })}
+                style={{
+                  padding: '6px 14px', borderRadius: '8px', fontSize: '13px',
+                  fontFamily: font.value ? `'${font.value}', serif` : 'inherit',
+                  border: `1px solid ${isSelected ? 'var(--color-blue)' : 'var(--color-border)'}`,
+                  background: isSelected ? 'var(--color-blue-glow)' : 'transparent',
+                  color: isSelected ? 'var(--color-blue)' : 'var(--color-muted)',
+                  cursor: 'pointer', transition: 'all 0.12s ease',
+                  fontWeight: isSelected ? 600 : 400,
+                }}
+              >
+                {font.label}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* Border color */}
+      <div>
+        <Label hint="10px thick border">Border</Label>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          {BORDER_COLORS.map(bc => {
+            const isSelected = (binder.border_color ?? null) === bc.hex
+            return (
+              <button
+                key={bc.label}
+                onClick={() => onUpdate({ border_color: bc.hex })}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '7px',
+                  padding: '5px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: 600,
+                  border: `1px solid ${isSelected ? 'var(--color-blue)' : 'var(--color-border)'}`,
+                  background: isSelected ? 'var(--color-blue-glow)' : 'transparent',
+                  color: isSelected ? 'var(--color-blue)' : 'var(--color-muted)',
+                  cursor: 'pointer', transition: 'all 0.12s ease',
+                }}
+              >
+                {bc.hex ? (
+                  <span style={{
+                    width: '14px', height: '14px', borderRadius: '3px',
+                    background: bc.hex,
+                    border: bc.hex === '#FFFFFF' ? '1.5px solid var(--color-border)' : 'none',
+                    flexShrink: 0,
+                  }} />
+                ) : (
+                  <span style={{
+                    width: '14px', height: '14px', borderRadius: '3px',
+                    border: '1.5px dashed var(--color-border)', flexShrink: 0,
+                  }} />
+                )}
+                {bc.label}
+              </button>
+            )
+          })}
+        </div>
       </div>
 
       {/* Mana pips */}
@@ -136,41 +268,5 @@ function Label({ children, hint }: { children: React.ReactNode; hint?: string })
       {children}
       {hint && <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0, fontSize: '11px' }}>— {hint}</span>}
     </p>
-  )
-}
-
-function ColorSwatch({ label, value, onChange, onClear, disabled }: {
-  label: string
-  value: string | null
-  onChange: (v: string) => void
-  onClear: () => void
-  disabled?: boolean
-}) {
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', opacity: disabled ? 0.4 : 1 }}>
-      <span style={{ fontSize: '11px', color: 'var(--color-subtle)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</span>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-        <label style={{ position: 'relative', cursor: disabled ? 'not-allowed' : 'pointer', display: 'inline-block' }}>
-          <div style={{
-            width: '34px', height: '34px', borderRadius: '8px',
-            background: value ?? '#e8e8e8',
-            border: `2px solid ${value ? value + '90' : 'var(--color-border)'}`,
-            boxShadow: value ? `0 0 0 1px ${value}40` : 'none',
-          }} />
-          {!disabled && (
-            <input
-              type="color"
-              value={value ?? '#ffffff'}
-              onChange={e => onChange(e.target.value)}
-              style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer', width: '100%', height: '100%', padding: 0, margin: 0 }}
-            />
-          )}
-        </label>
-        {value
-          ? <button onClick={onClear} title="Clear" style={{ background: 'transparent', border: 'none', color: 'var(--color-subtle)', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center' }}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg></button>
-          : <span style={{ fontSize: '11px', color: 'var(--color-subtle)', fontStyle: 'italic' }}>none</span>
-        }
-      </div>
-    </div>
   )
 }

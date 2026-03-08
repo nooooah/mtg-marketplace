@@ -57,10 +57,12 @@ export function ManaIcon({ color, size = 18 }: { color: string; size?: number })
 
 /** Returns inline style props for a binder tab button based on its custom colours. */
 export function binderTabStyle(
-  binder: { color1?: string | null; color2?: string | null; text_color?: string | null },
+  binder: { color1?: string | null; color2?: string | null; text_color?: string | null; font_family?: string | null; border_color?: string | null },
   isActive: boolean,
 ): React.CSSProperties {
   const hasBg = !!binder.color1
+  const borderCol = binder.border_color ?? (hasBg ? `${binder.color1}80` : isActive ? 'var(--color-blue)' : 'var(--color-border)')
+  const borderWidth = binder.border_color ? '10px' : '1px'
   return {
     background: hasBg
       ? binder.color2
@@ -68,6 +70,7 @@ export function binderTabStyle(
         : binder.color1!
       : isActive ? 'var(--color-blue-glow)' : 'var(--color-surface)',
     color: binder.text_color ?? (isActive ? 'var(--color-blue)' : 'var(--color-muted)'),
-    border: `1px solid ${hasBg ? `${binder.color1}80` : isActive ? 'var(--color-blue)' : 'var(--color-border)'}`,
+    border: `${borderWidth} solid ${borderCol}`,
+    fontFamily: binder.font_family ? `'${binder.font_family}', serif` : undefined,
   }
 }

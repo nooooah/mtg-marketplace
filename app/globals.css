@@ -13,6 +13,22 @@
   font-display: swap;
 }
 
+@font-face {
+  font-family: 'FakeReceipt';
+  src: url('/font/Fake Receipt.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'SageSans';
+  src: url('/font/sagesans-Regular.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
 @theme inline {
   /* Core palette */
   --color-bg:        #0f0f0f;
