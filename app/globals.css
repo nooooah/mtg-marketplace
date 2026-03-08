@@ -5,6 +5,14 @@
    Minimalistic · Dark Mode First · Notion-style
 ───────────────────────────────────────────── */
 
+@font-face {
+  font-family: 'Beleren2016';
+  src: url('/font/Beleren2016-Bold.ttf') format('truetype');
+  font-weight: bold;
+  font-style: normal;
+  font-display: swap;
+}
+
 @theme inline {
   /* Core palette */
   --color-bg:        #0f0f0f;
