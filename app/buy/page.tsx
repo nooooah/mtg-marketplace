@@ -15,8 +15,12 @@ interface ScryfallSuggestion {
   name: string
   set_name: string
   set: string
-  image_uris?: { small: string }
-  card_faces?: { image_uris?: { small: string } }[]
+  rarity: string
+  mana_cost?: string
+  type_line?: string
+  image_uris?: { small: string; normal: string }
+  card_faces?: { image_uris?: { small: string; normal: string } }[]
+  prices?: { usd: string | null }
 }
 
 const CONDITIONS: CardCondition[] = ['NM', 'LP', 'MP', 'HP', 'DMG']
@@ -46,6 +50,7 @@ function BuyPageContent() {
   const [maxPrice, setMaxPrice] = useState('')
   const [lowerThanMarket, setLowerThanMarket] = useState(initialLtm)
   const [listings, setListings] = useState<Listing[]>([])
+  const [scryfallFallback, setScryfallFallback] = useState<Listing[]>([])
   const [loading, setLoading] = useState(true)
   const [filtersOpen, setFiltersOpen] = useState(initialLtm)
 
@@ -132,7 +137,47 @@ function BuyPageContent() {
     }
 
     setListings(results)
-    setPage(1)   // reset to first page whenever results change
+    setPage(1)
+
+    // If no marketplace results for a specific query, fetch Scryfall as fallback
+    if (results.length === 0 && query.trim()) {
+      try {
+        const res = await fetch(`https://api.scryfall.com/cards/search?q=${encodeURIComponent(query.trim())}&unique=cards&order=name`)
+        const data = await res.json()
+        if (data.data?.length) {
+          const fallback: Listing[] = (data.data as ScryfallSuggestion[]).slice(0, 24).map(card => ({
+            id: card.id,
+            user_id: '',
+            card_id: card.id,
+            card_name: card.name,
+            card_set: card.set,
+            card_set_name: card.set_name,
+            card_image_uri: card.image_uris?.normal ?? card.card_faces?.[0]?.image_uris?.normal ?? null,
+            card_rarity: card.rarity,
+            card_mana_cost: card.mana_cost ?? null,
+            card_type: card.type_line ?? null,
+            condition: 'NM',
+            is_foil: false,
+            price: 0,
+            quantity: 0,
+            notes: null,
+            views: 0,
+            usd_price: card.prices?.usd ? parseFloat(card.prices.usd) : null,
+            status: 'listed',
+            binder_id: null,
+            created_at: new Date().toISOString(),
+          }))
+          setScryfallFallback(fallback)
+        } else {
+          setScryfallFallback([])
+        }
+      } catch {
+        setScryfallFallback([])
+      }
+    } else {
+      setScryfallFallback([])
+    }
+
     setLoading(false)
   }, [query, sort, conditions, minPrice, maxPrice, lowerThanMarket])
 
@@ -403,11 +448,27 @@ function BuyPageContent() {
       {/* Results */}
       {loading ? (
         <SkeletonGrid />
-      ) : listings.length === 0 ? (
+      ) : listings.length === 0 && scryfallFallback.length === 0 ? (
         <div style={{ padding: '64px 24px', textAlign: 'center', background: 'var(--color-surface)', borderRadius: '12px', border: '1px solid var(--color-border)' }}>
           <p style={{ fontSize: '15px', color: 'var(--color-muted)', marginBottom: '8px' }}>No listings found.</p>
           <p style={{ fontSize: '13px', color: 'var(--color-subtle)' }}>Try a different search or clear your filters.</p>
         </div>
+      ) : listings.length === 0 && scryfallFallback.length > 0 ? (
+        <>
+          <p style={{ fontSize: '12px', color: 'var(--color-subtle)', marginBottom: '16px' }}>
+            No community listings yet — showing cards from Scryfall
+          </p>
+          <div className="card-grid">
+            {scryfallFallback.map(listing => (
+              <CardTile
+                key={listing.card_id}
+                listing={listing}
+                sellerCount={0}
+                href={`/card/${listing.card_id}`}
+              />
+            ))}
+          </div>
+        </>
       ) : (
         (() => {
           const grouped = groupListings(listings)
