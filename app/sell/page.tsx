@@ -953,7 +953,8 @@ function BulkRowCard({ row, onChange, onRemove }: {
                 {row.cardName}
                 {isNotFound && <span style={{ fontSize: '11px', color: '#fbbf24', marginLeft: '8px', fontWeight: 500 }}>not found — will be skipped</span>}
               </p>
-              <p style={{ fontSize: '12px', color: 'var(--color-muted)', margin: 0 }}>
+              <p style={{ fontSize: '12px', color: 'var(--color-muted)', margin: 0, display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap' }}>
+                {row.setCode && <i className={`ss ss-${row.setCode.toLowerCase()} ss-${(row.rarity ?? 'common').toLowerCase()} ss-grad`} style={{ fontSize: '14px', flexShrink: 0 }} />}
                 {row.setName ?? row.setCode.toUpperCase()}
                 <span style={{ color: 'var(--color-subtle)' }}> · {row.setCode.toUpperCase()} #{row.collectorNumber}</span>
                 {row.usdPrice && <span style={{ color: 'var(--color-subtle)' }}> · <span style={{ color: 'var(--color-muted)' }}>${row.usdPrice} USD</span></span>}
@@ -1109,7 +1110,8 @@ function BulkRowCard({ row, onChange, onRemove }: {
                       </div>
                     )}
                     <div style={{ padding: '2px 3px', textAlign: 'center' }}>
-                      <p style={{ fontSize: '9px', fontWeight: 700, color: isSelected ? 'var(--color-blue)' : 'var(--color-muted)', textTransform: 'uppercase', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <p style={{ fontSize: '9px', fontWeight: 700, color: isSelected ? 'var(--color-blue)' : 'var(--color-muted)', textTransform: 'uppercase', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px' }}>
+                        <i className={`ss ss-${p.set.toLowerCase()} ss-${p.rarity.toLowerCase()} ss-grad`} style={{ fontSize: '12px', flexShrink: 0 }} />
                         {p.set.toUpperCase()}
                       </p>
                       {p.usd && (
@@ -1122,8 +1124,8 @@ function BulkRowCard({ row, onChange, onRemove }: {
             </div>
           )}
           {!printingsLoading && printings.length > 0 && (
-            <p style={{ fontSize: '11px', color: 'var(--color-muted)', marginTop: '8px' }}>
-              Current: <span style={{ color: 'var(--color-text)', fontWeight: 600 }}>{row.setName ?? row.setCode.toUpperCase()}</span>
+            <p style={{ fontSize: '11px', color: 'var(--color-muted)', marginTop: '8px', display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap' }}>
+              Current: {row.setCode && <i className={`ss ss-${row.setCode.toLowerCase()} ss-${(row.rarity ?? 'common').toLowerCase()} ss-grad`} style={{ fontSize: '13px', flexShrink: 0 }} />}<span style={{ color: 'var(--color-text)', fontWeight: 600 }}>{row.setName ?? row.setCode.toUpperCase()}</span>
               <span style={{ color: 'var(--color-subtle)' }}> · #{row.collectorNumber}</span>
             </p>
           )}
@@ -1151,7 +1153,10 @@ function ScryfallResultRow({ card, onSelect }: { card: ScryfallCard; onSelect: (
       )}
       <div style={{ flex: 1, minWidth: 0 }}>
         <p style={{ fontWeight: 600, fontSize: '13px', color: 'var(--color-text)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{card.name}</p>
-        <p style={{ fontSize: '11px', color: 'var(--color-muted)', margin: 0 }}>{card.set_name} · {card.set.toUpperCase()} · <span style={{ textTransform: 'capitalize' }}>{card.rarity}</span></p>
+        <p style={{ fontSize: '11px', color: 'var(--color-muted)', margin: 0, display: 'flex', alignItems: 'center', gap: '5px' }}>
+          <i className={`ss ss-${card.set.toLowerCase()} ss-${card.rarity.toLowerCase()} ss-grad`} style={{ fontSize: '13px', flexShrink: 0 }} />
+          {card.set_name} · {card.set.toUpperCase()} · <span style={{ textTransform: 'capitalize' }}>{card.rarity}</span>
+        </p>
       </div>
       {card.prices?.usd && <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-text)', flexShrink: 0 }}>${card.prices.usd}</span>}
     </button>

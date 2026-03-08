@@ -1056,7 +1056,12 @@ function ListingRow({
             </span>
           </div>
           <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-            {listing.card_set_name && <span className="ml-secondary" style={{ fontSize: '12px', color: 'var(--color-muted)' }}>{listing.card_set_name}</span>}
+            {listing.card_set_name && (
+              <span className="ml-secondary" style={{ fontSize: '12px', color: 'var(--color-muted)', display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                {listing.card_set && <i className={`ss ss-${listing.card_set.toLowerCase()} ss-${(listing.card_rarity ?? 'common').toLowerCase()} ss-grad`} style={{ fontSize: '13px', flexShrink: 0 }} />}
+                {listing.card_set_name}
+              </span>
+            )}
             <span style={{ fontSize: '12px', color: 'var(--color-subtle)' }}>{listing.quantity} avail.</span>
             <span className="ml-secondary" style={{ fontSize: '12px', color: 'var(--color-subtle)' }}>{listing.views} view{listing.views !== 1 ? 's' : ''}</span>
             <span className="ml-secondary" style={{ fontSize: '12px', color: 'var(--color-subtle)' }}>Listed {formatDate(listing.created_at)}</span>
@@ -1393,7 +1398,8 @@ function EditPanel({ listing, onSave, onCancel, binders, onMoveToBinder }: {
                       </div>
                     )}
                     <div style={{ padding: '3px 4px', textAlign: 'center' }}>
-                      <p style={{ fontSize: '9px', fontWeight: 600, color: isSelected ? 'var(--color-blue)' : 'var(--color-muted)', textTransform: 'uppercase', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <p style={{ fontSize: '9px', fontWeight: 600, color: isSelected ? 'var(--color-blue)' : 'var(--color-muted)', textTransform: 'uppercase', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px' }}>
+                        <i className={`ss ss-${p.set.toLowerCase()} ss-${p.rarity.toLowerCase()} ss-grad`} style={{ fontSize: '12px', flexShrink: 0 }} />
                         {p.set.toUpperCase()}
                       </p>
                     </div>

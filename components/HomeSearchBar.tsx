@@ -9,6 +9,7 @@ interface ScryfallCard {
   name: string
   set_name: string
   set: string
+  rarity: string
   image_uris?: { small: string }
   card_faces?: { image_uris?: { small: string } }[]
 }
@@ -178,7 +179,8 @@ export default function HomeSearchBar() {
                   <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--color-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {card.name}
                   </span>
-                  <span style={{ fontSize: '12px', color: 'var(--color-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <span style={{ fontSize: '12px', color: 'var(--color-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <i className={`ss ss-${card.set.toLowerCase()} ss-${card.rarity.toLowerCase()} ss-grad`} style={{ fontSize: '13px', flexShrink: 0 }} />
                     {card.set_name} · {card.set.toUpperCase()}
                   </span>
                 </div>

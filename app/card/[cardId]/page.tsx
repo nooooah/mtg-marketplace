@@ -396,7 +396,8 @@ export default async function CardPage({ params }: { params: Promise<{ cardId: s
                         <div style={{ borderRadius: '10px', overflow: 'hidden', border: `1.5px solid ${isCurrent ? 'var(--color-blue)' : 'var(--color-border)'}`, background: isCurrent ? 'var(--color-blue-glow)' : 'var(--color-surface)', display: 'flex', flexDirection: 'column' }}>
                           {pImg && <img src={pImg} alt={p.set_name} style={{ width: '100%', display: 'block' }} />}
                           <div style={{ padding: '5px 7px' }}>
-                            <p style={{ fontSize: '9px', fontWeight: 600, color: isCurrent ? 'var(--color-blue)' : 'var(--color-text)', margin: '0 0 1px', lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            <p style={{ fontSize: '9px', fontWeight: 600, color: isCurrent ? 'var(--color-blue)' : 'var(--color-text)', margin: '0 0 1px', lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                              <i className={`ss ss-${p.set?.toLowerCase()} ss-${p.rarity?.toLowerCase()} ss-grad`} style={{ fontSize: '11px', flexShrink: 0 }} />
                               {p.set_name}
                             </p>
                             <p style={{ fontSize: '8px', color: 'var(--color-muted)', margin: 0 }}>

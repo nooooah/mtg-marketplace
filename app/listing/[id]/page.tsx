@@ -94,7 +94,8 @@ export default async function ListingPage({ params }: { params: Promise<{ id: st
               {l.card_name}
             </h1>
             {l.card_set_name && (
-              <p style={{ fontSize: '14px', color: 'var(--color-muted)', margin: 0 }}>
+              <p style={{ fontSize: '14px', color: 'var(--color-muted)', margin: 0, display: 'flex', alignItems: 'center', gap: '7px' }}>
+                {l.card_set && <i className={`ss ss-${l.card_set.toLowerCase()} ss-${(l.card_rarity ?? 'common').toLowerCase()} ss-grad`} style={{ fontSize: '18px', flexShrink: 0 }} />}
                 {l.card_set_name}
                 {l.card_set && <span style={{ color: 'var(--color-subtle)' }}> · {l.card_set.toUpperCase()}</span>}
               </p>
