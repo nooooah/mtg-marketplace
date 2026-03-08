@@ -171,7 +171,14 @@ export default function CardTile({ listing, noPreview = false, compact = false, 
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap',
+              display: 'flex', alignItems: 'center', gap: '5px',
             }}>
+              {listing.card_set && (
+                <i
+                  className={`ss ss-${listing.card_set.toLowerCase()} ss-${(listing.card_rarity ?? 'common').toLowerCase()} ss-grad`}
+                  style={{ fontSize: compact ? '12px' : '14px', flexShrink: 0 }}
+                />
+              )}
               {listing.card_set_name}
             </p>
           )}

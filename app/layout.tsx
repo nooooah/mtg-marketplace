@@ -27,6 +27,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={inter.variable}>
+      <head>
+        <link rel="stylesheet" href="/keyrune-master/css/keyrune.min.css" />
+      </head>
       <body className="antialiased">
         <Navbar />
         <main>

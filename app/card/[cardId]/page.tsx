@@ -264,7 +264,11 @@ export default async function CardPage({ params }: { params: Promise<{ cardId: s
                 <ManaCost cost={card.mana_cost} />
               </div>
               <h1 className="cdp-h1">{card.name}</h1>
-              <p style={{ fontSize: '13px', color: 'var(--color-muted)', margin: '0 0 3px' }}>
+              <p style={{ fontSize: '13px', color: 'var(--color-muted)', margin: '0 0 3px', display: 'flex', alignItems: 'center', gap: '7px', flexWrap: 'wrap' }}>
+                <i
+                  className={`ss ss-${card.set?.toLowerCase()} ss-${card.rarity?.toLowerCase()} ss-grad`}
+                  style={{ fontSize: '20px', flexShrink: 0 }}
+                />
                 {card.set_name}
                 <span style={{ color: 'var(--color-subtle)' }}> · {card.set?.toUpperCase()} #{card.collector_number}</span>
               </p>
