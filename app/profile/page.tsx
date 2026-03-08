@@ -224,50 +224,38 @@ function BindersDisplay({ listings, binders, loading, displayName, onUpdateBinde
                 key={binder.id}
                 onClick={() => setSelectedBinderId(binder.id)}
                 style={{
-                  position: 'relative',
-                  display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
-                  padding: '14px 14px 12px',
-                  minHeight: '110px',
-                  borderRadius: '12px',
+                  display: 'flex', alignItems: 'center', gap: '7px',
+                  padding: '8px 14px 8px 16px', borderRadius: '10px',
                   fontSize: '14px', fontWeight: isActive ? 700 : 500,
-                  cursor: 'pointer', transition: 'all 0.15s ease',
-                  textAlign: 'left',
+                  cursor: 'pointer', transition: 'all 0.12s ease',
+                  width: '100%',
                   opacity: hidden && !isActive ? 0.55 : 1,
                   ...binderTabStyle(binder, isActive),
                 }}
               >
-                {/* Eye visibility toggle — top right */}
+                <span style={{ flex: 1, textAlign: 'left', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{binder.name}</span>
+                {(binder.mana_colors ?? []).map((c, i) => <ManaIcon key={i} color={c} size={15} />)}
+                <span style={{
+                  fontSize: '11px', fontWeight: 700, padding: '1px 7px', borderRadius: '10px', flexShrink: 0,
+                  background: isActive ? 'rgba(59,130,246,0.15)' : 'var(--color-surface)',
+                  color: isActive ? 'var(--color-blue)' : 'var(--color-subtle)',
+                  border: `1px solid ${isActive ? 'rgba(59,130,246,0.25)' : 'var(--color-border)'}`,
+                }}>
+                  {cards.length}
+                </span>
                 <span
                   onClick={e => toggleShowOnProfile(e, binder)}
                   title={hidden ? 'Show on public profile' : 'Hide from public profile'}
                   style={{
-                    position: 'absolute', top: '8px', right: '8px',
-                    display: 'flex', alignItems: 'center',
+                    display: 'flex', alignItems: 'center', flexShrink: 0,
                     color: hidden ? '#f59e0b' : 'currentColor',
                     opacity: hidden ? 1 : 0.35,
+                    marginLeft: '2px',
                     transition: 'opacity 0.15s ease, color 0.15s ease',
                   }}
                 >
                   {hidden ? <EyeSlashIcon /> : <EyeIcon size={13} />}
                 </span>
-
-                {/* Binder name */}
-                <span style={{ lineHeight: 1.35, paddingRight: '20px' }}>{binder.name}</span>
-
-                {/* Bottom row: mana pips + card count */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '12px' }}>
-                  <div style={{ display: 'flex', gap: '3px', flexWrap: 'wrap' }}>
-                    {(binder.mana_colors ?? []).map((c, i) => <ManaIcon key={i} color={c} size={16} />)}
-                  </div>
-                  <span style={{
-                    fontSize: '11px', fontWeight: 700, padding: '1px 7px', borderRadius: '10px',
-                    background: isActive ? 'rgba(59,130,246,0.15)' : 'var(--color-surface)',
-                    color: isActive ? 'var(--color-blue)' : 'var(--color-subtle)',
-                    border: `1px solid ${isActive ? 'rgba(59,130,246,0.25)' : 'var(--color-border)'}`,
-                  }}>
-                    {cards.length}
-                  </span>
-                </div>
               </button>
             )
           })}
