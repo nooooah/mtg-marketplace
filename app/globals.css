@@ -297,6 +297,23 @@ button {
   }
 }
 
+/* ── Binder bookcase grid ────────────────────── */
+.binder-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+@media (max-width: 768px) {
+  .binder-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (max-width: 480px) {
+  .binder-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* ── Responsive card grid ────────────────────── */
 .card-grid {
   display: grid;
