@@ -213,40 +213,39 @@ function BindersDisplay({ listings, binders, loading, displayName, onUpdateBinde
             </button>
           )}
         </div>
-        {/* ── Master Binder ── */}
-        <div style={{ marginBottom: '16px', position: 'relative' }}>
+        {/* ── Master Binder pill ── */}
+        <div style={{ marginBottom: '12px', position: 'relative' }}>
           <button
             onClick={() => setSelectedBinderId(MASTER_ID)}
             style={{
-              width: '100%', display: 'flex', alignItems: 'center', gap: '10px',
-              padding: '10px 18px', borderRadius: '10px',
-              fontSize: '15px', fontWeight: 700, cursor: 'pointer',
+              display: 'flex', alignItems: 'center', gap: '7px',
+              padding: '8px 14px 8px 16px', borderRadius: '10px',
+              fontSize: '14px', fontWeight: isMasterSelected ? 700 : 500,
+              cursor: 'pointer', transition: 'all 0.12s ease', width: '100%',
               fontFamily: "'Beleren2016', serif",
-              background: isMasterSelected ? 'rgba(139,92,246,0.12)' : 'var(--color-surface-2)',
-              border: `5px solid ${isMasterSelected ? '#8B5CF6' : '#6D28D9'}`,
+              background: isMasterSelected ? 'rgba(139,92,246,0.1)' : 'var(--color-surface)',
+              border: `1px solid ${isMasterSelected ? '#8B5CF6' : '#6D28D9'}`,
               color: isMasterSelected ? '#c4b5fd' : '#a78bfa',
-              transition: 'all 0.12s ease',
             }}
           >
-            {/* crown icon */}
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style={{ flexShrink: 0 }}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" style={{ flexShrink: 0 }}>
               <path d="M2 19h20v2H2v-2zM2 7l5 7 5-7 5 7 5-7v10H2V7z" />
             </svg>
-            <span style={{ flex: 1, textAlign: 'left' }}>Master Binder</span>
+            <span style={{ flex: 1, textAlign: 'left', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Master Binder</span>
             <span style={{
-              fontSize: '11px', fontWeight: 700, padding: '1px 8px', borderRadius: '10px',
-              background: 'rgba(139,92,246,0.2)', color: '#c4b5fd',
-              border: '1px solid rgba(139,92,246,0.35)', fontFamily: 'system-ui, sans-serif',
-              flexShrink: 0,
+              fontSize: '11px', fontWeight: 700, padding: '1px 7px', borderRadius: '10px', flexShrink: 0,
+              fontFamily: 'system-ui, sans-serif',
+              background: isMasterSelected ? 'rgba(139,92,246,0.15)' : 'var(--color-surface)',
+              color: isMasterSelected ? '#c4b5fd' : '#a78bfa',
+              border: `1px solid ${isMasterSelected ? 'rgba(139,92,246,0.35)' : '#6D28D9'}`,
             }}>
               {listings.length}
             </span>
-            {/* info icon with tooltip */}
             <span
               onMouseEnter={() => setMasterTooltip(true)}
               onMouseLeave={() => setMasterTooltip(false)}
               onClick={e => e.stopPropagation()}
-              style={{ display: 'flex', alignItems: 'center', color: '#a78bfa', opacity: 0.7, flexShrink: 0, cursor: 'default' }}
+              style={{ display: 'flex', alignItems: 'center', color: '#a78bfa', opacity: 0.6, flexShrink: 0, cursor: 'default' }}
             >
               <InfoIcon />
             </span>
