@@ -103,6 +103,8 @@ function ProfileContent({ userId, initialProfile }: { userId: string; initialPro
 
 /* ─── Binders Display ─────────────────────────────────────────────────── */
 
+const MASTER_ID = '__master__'
+
 function BindersDisplay({ listings, binders, loading, displayName, onUpdateBinder, saveBinder }: {
   listings: Listing[]
   binders: Binder[]
@@ -117,14 +119,17 @@ function BindersDisplay({ listings, binders, loading, displayName, onUpdateBinde
     cards: listings.filter(l => l.binder_id === b.id),
   })).filter(g => g.cards.length > 0)
 
-  const [selectedBinderId, setSelectedBinderId] = useState<string>(binderGroups[0]?.binder.id ?? '')
+  const [selectedBinderId, setSelectedBinderId] = useState<string>(MASTER_ID)
   const [editingBinders, setEditingBinders] = useState(false)
+  const [masterTooltip, setMasterTooltip] = useState(false)
   const [hiddenNoticeBinderName, setHiddenNoticeBinderName] = useState<string | null>(null)
   const saveColorTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const noticeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Keep selected tab valid when binders load
-  const activeGroup = binderGroups.find(g => g.binder.id === selectedBinderId) ?? binderGroups[0]
+  const isMasterSelected = selectedBinderId === MASTER_ID
+  const activeGroup = isMasterSelected ? null : (binderGroups.find(g => g.binder.id === selectedBinderId) ?? binderGroups[0])
+  const activeCards = isMasterSelected ? listings : (activeGroup?.cards ?? [])
 
   const handleBinderUpdate = (binderId: string, patch: Partial<Binder>) => {
     onUpdateBinder(binderId, patch)
@@ -172,7 +177,7 @@ function BindersDisplay({ listings, binders, loading, displayName, onUpdateBinde
     )
   }
 
-  if (binderGroups.length === 0) {
+  if (listings.length === 0) {
     return (
       <div style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: '16px', padding: '64px 24px', textAlign: 'center' }}>
         <p style={{ fontSize: '15px', color: 'var(--color-muted)', margin: '0 0 12px' }}>No cards listed in any binder yet.</p>
@@ -208,6 +213,56 @@ function BindersDisplay({ listings, binders, loading, displayName, onUpdateBinde
             </button>
           )}
         </div>
+        {/* ── Master Binder ── */}
+        <div style={{ marginBottom: '16px', position: 'relative' }}>
+          <button
+            onClick={() => setSelectedBinderId(MASTER_ID)}
+            style={{
+              width: '100%', display: 'flex', alignItems: 'center', gap: '10px',
+              padding: '10px 18px', borderRadius: '10px',
+              fontSize: '15px', fontWeight: 700, cursor: 'pointer',
+              fontFamily: "'Beleren2016', serif",
+              background: isMasterSelected ? 'rgba(139,92,246,0.12)' : 'var(--color-surface-2)',
+              border: `5px solid ${isMasterSelected ? '#8B5CF6' : '#6D28D9'}`,
+              color: isMasterSelected ? '#c4b5fd' : '#a78bfa',
+              transition: 'all 0.12s ease',
+            }}
+          >
+            {/* crown icon */}
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style={{ flexShrink: 0 }}>
+              <path d="M2 19h20v2H2v-2zM2 7l5 7 5-7 5 7 5-7v10H2V7z" />
+            </svg>
+            <span style={{ flex: 1, textAlign: 'left' }}>Master Binder</span>
+            <span style={{
+              fontSize: '11px', fontWeight: 700, padding: '1px 8px', borderRadius: '10px',
+              background: 'rgba(139,92,246,0.2)', color: '#c4b5fd',
+              border: '1px solid rgba(139,92,246,0.35)', fontFamily: 'system-ui, sans-serif',
+              flexShrink: 0,
+            }}>
+              {listings.length}
+            </span>
+            {/* info icon with tooltip */}
+            <span
+              onMouseEnter={() => setMasterTooltip(true)}
+              onMouseLeave={() => setMasterTooltip(false)}
+              onClick={e => e.stopPropagation()}
+              style={{ display: 'flex', alignItems: 'center', color: '#a78bfa', opacity: 0.7, flexShrink: 0, cursor: 'default' }}
+            >
+              <InfoIcon />
+            </span>
+          </button>
+          {masterTooltip && (
+            <div style={{
+              position: 'absolute', top: '100%', right: 0, zIndex: 20, marginTop: '6px',
+              background: '#1e1b4b', border: '1px solid #4c1d95', borderRadius: '8px',
+              padding: '10px 14px', fontSize: '12px', color: '#c4b5fd', lineHeight: 1.5,
+              maxWidth: '260px', boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
+            }}>
+              Shows all your listings across every binder in one place. Cannot be customized.
+            </div>
+          )}
+        </div>
+
         <div className="binder-grid">
           {binderGroups.map(({ binder, cards }) => {
             const isActive = binder.id === activeGroup?.binder.id
@@ -275,15 +330,15 @@ function BindersDisplay({ listings, binders, loading, displayName, onUpdateBinde
             </button>
           </div>
         )}
-        {activeGroup?.binder.description && (
+        {!isMasterSelected && activeGroup?.binder.description && (
           <p style={{ fontSize: '13px', color: 'var(--color-muted)', margin: '16px 0 0', fontStyle: 'italic', lineHeight: 1.5 }}>
             {activeGroup.binder.description}
           </p>
         )}
       </div>
 
-      {/* Customize panel */}
-      {editingBinders && activeGroup && (() => {
+      {/* Customize panel — hidden for master binder */}
+      {editingBinders && !isMasterSelected && activeGroup && (() => {
         const b = activeGroup.binder
         return (
           <div style={{
@@ -307,7 +362,10 @@ function BindersDisplay({ listings, binders, loading, displayName, onUpdateBinde
 
       {/* Cards tile */}
       <div style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: '16px', padding: '28px' }}>
-        {activeGroup && <ProfileListingsSection listings={activeGroup.cards} />}
+        {activeCards.length > 0
+          ? <ProfileListingsSection listings={activeCards} />
+          : <p style={{ color: 'var(--color-muted)', fontSize: '14px', margin: 0, textAlign: 'center' }}>No cards in this binder yet.</p>
+        }
       </div>
 
     </div>
