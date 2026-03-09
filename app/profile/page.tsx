@@ -129,7 +129,11 @@ function BindersDisplay({ listings, binders, loading, displayName, onUpdateBinde
   // Keep selected tab valid when binders load
   const isMasterSelected = selectedBinderId === MASTER_ID
   const activeGroup = isMasterSelected ? null : (binderGroups.find(g => g.binder.id === selectedBinderId) ?? binderGroups[0])
-  const activeCards = isMasterSelected ? listings : (activeGroup?.cards ?? [])
+  // Master binder: only listings from binders the owner has marked visible
+  const visibleBinderIds = new Set(binders.filter(b => b.show_on_profile !== false).map(b => b.id))
+  const activeCards = isMasterSelected
+    ? listings.filter(l => l.binder_id && visibleBinderIds.has(l.binder_id))
+    : (activeGroup?.cards ?? [])
 
   const handleBinderUpdate = (binderId: string, patch: Partial<Binder>) => {
     onUpdateBinder(binderId, patch)
@@ -239,7 +243,7 @@ function BindersDisplay({ listings, binders, loading, displayName, onUpdateBinde
               color: isMasterSelected ? '#c4b5fd' : '#a78bfa',
               border: `1px solid ${isMasterSelected ? 'rgba(139,92,246,0.35)' : '#6D28D9'}`,
             }}>
-              {listings.length}
+              {listings.filter(l => l.binder_id && visibleBinderIds.has(l.binder_id)).length}
             </span>
             <span
               onMouseEnter={() => setMasterTooltip(true)}
@@ -257,7 +261,7 @@ function BindersDisplay({ listings, binders, loading, displayName, onUpdateBinde
               padding: '10px 14px', fontSize: '12px', color: '#c4b5fd', lineHeight: 1.5,
               maxWidth: '260px', boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
             }}>
-              Shows all your listings across every binder in one place. Cannot be customized.
+              Shows all listings from your visible binders. Binders hidden with the eye icon won't appear here.
             </div>
           )}
         </div>

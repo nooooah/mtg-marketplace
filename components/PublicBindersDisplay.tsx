@@ -26,7 +26,11 @@ export default function PublicBindersDisplay({
 
   const isMasterSelected = selectedId === MASTER_ID
   const activeGroup = isMasterSelected ? null : (binderGroups.find(g => g.binder.id === selectedId) ?? binderGroups[0])
-  const activeCards = isMasterSelected ? listings : (activeGroup?.cards ?? [])
+  // Master binder: only listings from visible binders
+  const visibleBinderIds = new Set(binders.filter(b => b.show_on_profile !== false).map(b => b.id))
+  const activeCards = isMasterSelected
+    ? listings.filter(l => l.binder_id && visibleBinderIds.has(l.binder_id))
+    : (activeGroup?.cards ?? [])
 
   if (listings.length === 0) {
     return (
@@ -76,7 +80,7 @@ export default function PublicBindersDisplay({
               color: isMasterSelected ? '#c4b5fd' : '#a78bfa',
               border: `1px solid ${isMasterSelected ? 'rgba(139,92,246,0.35)' : '#6D28D9'}`,
             }}>
-              {listings.length}
+              {listings.filter(l => l.binder_id && visibleBinderIds.has(l.binder_id)).length}
             </span>
             <span
               onMouseEnter={() => setMasterTooltip(true)}
@@ -94,7 +98,7 @@ export default function PublicBindersDisplay({
               padding: '10px 14px', fontSize: '12px', color: '#c4b5fd', lineHeight: 1.5,
               maxWidth: '260px', boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
             }}>
-              Shows all listings from this seller in one place.
+              Shows all listings from this seller's visible binders.
             </div>
           )}
         </div>
