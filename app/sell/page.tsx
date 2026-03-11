@@ -22,6 +22,14 @@ const CONDITION_SHORT: { value: CardCondition; label: string }[] = [
   { value: 'DMG', label: 'DMG' },
 ]
 
+const CONDITION_COLOR = {
+  NM:  'var(--color-nm)',
+  LP:  'var(--color-lp)',
+  MP:  'var(--color-mp)',
+  HP:  'var(--color-hp)',
+  DMG: 'var(--color-dmg)',
+} as const
+
 /* ─── Page ────────────────────────────────────────────────────────────── */
 
 export default function SellPage() {
@@ -122,6 +130,11 @@ function SingleCardForm({ userId }: { userId: string }) {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
 
+  // Market overview — other sellers listing the same card
+  type MarketRow = { id: string; card_set: string; card_set_name: string; is_foil: boolean; condition: string; quantity: number; price: number; profiles: { username: string; display_name: string | null } | null }
+  const [marketListings, setMarketListings] = useState<MarketRow[]>([])
+  const [marketLoading, setMarketLoading] = useState(false)
+
   useEffect(() => {
     supabase.from('binders').select('*').eq('user_id', userId).order('display_order')
       .then(({ data }) => { if (data) setBinders(data as Binder[]) })
@@ -143,6 +156,25 @@ function SingleCardForm({ userId }: { userId: string }) {
     }, 400)
     return () => clearTimeout(searchTimeout.current)
   }, [cardQuery, selectedCard])
+
+  // Fetch market listings whenever the selected card changes
+  useEffect(() => {
+    if (!selectedCard) { setMarketListings([]); return }
+    setMarketLoading(true)
+    supabase
+      .from('listings')
+      .select('id, card_set, card_set_name, is_foil, condition, quantity, price, profiles(username, display_name)')
+      .eq('card_id', selectedCard.id)
+      .eq('status', 'listed')
+      .neq('user_id', userId)
+      .gt('quantity', 0)
+      .order('price', { ascending: true })
+      .limit(20)
+      .then(({ data }) => {
+        setMarketListings((data as MarketRow[]) ?? [])
+        setMarketLoading(false)
+      })
+  }, [selectedCard])
 
   const selectCard = (card: ScryfallCard) => {
     setSelectedCard(card); setCardQuery(card.name); setScryfallResults([]); setPrice('')
@@ -339,6 +371,72 @@ function SingleCardForm({ userId }: { userId: string }) {
             <input type="number" placeholder="1" value={quantity} onChange={e => setQuantity(e.target.value)} min="1" max="99" />
           </FieldLabel>
         </div>
+
+        {/* Market overview */}
+        {selectedCard && (
+          <div style={{ marginTop: '4px', marginBottom: '4px' }}>
+            <p style={{ fontSize: '11px', fontWeight: 700, color: 'var(--color-subtle)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>
+              Other sellers — {selectedCard.name}
+            </p>
+            {marketLoading ? (
+              <p style={{ fontSize: '12px', color: 'var(--color-subtle)', fontStyle: 'italic' }}>Loading…</p>
+            ) : marketListings.length === 0 ? (
+              <p style={{ fontSize: '12px', color: 'var(--color-subtle)', fontStyle: 'italic' }}>No other listings yet — be the first!</p>
+            ) : (
+              <div style={{ border: '1px solid var(--color-border)', borderRadius: '10px', overflow: 'hidden' }}>
+                {/* Header row */}
+                <div style={{
+                  display: 'grid', gridTemplateColumns: '1fr 60px 48px 36px 70px',
+                  padding: '7px 14px', background: 'var(--color-surface-2)',
+                  borderBottom: '1px solid var(--color-border)',
+                  fontSize: '10px', fontWeight: 700, color: 'var(--color-subtle)',
+                  textTransform: 'uppercase', letterSpacing: '0.05em', gap: '8px',
+                }}>
+                  <span>Printing</span>
+                  <span>Cond.</span>
+                  <span>Foil</span>
+                  <span style={{ textAlign: 'right' }}>Qty</span>
+                  <span style={{ textAlign: 'right' }}>Price</span>
+                </div>
+                {/* Data rows */}
+                {marketListings.map((row, i) => (
+                  <div
+                    key={row.id}
+                    style={{
+                      display: 'grid', gridTemplateColumns: '1fr 60px 48px 36px 70px',
+                      padding: '8px 14px', gap: '8px', alignItems: 'center',
+                      borderBottom: i < marketListings.length - 1 ? '1px solid var(--color-border)' : 'none',
+                      background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.015)',
+                      fontSize: '12px',
+                    }}
+                  >
+                    {/* Printing */}
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '5px', overflow: 'hidden' }}>
+                      <i className={`ss ss-${row.card_set.toLowerCase()} ss-grad`} style={{ fontSize: '13px', flexShrink: 0 }} />
+                      <span style={{ color: 'var(--color-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={row.card_set_name}>
+                        {row.card_set_name}
+                      </span>
+                    </span>
+                    {/* Condition */}
+                    <span style={{ fontWeight: 600, fontSize: '11px', color: CONDITION_COLOR[row.condition as keyof typeof CONDITION_COLOR] ?? 'var(--color-muted)' }}>
+                      {row.condition}
+                    </span>
+                    {/* Foil */}
+                    <span style={{ fontSize: '11px', color: row.is_foil ? '#fbbf24' : 'var(--color-subtle)' }}>
+                      {row.is_foil ? '✦ Foil' : '—'}
+                    </span>
+                    {/* Qty */}
+                    <span style={{ textAlign: 'right', color: 'var(--color-muted)' }}>{row.quantity}</span>
+                    {/* Price */}
+                    <span style={{ textAlign: 'right', fontWeight: 700, color: 'var(--color-text)' }}>
+                      ₱{row.price.toLocaleString('en-PH')}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         <FieldLabel label="Notes (optional)">
           <textarea placeholder="Any extra details — foil, signed, language, etc." value={notes} onChange={e => setNotes(e.target.value)} rows={3} style={{ resize: 'vertical' }} />
