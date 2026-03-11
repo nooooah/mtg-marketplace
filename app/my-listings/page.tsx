@@ -66,6 +66,8 @@ function MyListingsContent() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [bulkLoading, setBulkLoading] = useState(false)
   const [confirmBulkDelete, setConfirmBulkDelete] = useState(false)
+  const [bulkPriceMode, setBulkPriceMode] = useState(false)
+  const [bulkPriceValue, setBulkPriceValue] = useState('')
 
   // Dashboard period
   type DashPeriod = 'today' | 'week' | 'month' | 'lifetime'
@@ -245,6 +247,8 @@ function MyListingsContent() {
     setEditingId(null)
     setConfirmDeleteId(null)
     setConfirmBulkDelete(false)
+    setBulkPriceMode(false)
+    setBulkPriceValue('')
   }
 
   const switchBinder = (id: string | 'unsorted') => {
@@ -253,6 +257,8 @@ function MyListingsContent() {
     setEditingId(null)
     setConfirmDeleteId(null)
     setConfirmBulkDelete(false)
+    setBulkPriceMode(false)
+    setBulkPriceValue('')
     setActiveTab(id === 'unsorted' ? 'unlisted' : 'listed')
   }
 
@@ -302,6 +308,20 @@ function MyListingsContent() {
     setAllListings(prev => prev.filter(l => !ids.includes(l.id)))
     setSelectedIds(new Set())
     setConfirmBulkDelete(false)
+    setBulkLoading(false)
+  }
+
+  const handleBulkPriceChange = async () => {
+    const price = parseFloat(bulkPriceValue)
+    if (isNaN(price) || price < 0) return
+    const ids = Array.from(selectedIds)
+    setBulkLoading(true)
+    await supabase.from('listings').update({ price }).in('id', ids)
+    setListings(prev => prev.map(l => ids.includes(l.id) ? { ...l, price } : l))
+    setAllListings(prev => prev.map(l => ids.includes(l.id) ? { ...l, price } : l))
+    setSelectedIds(new Set())
+    setBulkPriceMode(false)
+    setBulkPriceValue('')
     setBulkLoading(false)
   }
 
@@ -904,6 +924,62 @@ function MyListingsContent() {
               <option key={b.id} value={b.id}>{b.name}</option>
             ))}
           </select>
+          <div style={{ width: '1px', height: '18px', background: 'var(--color-border)', margin: '0 4px' }} />
+          {/* Set Price */}
+          {bulkPriceMode ? (
+            <>
+              <span style={{ fontSize: '12px', color: 'var(--color-muted)', fontWeight: 600 }}>₱</span>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="0.00"
+                value={bulkPriceValue}
+                onChange={e => setBulkPriceValue(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') handleBulkPriceChange(); if (e.key === 'Escape') { setBulkPriceMode(false); setBulkPriceValue('') } }}
+                autoFocus
+                style={{
+                  width: '80px', padding: '6px 8px', borderRadius: '8px', fontSize: '12px',
+                  border: '1px solid var(--color-blue)', background: 'var(--color-surface)',
+                  color: 'var(--color-text)', outline: 'none',
+                }}
+              />
+              <button
+                onClick={handleBulkPriceChange}
+                disabled={bulkLoading || !bulkPriceValue}
+                style={{
+                  padding: '7px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: 600,
+                  background: 'var(--color-blue-glow)', border: '1px solid var(--color-blue)',
+                  color: 'var(--color-blue)', cursor: bulkLoading || !bulkPriceValue ? 'not-allowed' : 'pointer',
+                  opacity: bulkLoading || !bulkPriceValue ? 0.5 : 1,
+                }}
+              >
+                {bulkLoading ? 'Saving…' : 'Apply'}
+              </button>
+              <button
+                onClick={() => { setBulkPriceMode(false); setBulkPriceValue('') }}
+                style={{
+                  padding: '7px 12px', borderRadius: '8px', fontSize: '12px',
+                  background: 'transparent', border: '1px solid var(--color-border)',
+                  color: 'var(--color-subtle)', cursor: 'pointer',
+                }}
+              >
+                Cancel
+              </button>
+            </>
+          ) : (
+            <button
+              onClick={() => { setBulkPriceMode(true); setConfirmBulkDelete(false) }}
+              disabled={bulkLoading}
+              style={{
+                padding: '7px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: 600,
+                background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.3)',
+                color: '#fbbf24', cursor: 'pointer',
+              }}
+            >
+              Set Price
+            </button>
+          )}
           <div style={{ width: '1px', height: '18px', background: 'var(--color-border)', margin: '0 4px' }} />
           {confirmBulkDelete ? (
             <>
