@@ -171,7 +171,7 @@ function SingleCardForm({ userId }: { userId: string }) {
       .order('price', { ascending: true })
       .limit(20)
       .then(({ data }) => {
-        setMarketListings((data as MarketRow[]) ?? [])
+        setMarketListings((data as unknown as MarketRow[]) ?? [])
         setMarketLoading(false)
       })
   }, [selectedCard])
