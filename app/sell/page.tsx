@@ -125,6 +125,9 @@ function SingleCardForm({ userId }: { userId: string }) {
 
   const [binders, setBinders] = useState<Binder[]>([])
   const [selectedBinderId, setSelectedBinderId] = useState<string | null>(null)
+  const [creatingBinder, setCreatingBinder] = useState(false)
+  const [newBinderName, setNewBinderName] = useState('')
+  const [createBinderLoading, setCreateBinderLoading] = useState(false)
 
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -227,6 +230,22 @@ function SingleCardForm({ userId }: { userId: string }) {
   const clearCard = () => { setSelectedCard(null); setCardQuery(''); setPrice(''); setIsFoil(false) }
   const getCardImage = (card: ScryfallCard) =>
     card.image_uris?.normal ?? card.card_faces?.[0]?.image_uris?.normal ?? null
+
+  const handleCreateBinder = async () => {
+    const name = newBinderName.trim()
+    if (!name) return
+    setCreateBinderLoading(true)
+    const { data } = await supabase.from('binders')
+      .insert({ user_id: userId, name, display_order: binders.length })
+      .select().single()
+    if (data) {
+      setBinders(prev => [...prev, data as Binder])
+      setSelectedBinderId((data as Binder).id)
+    }
+    setCreatingBinder(false)
+    setNewBinderName('')
+    setCreateBinderLoading(false)
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -563,15 +582,34 @@ function SingleCardForm({ userId }: { userId: string }) {
           ⚠ Cards must be assigned to a binder to appear in search results.
         </div>
         <FieldLabel label="Binder">
-          <select value={selectedBinderId ?? ''} onChange={e => setSelectedBinderId(e.target.value || null)}>
+          <select value={selectedBinderId ?? ''} onChange={e => {
+            if (e.target.value === '__create__') { setCreatingBinder(true); setNewBinderName('') }
+            else { setSelectedBinderId(e.target.value || null); setCreatingBinder(false) }
+          }}>
             <option value="">No binder (hidden from search)</option>
             {binders.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+            <option value="__create__">+ Create new binder…</option>
           </select>
         </FieldLabel>
-        {binders.length === 0 && (
-          <p style={{ fontSize: '12px', color: 'var(--color-muted)', margin: 0 }}>
-            You have no binders yet. <a href="/my-listings" style={{ color: 'var(--color-blue)', textDecoration: 'none' }}>Create one in My Listings →</a>
-          </p>
+        {creatingBinder && (
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <input
+              autoFocus
+              placeholder="New binder name"
+              value={newBinderName}
+              onChange={e => setNewBinderName(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleCreateBinder() } if (e.key === 'Escape') setCreatingBinder(false) }}
+              style={{ flex: 1, fontSize: '13px' }}
+            />
+            <button type="button" onClick={handleCreateBinder} disabled={createBinderLoading || !newBinderName.trim()}
+              style={{ padding: '6px 14px', borderRadius: '7px', background: 'var(--color-blue)', border: 'none', color: '#fff', fontSize: '13px', fontWeight: 600, cursor: 'pointer', opacity: (!newBinderName.trim() || createBinderLoading) ? 0.5 : 1 }}>
+              {createBinderLoading ? 'Creating…' : 'Create'}
+            </button>
+            <button type="button" onClick={() => setCreatingBinder(false)}
+              style={{ padding: '6px 10px', borderRadius: '7px', border: '1px solid var(--color-border)', background: 'transparent', color: 'var(--color-muted)', fontSize: '13px', cursor: 'pointer' }}>
+              Cancel
+            </button>
+          </div>
         )}
       </FormSection>
 
@@ -646,6 +684,9 @@ function BulkImportForm({ userId }: { userId: string }) {
 
   const [binders, setBinders] = useState<Binder[]>([])
   const [selectedBinderId, setSelectedBinderId] = useState<string | null>(null)
+  const [creatingBinder, setCreatingBinder] = useState(false)
+  const [newBinderName, setNewBinderName] = useState('')
+  const [createBinderLoading, setCreateBinderLoading] = useState(false)
 
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState('')
@@ -655,6 +696,22 @@ function BulkImportForm({ userId }: { userId: string }) {
     supabase.from('binders').select('*').eq('user_id', userId).order('display_order')
       .then(({ data }) => { if (data) setBinders(data as Binder[]) })
   }, [userId])
+
+  const handleCreateBinder = async () => {
+    const name = newBinderName.trim()
+    if (!name) return
+    setCreateBinderLoading(true)
+    const { data } = await supabase.from('binders')
+      .insert({ user_id: userId, name, display_order: binders.length })
+      .select().single()
+    if (data) {
+      setBinders(prev => [...prev, data as Binder])
+      setSelectedBinderId((data as Binder).id)
+    }
+    setCreatingBinder(false)
+    setNewBinderName('')
+    setCreateBinderLoading(false)
+  }
 
   const handleParse = async () => {
     setParseError('')
@@ -993,15 +1050,34 @@ function BulkImportForm({ userId }: { userId: string }) {
               ⚠ Cards must be assigned to a binder to appear in search results.
             </div>
             <FieldLabel label="Assign all to binder">
-              <select value={selectedBinderId ?? ''} onChange={e => setSelectedBinderId(e.target.value || null)} style={{ maxWidth: '320px' }}>
+              <select value={selectedBinderId ?? ''} onChange={e => {
+                if (e.target.value === '__create__') { setCreatingBinder(true); setNewBinderName('') }
+                else { setSelectedBinderId(e.target.value || null); setCreatingBinder(false) }
+              }} style={{ maxWidth: '320px' }}>
                 <option value="">No binder (hidden from search)</option>
                 {binders.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                <option value="__create__">+ Create new binder…</option>
               </select>
             </FieldLabel>
-            {binders.length === 0 && (
-              <p style={{ fontSize: '12px', color: 'var(--color-muted)', margin: 0 }}>
-                You have no binders yet. <a href="/my-listings" style={{ color: 'var(--color-blue)', textDecoration: 'none' }}>Create one in My Listings →</a>
-              </p>
+            {creatingBinder && (
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <input
+                  autoFocus
+                  placeholder="New binder name"
+                  value={newBinderName}
+                  onChange={e => setNewBinderName(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleCreateBinder() } if (e.key === 'Escape') setCreatingBinder(false) }}
+                  style={{ flex: 1, fontSize: '13px', maxWidth: '320px' }}
+                />
+                <button type="button" onClick={handleCreateBinder} disabled={createBinderLoading || !newBinderName.trim()}
+                  style={{ padding: '6px 14px', borderRadius: '7px', background: 'var(--color-blue)', border: 'none', color: '#fff', fontSize: '13px', fontWeight: 600, cursor: 'pointer', opacity: (!newBinderName.trim() || createBinderLoading) ? 0.5 : 1 }}>
+                  {createBinderLoading ? 'Creating…' : 'Create'}
+                </button>
+                <button type="button" onClick={() => setCreatingBinder(false)}
+                  style={{ padding: '6px 10px', borderRadius: '7px', border: '1px solid var(--color-border)', background: 'transparent', color: 'var(--color-muted)', fontSize: '13px', cursor: 'pointer' }}>
+                  Cancel
+                </button>
+              </div>
             )}
           </div>
 
