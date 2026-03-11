@@ -58,12 +58,12 @@ export default async function HomePage() {
       {/* Search bar */}
       <section style={{ paddingTop: '48px', marginBottom: '28px' }}>
         <h1 style={{
-          textAlign: 'center', fontSize: '36px', fontWeight: 'bold',
+          textAlign: 'center', fontSize: '26px', fontWeight: 'bold',
           fontFamily: "'Beleren2016', serif",
           color: 'var(--color-text)', letterSpacing: '-0.01em',
-          marginBottom: '24px', lineHeight: 1.2,
+          marginBottom: '24px', lineHeight: 1.3,
         }}>
-          Find your card in the community binder database and meetup locally.
+          Find your card in the community binder.
         </h1>
         <HomeSearchBar />
       </section>
@@ -77,17 +77,21 @@ export default async function HomePage() {
           background: 'linear-gradient(135deg, rgba(139,92,246,0.12), rgba(59,130,246,0.10))',
           border: '1px solid rgba(139,92,246,0.25)',
         }}>
-          <p style={{ fontSize: '16px', fontWeight: 600, color: 'var(--color-text)', margin: 0, lineHeight: 1.4 }}>
-            Add your binder to the database.{' '}
-            <span style={{ color: 'var(--color-muted)', fontWeight: 400 }}>Create your own storefront.</span>
-          </p>
+          <div>
+            <p style={{ fontSize: '16px', fontWeight: 700, color: 'var(--color-text)', margin: '0 0 2px', lineHeight: 1.4 }}>
+              Find what you need. List what you don&apos;t.
+            </p>
+            <p style={{ fontSize: '13px', color: 'var(--color-muted)', margin: 0 }}>
+              Add your binder to the database and get discovered by local buyers.
+            </p>
+          </div>
           <Link href="/sell" style={{
             display: 'inline-block', padding: '10px 22px', borderRadius: '8px',
             background: 'var(--color-blue)', color: '#fff',
             fontSize: '14px', fontWeight: 700, textDecoration: 'none',
             whiteSpace: 'nowrap', flexShrink: 0,
           }}>
-            Join now
+            Join for free →
           </Link>
         </div>
       </section>
