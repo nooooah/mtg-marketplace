@@ -134,7 +134,25 @@ function SingleCardForm({ userId }: { userId: string }) {
   type MarketRow = { id: string; card_set: string; card_set_name: string; card_rarity: string | null; is_foil: boolean; condition: string; quantity: number; price: number; created_at: string; profiles: { username: string; display_name: string | null } | null }
   const [marketListings, setMarketListings] = useState<MarketRow[]>([])
   const [marketLoading, setMarketLoading] = useState(false)
-  const [marketSort, setMarketSort] = useState<'price_asc' | 'price_desc' | 'date_desc'>('price_asc')
+  const [marketSort, setMarketSort] = useState<'price_asc' | 'price_desc' | 'date_desc' | 'date_asc'>('price_asc')
+
+  // Change printing
+  const [printingResults, setPrintingResults] = useState<ScryfallCard[]>([])
+  const [printingsLoading, setPrintingsLoading] = useState(false)
+  const [showPrintings, setShowPrintings] = useState(false)
+
+  const fetchPrintings = async (cardName: string) => {
+    setPrintingsLoading(true)
+    setShowPrintings(true)
+    try {
+      const res = await fetch(`https://api.scryfall.com/cards/search?q=!"${encodeURIComponent(cardName)}"&unique=prints&order=released`)
+      if (res.ok) {
+        const data = await res.json()
+        setPrintingResults(data.data ?? [])
+      } else { setPrintingResults([]) }
+    } catch { setPrintingResults([]) }
+    finally { setPrintingsLoading(false) }
+  }
 
   useEffect(() => {
     supabase.from('binders').select('*').eq('user_id', userId).order('display_order')
@@ -196,6 +214,7 @@ function SingleCardForm({ userId }: { userId: string }) {
 
   const selectCard = (card: ScryfallCard) => {
     setSelectedCard(card); setCardQuery(card.name); setScryfallResults([]); setPrice('')
+    setShowPrintings(false); setPrintingResults([])
   }
   const applyMultiplier = (rate: number) => {
     // Use Manabox (TCGPlayer USD) price
@@ -295,24 +314,53 @@ function SingleCardForm({ userId }: { userId: string }) {
       <FormSection title="1. Find your card">
         <div style={{ position: 'relative' }}>
           {selectedCard ? (
-            <div style={{ display: 'flex', gap: '16px', padding: '14px', background: 'var(--color-surface-2)', border: '1px solid var(--color-border)', borderRadius: '10px', alignItems: 'flex-start' }}>
-              {getCardImage(selectedCard) && (
-                <HoverCardImage src={getCardImage(selectedCard)!} alt={selectedCard.name} style={{ width: '64px', borderRadius: '6px', flexShrink: 0 }} />
-              )}
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ fontWeight: 700, color: 'var(--color-text)', fontSize: '15px', margin: '0 0 3px' }}>{selectedCard.name}</p>
-                <p style={{ fontSize: '12px', color: 'var(--color-muted)', margin: '0 0 4px' }}>{selectedCard.set_name} · {selectedCard.set.toUpperCase()} #{selectedCard.collector_number}</p>
-                <p style={{ fontSize: '12px', color: 'var(--color-subtle)', margin: 0, textTransform: 'capitalize' }}>{selectedCard.rarity} · {selectedCard.type_line}</p>
-                {selectedCard.prices?.usd && (
-                  <p style={{ fontSize: '11px', color: 'var(--color-muted)', margin: '4px 0 0' }}>
-                    TCGPlayer: <strong style={{ color: 'var(--color-text)' }}>${selectedCard.prices.usd} USD</strong>
-                  </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
+              <div style={{ display: 'flex', gap: '16px', padding: '14px', background: 'var(--color-surface-2)', border: '1px solid var(--color-border)', borderRadius: showPrintings ? '10px 10px 0 0' : '10px', alignItems: 'flex-start' }}>
+                {getCardImage(selectedCard) && (
+                  <HoverCardImage src={getCardImage(selectedCard)!} alt={selectedCard.name} style={{ width: '64px', borderRadius: '6px', flexShrink: 0 }} />
                 )}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ fontWeight: 700, color: 'var(--color-text)', fontSize: '15px', margin: '0 0 3px' }}>{selectedCard.name}</p>
+                  <p style={{ fontSize: '12px', color: 'var(--color-muted)', margin: '0 0 4px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    <i className={`ss ss-${selectedCard.set.toLowerCase()} ss-${selectedCard.rarity.toLowerCase()} ss-grad`} style={{ fontSize: '14px' }} />
+                    {selectedCard.set_name} · {selectedCard.set.toUpperCase()} #{selectedCard.collector_number}
+                  </p>
+                  <p style={{ fontSize: '12px', color: 'var(--color-subtle)', margin: 0, textTransform: 'capitalize' }}>{selectedCard.rarity} · {selectedCard.type_line}</p>
+                  {selectedCard.prices?.usd && (
+                    <p style={{ fontSize: '11px', color: 'var(--color-muted)', margin: '4px 0 0' }}>
+                      TCGPlayer: <strong style={{ color: 'var(--color-text)' }}>${selectedCard.prices.usd} USD</strong>
+                    </p>
+                  )}
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', flexShrink: 0 }}>
+                  <button type="button" onClick={clearCard}
+                    style={{ background: 'transparent', color: 'var(--color-muted)', border: '1px solid var(--color-border)', borderRadius: '7px', padding: '5px 10px', fontSize: '12px', cursor: 'pointer' }}>
+                    Change card
+                  </button>
+                  <button type="button"
+                    onClick={() => showPrintings ? setShowPrintings(false) : fetchPrintings(selectedCard.name)}
+                    style={{
+                      background: showPrintings ? 'rgba(59,130,246,0.1)' : 'transparent',
+                      color: showPrintings ? 'var(--color-blue)' : 'var(--color-muted)',
+                      border: `1px solid ${showPrintings ? 'var(--color-blue)' : 'var(--color-border)'}`,
+                      borderRadius: '7px', padding: '5px 10px', fontSize: '12px', cursor: 'pointer',
+                    }}>
+                    {printingsLoading ? 'Loading…' : 'Change printing'}
+                  </button>
+                </div>
               </div>
-              <button type="button" onClick={clearCard}
-                style={{ background: 'transparent', color: 'var(--color-muted)', border: '1px solid var(--color-border)', borderRadius: '7px', padding: '5px 10px', fontSize: '12px', flexShrink: 0 }}>
-                Change
-              </button>
+              {/* Printings panel */}
+              {showPrintings && (
+                <div style={{ border: '1px solid var(--color-border)', borderTop: 'none', borderRadius: '0 0 10px 10px', background: 'var(--color-surface)', maxHeight: '260px', overflowY: 'auto' }}>
+                  {printingsLoading ? (
+                    <p style={{ fontSize: '13px', color: 'var(--color-subtle)', padding: '14px', margin: 0, fontStyle: 'italic' }}>Loading printings…</p>
+                  ) : printingResults.length === 0 ? (
+                    <p style={{ fontSize: '13px', color: 'var(--color-subtle)', padding: '14px', margin: 0 }}>No other printings found.</p>
+                  ) : (
+                    printingResults.map(card => <ScryfallResultRow key={card.id} card={card} onSelect={selectCard} />)
+                  )}
+                </div>
+              )}
             </div>
           ) : (
             <>
@@ -395,6 +443,7 @@ function SingleCardForm({ userId }: { userId: string }) {
           const sortedMarket = [...marketListings].sort((a, b) => {
             if (marketSort === 'price_asc') return a.price - b.price
             if (marketSort === 'price_desc') return b.price - a.price
+            if (marketSort === 'date_asc') return new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
             return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
           }).slice(0, 5)
           const daysAgo = (d: string) => {
@@ -411,7 +460,7 @@ function SingleCardForm({ userId }: { userId: string }) {
                 </p>
                 {!marketLoading && marketListings.length > 0 && (
                   <div style={{ display: 'flex', gap: '4px' }}>
-                    {([['price_asc', '₱ Low→High'], ['price_desc', '₱ High→Low'], ['date_desc', 'Newest']] as const).map(([val, label]) => (
+                    {([['price_asc', '₱ Low→High'], ['price_desc', '₱ High→Low'], ['date_desc', 'Newest'], ['date_asc', 'Oldest']] as const).map(([val, label]) => (
                       <button key={val} type="button" onClick={() => setMarketSort(val)} style={{
                         padding: '3px 8px', borderRadius: '6px', fontSize: '10px', fontWeight: 600, cursor: 'pointer', transition: 'all 0.12s',
                         border: `1px solid ${marketSort === val ? 'var(--color-blue)' : 'var(--color-border)'}`,
