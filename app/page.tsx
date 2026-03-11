@@ -56,43 +56,45 @@ export default async function HomePage() {
     <div className="page-wrap" style={{ maxWidth: '1280px', margin: '0 auto', padding: '0 1.5rem' }}>
 
       {/* Search bar */}
-      <section style={{ paddingTop: '48px', marginBottom: '28px' }}>
-        <h1 style={{
-          textAlign: 'center', fontSize: '26px', fontWeight: 'bold',
-          fontFamily: "'Beleren2016', serif",
-          color: 'var(--color-text)', letterSpacing: '-0.01em',
-          marginBottom: '24px', lineHeight: 1.3,
-        }}>
-          Find your card in the community binder.
-        </h1>
+      <section style={{ paddingTop: '48px', marginBottom: '40px' }}>
         <HomeSearchBar />
       </section>
 
-      {/* CTA Banner */}
-      <section style={{ marginBottom: '56px' }}>
+      {/* Hero CTA */}
+      <section style={{ marginBottom: '56px', position: 'relative', overflow: 'hidden' }}>
         <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          gap: '20px', flexWrap: 'wrap',
-          padding: '20px 28px', borderRadius: '14px',
-          background: 'linear-gradient(135deg, rgba(139,92,246,0.12), rgba(59,130,246,0.10))',
-          border: '1px solid rgba(139,92,246,0.25)',
+          position: 'relative', textAlign: 'center',
+          padding: '64px 32px',
+          borderRadius: '18px',
+          background: 'linear-gradient(135deg, rgba(139,92,246,0.13) 0%, rgba(59,130,246,0.10) 100%)',
+          border: '1px solid rgba(139,92,246,0.22)',
+          overflow: 'hidden',
         }}>
-          <div>
-            <p style={{ fontSize: '16px', fontWeight: 700, color: 'var(--color-text)', margin: '0 0 2px', lineHeight: 1.4 }}>
-              Find what you need. List what you don&apos;t.
-            </p>
-            <p style={{ fontSize: '13px', color: 'var(--color-muted)', margin: 0 }}>
+          {/* Radial glow */}
+          <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 70% 80% at 50% 50%, rgba(139,92,246,0.10) 0%, transparent 70%)', pointerEvents: 'none' }} />
+
+          <div style={{ position: 'relative' }}>
+            <h2 style={{
+              fontSize: 'clamp(24px, 3.5vw, 36px)', fontWeight: 900, lineHeight: 1.15,
+              fontFamily: "'Beleren2016', serif", letterSpacing: '-0.02em',
+              marginBottom: '10px',
+              background: 'linear-gradient(135deg, #f8fafc 40%, #c4b5fd 100%)',
+              WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+            }}>
+              Find what you need.<br />List what you don&apos;t.
+            </h2>
+            <p style={{ fontSize: '15px', color: 'var(--color-muted)', marginBottom: '28px', lineHeight: 1.6 }}>
               Add your binder to the database and get discovered by local buyers.
             </p>
+            <Link href="/sell" style={{
+              display: 'inline-block', padding: '12px 28px', borderRadius: '9px',
+              background: 'linear-gradient(135deg, #7c3aed, #2563eb)',
+              color: '#fff', fontSize: '15px', fontWeight: 700,
+              textDecoration: 'none', boxShadow: '0 4px 20px rgba(124,58,237,0.30)',
+            }}>
+              Join for free →
+            </Link>
           </div>
-          <Link href="/sell" style={{
-            display: 'inline-block', padding: '10px 22px', borderRadius: '8px',
-            background: 'var(--color-blue)', color: '#fff',
-            fontSize: '14px', fontWeight: 700, textDecoration: 'none',
-            whiteSpace: 'nowrap', flexShrink: 0,
-          }}>
-            Join for free →
-          </Link>
         </div>
       </section>
 
