@@ -124,7 +124,7 @@ function MyListingsContent() {
       .select().single()
     if (data) {
       setBinders(prev => [...prev, data as Binder])
-      setSelectedBinderId((data as Binder).id)
+      setSelectedBinderIds(new Set([(data as Binder).id]))
     }
   }
 
