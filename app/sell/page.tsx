@@ -32,13 +32,51 @@ const CONDITION_COLOR = {
 
 /* ─── Page ────────────────────────────────────────────────────────────── */
 
-const VALUE_PROPS = [
-  { icon: '📖', text: 'Create a digital copy of your binder.' },
-  { icon: '🌐', text: 'Share your public profile and binders or create your online storefront.' },
-  { icon: '🔍', text: 'Utilize search and sort functions.' },
-  { icon: '📊', text: 'Track your sales and data.' },
-  { icon: '🤝', text: 'Make a deal in Messenger and meetup in your local LGS like we always do.' },
+const FEATURES: { headline: string; body: string; image: string | null; mana: string; accent: string }[] = [
+  {
+    headline: 'Create a digital copy of your binder.',
+    body: 'List every card you own in minutes. Search the Scryfall database, set your price, and go live instantly. Your binder, always up to date.',
+    image: null,
+    mana: '/mana/plains.svg',
+    accent: 'rgba(248,246,216,0.07)',
+  },
+  {
+    headline: 'Share your public profile and binders — your online storefront.',
+    body: 'Every seller gets a public profile page. Share your link, let buyers browse your full collection, and build your reputation in the community.',
+    image: null,
+    mana: '/mana/island.svg',
+    accent: 'rgba(193,215,233,0.07)',
+  },
+  {
+    headline: 'Utilize search and sort functions.',
+    body: 'Buyers can search across every binder on the platform — by card name, set, condition, price, and more. Getting discovered has never been easier.',
+    image: null,
+    mana: '/mana/forest.svg',
+    accent: 'rgba(163,192,149,0.07)',
+  },
+  {
+    headline: 'Track your sales and data.',
+    body: 'Know what\'s selling, at what price, and when. Keep tabs on your listed, unlisted, and sold inventory all from one dashboard.',
+    image: null,
+    mana: '/mana/swamp.svg',
+    accent: 'rgba(186,177,171,0.07)',
+  },
+  {
+    headline: 'Make a deal in Messenger and meetup at your local LGS — like we always do.',
+    body: 'No shipping, no escrow, no nonsense. Find the card, message the seller, and meetup at your local game store. The way Filipino MTG has always worked.',
+    image: null,
+    mana: '/mana/mountain.svg',
+    accent: 'rgba(228,153,119,0.07)',
+  },
 ]
+
+/* Floating mana decoration element */
+function ManaBg({ src, style }: { src: string; style: React.CSSProperties }) {
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src={src} alt="" aria-hidden="true" style={{ position: 'absolute', pointerEvents: 'none', userSelect: 'none', opacity: 0.06, ...style }} />
+  )
+}
 
 export default function SellPage() {
   const supabase = createClient()
@@ -57,65 +95,185 @@ export default function SellPage() {
 
   if (!userId) {
     return (
-      <PageShell>
-        <div style={{ maxWidth: '520px', margin: '0 auto', paddingTop: '48px', paddingBottom: '64px' }}>
-          {/* Heading */}
-          <h1 style={{
-            fontSize: '30px', fontWeight: 800, color: 'var(--color-text)',
-            fontFamily: "'Beleren2016', serif", letterSpacing: '-0.02em',
-            marginBottom: '10px', lineHeight: 1.2,
-          }}>
-            Your binder, online.
-          </h1>
-          <p style={{ fontSize: '15px', color: 'var(--color-muted)', marginBottom: '36px', lineHeight: 1.6 }}>
-            Join the community marketplace built for Filipino MTG players.
-          </p>
+      <div style={{ overflowX: 'hidden' }}>
 
-          {/* Value props */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: '40px' }}>
-            {VALUE_PROPS.map((vp, i) => (
-              <div key={i} style={{
-                display: 'flex', alignItems: 'flex-start', gap: '14px',
-                padding: '14px 18px', borderRadius: '12px',
-                background: 'var(--color-surface)', border: '1px solid var(--color-border)',
+        {/* ── Hero ─────────────────────────────────────────────────────── */}
+        <div style={{ position: 'relative', textAlign: 'center', padding: '96px 24px 80px', overflow: 'hidden' }}>
+          {/* Background mana decorations */}
+          <ManaBg src="/mana/plains.svg"   style={{ width: 340, top: -60,  left: -80 }} />
+          <ManaBg src="/mana/island.svg"   style={{ width: 280, top: 20,   right: -60 }} />
+          <ManaBg src="/mana/forest.svg"   style={{ width: 200, bottom: -40, left: '20%' }} />
+          <ManaBg src="/mana/mountain.svg" style={{ width: 220, bottom: -20, right: '15%' }} />
+          <ManaBg src="/mana/swamp.svg"    style={{ width: 180, top: 40,    left: '45%' }} />
+
+          {/* Gradient glow blob */}
+          <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 70% 50% at 50% 40%, rgba(139,92,246,0.12) 0%, transparent 70%)', pointerEvents: 'none' }} />
+
+          <div style={{ position: 'relative', maxWidth: '700px', margin: '0 auto' }}>
+            {/* Eyebrow */}
+            <div style={{
+              display: 'inline-flex', alignItems: 'center', gap: '8px',
+              padding: '5px 14px', borderRadius: '999px', marginBottom: '24px',
+              background: 'rgba(139,92,246,0.12)', border: '1px solid rgba(139,92,246,0.3)',
+              fontSize: '12px', fontWeight: 700, color: '#c4b5fd', letterSpacing: '0.06em', textTransform: 'uppercase',
+            }}>
+              <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#a78bfa', display: 'inline-block' }} />
+              Filipino MTG Community Marketplace
+            </div>
+
+            <h1 style={{
+              fontSize: 'clamp(32px, 5vw, 56px)', fontWeight: 900, lineHeight: 1.1,
+              fontFamily: "'Beleren2016', serif", letterSpacing: '-0.02em',
+              marginBottom: '20px',
+              background: 'linear-gradient(135deg, #f8fafc 30%, #c4b5fd 100%)',
+              WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+            }}>
+              Your binder,<br />online.
+            </h1>
+
+            <p style={{ fontSize: '18px', color: 'var(--color-muted)', marginBottom: '40px', lineHeight: 1.7, maxWidth: '480px', margin: '0 auto 40px' }}>
+              Add your binder to the community database. Create your own storefront. Make deals locally.
+            </p>
+
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
+              <a href="/auth/signup" style={{
+                padding: '14px 32px', borderRadius: '10px',
+                background: 'linear-gradient(135deg, #7c3aed, #2563eb)',
+                color: '#fff', fontSize: '15px', fontWeight: 700,
+                textDecoration: 'none', boxShadow: '0 4px 24px rgba(124,58,237,0.35)',
+                transition: 'opacity 0.15s',
               }}>
-                <span style={{ fontSize: '20px', flexShrink: 0, lineHeight: 1.2 }}>{vp.icon}</span>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <span style={{
+                Create free account
+              </a>
+              <a href="/auth/login?redirect=/sell" style={{
+                padding: '14px 28px', borderRadius: '10px',
+                border: '1px solid var(--color-border)', background: 'var(--color-surface)',
+                color: 'var(--color-muted)', fontSize: '15px', fontWeight: 500,
+                textDecoration: 'none',
+              }}>
+                Log in
+              </a>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Divider ──────────────────────────────────────────────────── */}
+        <div style={{ height: '1px', background: 'linear-gradient(90deg, transparent, var(--color-border), transparent)', margin: '0 48px' }} />
+
+        {/* ── Feature rows ─────────────────────────────────────────────── */}
+        <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '0 24px' }}>
+          {FEATURES.map((feat, i) => {
+            const isEven = i % 2 === 0
+            return (
+              <div key={i} style={{
+                display: 'grid', gridTemplateColumns: '1fr 1fr',
+                gap: '64px', alignItems: 'center',
+                padding: '80px 0',
+                borderBottom: i < FEATURES.length - 1 ? '1px solid var(--color-border)' : 'none',
+              }}
+              className="feature-row"
+              >
+                {/* Text side */}
+                <div style={{ order: isEven ? 0 : 1 }}>
+                  <div style={{
                     display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                    width: '20px', height: '20px', borderRadius: '50%',
-                    background: 'var(--color-blue)', color: '#fff',
-                    fontSize: '11px', fontWeight: 800, flexShrink: 0,
-                  }}>{i + 1}</span>
-                  <p style={{ fontSize: '14px', color: 'var(--color-text)', margin: 0, lineHeight: 1.5 }}>{vp.text}</p>
+                    width: '36px', height: '36px', borderRadius: '10px', marginBottom: '16px',
+                    background: feat.accent, border: '1px solid rgba(255,255,255,0.08)',
+                    fontSize: '16px', fontWeight: 900, color: 'var(--color-muted)',
+                    fontFamily: 'monospace',
+                  }}>
+                    {String(i + 1).padStart(2, '0')}
+                  </div>
+                  <h2 style={{
+                    fontSize: '26px', fontWeight: 800, lineHeight: 1.25,
+                    color: 'var(--color-text)', letterSpacing: '-0.02em',
+                    marginBottom: '14px', fontFamily: "'Beleren2016', serif",
+                  }}>
+                    {feat.headline}
+                  </h2>
+                  <p style={{ fontSize: '15px', color: 'var(--color-muted)', lineHeight: 1.75, margin: 0 }}>
+                    {feat.body}
+                  </p>
+                </div>
+
+                {/* Image side */}
+                <div style={{ order: isEven ? 1 : 0, position: 'relative' }}>
+                  <div style={{
+                    position: 'relative', borderRadius: '16px', overflow: 'hidden',
+                    background: 'var(--color-surface)',
+                    border: '1px solid var(--color-border)',
+                    aspectRatio: '16/10',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    boxShadow: '0 8px 40px rgba(0,0,0,0.3)',
+                  }}>
+                    {/* Mana watermark */}
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={feat.mana} alt="" aria-hidden="true" style={{ position: 'absolute', width: '55%', opacity: 0.04, pointerEvents: 'none' }} />
+                    {feat.image ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={feat.image} alt={feat.headline} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    ) : (
+                      <div style={{ textAlign: 'center', padding: '32px' }}>
+                        <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-subtle)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+                          Image coming soon
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  {/* Glow accent behind card */}
+                  <div style={{
+                    position: 'absolute', inset: '-20px', borderRadius: '24px',
+                    background: `radial-gradient(ellipse at center, ${feat.accent.replace('0.07', '0.15')} 0%, transparent 70%)`,
+                    zIndex: -1, pointerEvents: 'none',
+                  }} />
                 </div>
               </div>
-            ))}
-          </div>
+            )
+          })}
+        </div>
 
-          {/* CTA buttons */}
-          <div style={{ display: 'flex', gap: '10px' }}>
+        {/* ── Bottom CTA ───────────────────────────────────────────────── */}
+        <div style={{ position: 'relative', textAlign: 'center', padding: '96px 24px', overflow: 'hidden' }}>
+          <ManaBg src="/mana/swamp.svg"    style={{ width: 300, top: -40,  left: -60 }} />
+          <ManaBg src="/mana/mountain.svg" style={{ width: 280, bottom: -40, right: -40 }} />
+          <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse 60% 60% at 50% 50%, rgba(59,130,246,0.08) 0%, transparent 70%)', pointerEvents: 'none' }} />
+
+          <div style={{ position: 'relative', maxWidth: '540px', margin: '0 auto' }}>
+            <h2 style={{
+              fontSize: 'clamp(26px, 4vw, 40px)', fontWeight: 900, lineHeight: 1.15,
+              fontFamily: "'Beleren2016', serif", letterSpacing: '-0.02em',
+              color: 'var(--color-text)', marginBottom: '16px',
+            }}>
+              Ready to list your first card?
+            </h2>
+            <p style={{ fontSize: '16px', color: 'var(--color-muted)', marginBottom: '36px', lineHeight: 1.6 }}>
+              Free to join. No listing fees. Just the community buying and selling the way it&apos;s always been done.
+            </p>
             <a href="/auth/signup" style={{
-              flex: 1, display: 'block', textAlign: 'center',
-              padding: '12px 20px', borderRadius: '9px',
-              background: 'var(--color-blue)', color: '#fff',
-              fontSize: '15px', fontWeight: 700, textDecoration: 'none',
+              display: 'inline-block', padding: '15px 40px', borderRadius: '10px',
+              background: 'linear-gradient(135deg, #7c3aed, #2563eb)',
+              color: '#fff', fontSize: '16px', fontWeight: 700,
+              textDecoration: 'none', boxShadow: '0 4px 24px rgba(124,58,237,0.35)',
             }}>
-              Create account
-            </a>
-            <a href="/auth/login?redirect=/sell" style={{
-              padding: '12px 20px', borderRadius: '9px',
-              border: '1px solid var(--color-border)',
-              background: 'var(--color-surface)',
-              color: 'var(--color-muted)',
-              fontSize: '15px', fontWeight: 500, textDecoration: 'none',
-              whiteSpace: 'nowrap',
-            }}>
-              Log in
+              Join now — it&apos;s free
             </a>
           </div>
         </div>
-      </PageShell>
+
+        {/* Responsive style for feature rows */}
+        <style>{`
+          @media (max-width: 700px) {
+            .feature-row {
+              grid-template-columns: 1fr !important;
+              gap: 32px !important;
+              padding: 48px 0 !important;
+            }
+            .feature-row > div {
+              order: unset !important;
+            }
+          }
+        `}</style>
+      </div>
     )
   }
 
