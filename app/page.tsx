@@ -1,5 +1,4 @@
 import Link from 'next/link'
-import EventsBanner from '@/components/EventsBanner'
 import CardTile from '@/components/CardTile'
 import HomeSearchBar from '@/components/HomeSearchBar'
 import { createClient } from '@/lib/supabase/server'
@@ -64,14 +63,33 @@ export default async function HomePage() {
           color: 'var(--color-text)', letterSpacing: '-0.01em',
           marginBottom: '24px', lineHeight: 1.2,
         }}>
-          Search across community binders in a single location.
+          Find your card in the community binder database and meetup locally.
         </h1>
         <HomeSearchBar />
       </section>
 
-      {/* Events Banner */}
+      {/* CTA Banner */}
       <section style={{ marginBottom: '56px' }}>
-        <EventsBanner />
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          gap: '20px', flexWrap: 'wrap',
+          padding: '20px 28px', borderRadius: '14px',
+          background: 'linear-gradient(135deg, rgba(139,92,246,0.12), rgba(59,130,246,0.10))',
+          border: '1px solid rgba(139,92,246,0.25)',
+        }}>
+          <p style={{ fontSize: '16px', fontWeight: 600, color: 'var(--color-text)', margin: 0, lineHeight: 1.4 }}>
+            Add your binder to the database.{' '}
+            <span style={{ color: 'var(--color-muted)', fontWeight: 400 }}>Create your own storefront.</span>
+          </p>
+          <Link href="/sell" style={{
+            display: 'inline-block', padding: '10px 22px', borderRadius: '8px',
+            background: 'var(--color-blue)', color: '#fff',
+            fontSize: '14px', fontWeight: 700, textDecoration: 'none',
+            whiteSpace: 'nowrap', flexShrink: 0,
+          }}>
+            Join now
+          </Link>
+        </div>
       </section>
 
       {/* Latest Listings */}

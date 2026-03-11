@@ -32,9 +32,16 @@ const CONDITION_COLOR = {
 
 /* ─── Page ────────────────────────────────────────────────────────────── */
 
+const VALUE_PROPS = [
+  { icon: '📖', text: 'Create a digital copy of your binder.' },
+  { icon: '🌐', text: 'Share your public profile and binders or create your online storefront.' },
+  { icon: '🔍', text: 'Utilize search and sort functions.' },
+  { icon: '📊', text: 'Track your sales and data.' },
+  { icon: '🤝', text: 'Make a deal in Messenger and meetup in your local LGS like we always do.' },
+]
+
 export default function SellPage() {
   const supabase = createClient()
-  const router = useRouter()
 
   const [authChecked, setAuthChecked] = useState(false)
   const [userId, setUserId] = useState<string | null>(null)
@@ -43,12 +50,74 @@ export default function SellPage() {
     supabase.auth.getUser().then(({ data: { user } }) => {
       setUserId(user?.id ?? null)
       setAuthChecked(true)
-      if (!user) router.replace('/auth/login?redirect=/sell')
     })
   }, [])
 
   if (!authChecked) return <PageShell><LoadingState /></PageShell>
-  if (!userId) return null
+
+  if (!userId) {
+    return (
+      <PageShell>
+        <div style={{ maxWidth: '520px', margin: '0 auto', paddingTop: '48px', paddingBottom: '64px' }}>
+          {/* Heading */}
+          <h1 style={{
+            fontSize: '30px', fontWeight: 800, color: 'var(--color-text)',
+            fontFamily: "'Beleren2016', serif", letterSpacing: '-0.02em',
+            marginBottom: '10px', lineHeight: 1.2,
+          }}>
+            Your binder, online.
+          </h1>
+          <p style={{ fontSize: '15px', color: 'var(--color-muted)', marginBottom: '36px', lineHeight: 1.6 }}>
+            Join the community marketplace built for Filipino MTG players.
+          </p>
+
+          {/* Value props */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: '40px' }}>
+            {VALUE_PROPS.map((vp, i) => (
+              <div key={i} style={{
+                display: 'flex', alignItems: 'flex-start', gap: '14px',
+                padding: '14px 18px', borderRadius: '12px',
+                background: 'var(--color-surface)', border: '1px solid var(--color-border)',
+              }}>
+                <span style={{ fontSize: '20px', flexShrink: 0, lineHeight: 1.2 }}>{vp.icon}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <span style={{
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                    width: '20px', height: '20px', borderRadius: '50%',
+                    background: 'var(--color-blue)', color: '#fff',
+                    fontSize: '11px', fontWeight: 800, flexShrink: 0,
+                  }}>{i + 1}</span>
+                  <p style={{ fontSize: '14px', color: 'var(--color-text)', margin: 0, lineHeight: 1.5 }}>{vp.text}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* CTA buttons */}
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <a href="/auth/signup" style={{
+              flex: 1, display: 'block', textAlign: 'center',
+              padding: '12px 20px', borderRadius: '9px',
+              background: 'var(--color-blue)', color: '#fff',
+              fontSize: '15px', fontWeight: 700, textDecoration: 'none',
+            }}>
+              Create account
+            </a>
+            <a href="/auth/login?redirect=/sell" style={{
+              padding: '12px 20px', borderRadius: '9px',
+              border: '1px solid var(--color-border)',
+              background: 'var(--color-surface)',
+              color: 'var(--color-muted)',
+              fontSize: '15px', fontWeight: 500, textDecoration: 'none',
+              whiteSpace: 'nowrap',
+            }}>
+              Log in
+            </a>
+          </div>
+        </div>
+      </PageShell>
+    )
+  }
 
   return <SellForm userId={userId} />
 }
