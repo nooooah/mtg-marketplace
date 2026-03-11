@@ -75,7 +75,7 @@ function MyListingsContent() {
 
   // Binders
   const [binders, setBinders] = useState<Binder[]>([])
-  const [selectedBinderId, setSelectedBinderId] = useState<string | 'unsorted'>('unsorted')
+  const [selectedBinderIds, setSelectedBinderIds] = useState<Set<string>>(new Set(['unsorted']))
   const [renamingBinderId, setRenamingBinderId] = useState<string | null>(null)
   const [renameValue, setRenameValue] = useState('')
   const [editingDescId, setEditingDescId] = useState<string | null>(null)
@@ -145,7 +145,7 @@ function MyListingsContent() {
     setBinders(prev => prev.filter(b => b.id !== id))
     setConfirmDeleteBinderId(null)
     setDeletingBinderId(null)
-    setSelectedBinderId('unsorted')
+    setSelectedBinderIds(new Set(['unsorted']))
   }
 
   const handleDescribeBinder = async (id: string, description: string) => {
@@ -211,12 +211,18 @@ function MyListingsContent() {
     if (userId) fetchAllListings()
   }, [fetchAllListings, userId])
 
-  // Computed — filter by selected binder first, then by status
+  // Multi-binder helpers
+  const isOnlyUnsorted = selectedBinderIds.size === 1 && selectedBinderIds.has('unsorted')
+  const singleBinderId: string | null = selectedBinderIds.size === 1 && !selectedBinderIds.has('unsorted')
+    ? [...selectedBinderIds][0] : null
+
+  // Computed — combine listings from all selected binders
   const binderListings = useMemo(() =>
-    selectedBinderId === 'unsorted'
-      ? listings.filter(l => !l.binder_id)
-      : listings.filter(l => l.binder_id === selectedBinderId),
-    [listings, selectedBinderId]
+    listings.filter(l =>
+      (selectedBinderIds.has('unsorted') && !l.binder_id) ||
+      (l.binder_id !== null && selectedBinderIds.has(l.binder_id))
+    ),
+    [listings, selectedBinderIds]
   )
 
   const tabCounts = useMemo(() => ({
@@ -251,15 +257,23 @@ function MyListingsContent() {
     setBulkPriceValue('')
   }
 
-  const switchBinder = (id: string | 'unsorted') => {
-    setSelectedBinderId(id)
+  const toggleBinder = (id: string) => {
+    setSelectedBinderIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) {
+        next.delete(id)
+        if (next.size === 0) next.add('unsorted') // never allow empty selection
+      } else {
+        next.add(id)
+      }
+      return next
+    })
     setSelectedIds(new Set())
     setEditingId(null)
     setConfirmDeleteId(null)
     setConfirmBulkDelete(false)
     setBulkPriceMode(false)
     setBulkPriceValue('')
-    setActiveTab(id === 'unsorted' ? 'unlisted' : 'listed')
   }
 
   const toggleSelect = (id: string) => {
@@ -441,7 +455,7 @@ function MyListingsContent() {
         {/* Unsorted */}
         {[{ id: 'unsorted', name: 'Unsorted' }, ...binders].map((b) => {
           const isUnsorted = b.id === 'unsorted'
-          const isActive = selectedBinderId === b.id
+          const isActive = selectedBinderIds.has(b.id)
           const count = isUnsorted
             ? listings.filter(l => !l.binder_id).length
             : listings.filter(l => l.binder_id === b.id).length
@@ -465,7 +479,7 @@ function MyListingsContent() {
                 />
               ) : (
                 <button
-                  onClick={() => switchBinder(b.id as string | 'unsorted')}
+                  onClick={() => toggleBinder(b.id)}
                   style={{
                     display: 'flex', alignItems: 'center', gap: '6px',
                     padding: '6px 12px', borderRadius: '8px', fontSize: '13px', fontWeight: isActive ? 600 : 400,
@@ -550,11 +564,11 @@ function MyListingsContent() {
 
       </div>
 
-      {/* Active binder info tile */}
-      {selectedBinderId !== 'unsorted' && (() => {
-        const activeBinder = binders.find(b => b.id === selectedBinderId)
+      {/* Active binder info tile — single binder only */}
+      {singleBinderId && (() => {
+        const activeBinder = binders.find(b => b.id === singleBinderId)
         if (!activeBinder) return null
-        const binderAll = listings.filter(l => l.binder_id === selectedBinderId)
+        const binderAll = listings.filter(l => l.binder_id === singleBinderId)
         const totalCards = binderAll.length
         const totalSold = binderAll.filter(l => l.status === 'sold').length
         const binderTotalValue = binderAll
@@ -562,7 +576,7 @@ function MyListingsContent() {
         const valueEarned = binderAll
           .filter(l => l.status === 'sold')
           .reduce((sum, l) => sum + l.price * l.quantity, 0)
-        const isEditingDesc = editingDescId === selectedBinderId
+        const isEditingDesc = editingDescId === singleBinderId
         return (
           <div style={{
             background: 'var(--color-surface)', border: '1px solid var(--color-border)',
@@ -576,7 +590,7 @@ function MyListingsContent() {
                 </p>
                 {!isEditingDesc && (
                   <button
-                    onClick={() => { setEditingDescId(selectedBinderId); setDescValue(activeBinder.description ?? '') }}
+                    onClick={() => { setEditingDescId(singleBinderId!); setDescValue(activeBinder.description ?? '') }}
                     title="Edit description"
                     style={{ background: 'transparent', border: 'none', color: 'var(--color-subtle)', cursor: 'pointer', padding: '1px', lineHeight: 1, display: 'flex', alignItems: 'center' }}
                   >
@@ -589,9 +603,9 @@ function MyListingsContent() {
                   autoFocus
                   value={descValue}
                   onChange={e => setDescValue(e.target.value)}
-                  onBlur={() => handleDescribeBinder(selectedBinderId, descValue)}
+                  onBlur={() => handleDescribeBinder(singleBinderId!, descValue)}
                   onKeyDown={e => {
-                    if (e.key === 'Enter') handleDescribeBinder(selectedBinderId, descValue)
+                    if (e.key === 'Enter') handleDescribeBinder(singleBinderId!, descValue)
                     if (e.key === 'Escape') setEditingDescId(null)
                   }}
                   placeholder="Add a short description…"
@@ -599,7 +613,7 @@ function MyListingsContent() {
                 />
               ) : (
                 <button
-                  onClick={() => { setEditingDescId(selectedBinderId); setDescValue(activeBinder.description ?? '') }}
+                  onClick={() => { setEditingDescId(singleBinderId!); setDescValue(activeBinder.description ?? '') }}
                   style={{
                     background: 'transparent', border: 'none', padding: 0,
                     fontSize: '13px', color: activeBinder.description ? 'var(--color-text)' : 'var(--color-subtle)',
@@ -644,13 +658,35 @@ function MyListingsContent() {
         )
       })()}
 
+      {/* Multi-binder combined notice */}
+      {selectedBinderIds.size > 1 && (
+        <div style={{
+          background: 'var(--color-surface)', border: '1px solid var(--color-blue)',
+          borderRadius: '12px', padding: '12px 18px', marginBottom: '20px',
+          display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap',
+        }}>
+          <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-blue)' }}>
+            {selectedBinderIds.size} binders selected
+          </span>
+          <span style={{ fontSize: '12px', color: 'var(--color-muted)' }}>
+            · {binderListings.length} total cards · ₱{binderListings.reduce((s, l) => s + l.price * l.quantity, 0).toLocaleString('en-PH')} combined value
+          </span>
+          <button
+            onClick={() => { setSelectedBinderIds(new Set(['unsorted'])); setSelectedIds(new Set()) }}
+            style={{ marginLeft: 'auto', fontSize: '11px', padding: '3px 10px', borderRadius: '6px', border: '1px solid var(--color-border)', background: 'transparent', color: 'var(--color-subtle)', cursor: 'pointer' }}
+          >
+            Clear selection
+          </button>
+        </div>
+      )}
+
       {/* Status Tabs */}
       <div style={{
         display: 'flex', gap: '2px',
         borderBottom: '1px solid var(--color-border)',
         marginBottom: '20px',
       }}>
-        {(selectedBinderId === 'unsorted' ? ['unlisted'] as ListingStatus[] : ['listed', 'unlisted', 'sold'] as ListingStatus[]).map(tab => {
+        {(isOnlyUnsorted ? ['unlisted'] as ListingStatus[] : ['listed', 'unlisted', 'sold'] as ListingStatus[]).map(tab => {
           const isActive = activeTab === tab
           return (
             <button
@@ -804,9 +840,9 @@ function MyListingsContent() {
                 <PlusIcon /> List your first card
               </Link>
             </>
-          ) : activeTab === 'unlisted' && selectedBinderId !== 'unsorted' ? (
+          ) : activeTab === 'unlisted' && !isOnlyUnsorted ? (
             <p style={{ fontSize: '15px', color: 'var(--color-muted)' }}>No unlisted cards. Move listed cards here to hide them from buyers.</p>
-          ) : activeTab === 'unlisted' && selectedBinderId === 'unsorted' ? (
+          ) : activeTab === 'unlisted' && isOnlyUnsorted ? (
             <>
               <div style={{ marginBottom: '8px', color: 'var(--color-blue)', display: 'flex', justifyContent: 'center' }}><SparkleIcon /></div>
               <p style={{ fontSize: '15px', fontWeight: 600, color: 'var(--color-text)', marginBottom: '6px' }}>All sorted!</p>
