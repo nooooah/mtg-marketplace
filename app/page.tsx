@@ -61,13 +61,12 @@ export default async function HomePage() {
       </section>
 
       {/* Hero CTA */}
-      <section style={{ marginBottom: '56px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap', marginBottom: '6px' }}>
+      <section style={{ marginBottom: '56px', textAlign: 'center' }}>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap', justifyContent: 'center', marginBottom: '8px' }}>
           <h2 style={{
             fontSize: 'clamp(22px, 3vw, 32px)', fontWeight: 900, lineHeight: 1.15,
             fontFamily: "'Beleren2016', serif", letterSpacing: '-0.02em', margin: 0,
-            background: 'linear-gradient(135deg, #f8fafc 40%, #c4b5fd 100%)',
-            WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+            color: '#fff',
           }}>
             Find what you need. List what you don&apos;t.
           </h2>
