@@ -138,6 +138,7 @@ function SingleCardForm({ userId }: { userId: string }) {
   const [marketListings, setMarketListings] = useState<MarketRow[]>([])
   const [marketLoading, setMarketLoading] = useState(false)
   const [marketSort, setMarketSort] = useState<'price_asc' | 'price_desc' | 'date_desc' | 'date_asc'>('price_asc')
+  const [marketSortPicked, setMarketSortPicked] = useState(false)
 
   // Change printing
   const [printingResults, setPrintingResults] = useState<ScryfallCard[]>([])
@@ -184,6 +185,7 @@ function SingleCardForm({ userId }: { userId: string }) {
   useEffect(() => {
     if (!selectedCard) { setMarketListings([]); return }
     setMarketLoading(true)
+    setMarketSortPicked(false)
     ;(async () => {
       // First try with profiles join
       const { data, error } = await supabase
@@ -459,12 +461,13 @@ function SingleCardForm({ userId }: { userId: string }) {
 
         {/* Market overview */}
         {selectedCard && (() => {
-          const sortedMarket = [...marketListings].sort((a, b) => {
+          const allSortedMarket = [...marketListings].sort((a, b) => {
             if (marketSort === 'price_asc') return a.price - b.price
             if (marketSort === 'price_desc') return b.price - a.price
             if (marketSort === 'date_asc') return new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
             return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-          }).slice(0, 5)
+          })
+          const sortedMarket = marketSortPicked ? allSortedMarket : allSortedMarket.slice(0, 5)
           const daysAgo = (d: string) => {
             const days = Math.floor((Date.now() - new Date(d).getTime()) / 86400000)
             if (days === 0) return 'Today'
@@ -480,7 +483,7 @@ function SingleCardForm({ userId }: { userId: string }) {
                 {!marketLoading && marketListings.length > 0 && (
                   <div style={{ display: 'flex', gap: '4px' }}>
                     {([['price_asc', '₱ Low→High'], ['price_desc', '₱ High→Low'], ['date_desc', 'Newest'], ['date_asc', 'Oldest']] as const).map(([val, label]) => (
-                      <button key={val} type="button" onClick={() => setMarketSort(val)} style={{
+                      <button key={val} type="button" onClick={() => { setMarketSort(val); setMarketSortPicked(true) }} style={{
                         padding: '3px 8px', borderRadius: '6px', fontSize: '10px', fontWeight: 600, cursor: 'pointer', transition: 'all 0.12s',
                         border: `1px solid ${marketSort === val ? 'var(--color-blue)' : 'var(--color-border)'}`,
                         background: marketSort === val ? 'rgba(59,130,246,0.1)' : 'transparent',
@@ -567,6 +570,12 @@ function SingleCardForm({ userId }: { userId: string }) {
                     )
                   })}
                 </div>
+              )}
+              {!marketSortPicked && allSortedMarket.length > 5 && (
+                <button type="button" onClick={() => setMarketSortPicked(true)}
+                  style={{ marginTop: '8px', fontSize: '12px', color: 'var(--color-blue)', background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, textDecoration: 'underline' }}>
+                  Show all {allSortedMarket.length} listings
+                </button>
               )}
             </div>
           )
