@@ -131,9 +131,10 @@ function SingleCardForm({ userId }: { userId: string }) {
   const [success, setSuccess] = useState(false)
 
   // Market overview — other sellers listing the same card
-  type MarketRow = { id: string; card_set: string; card_set_name: string; card_rarity: string | null; is_foil: boolean; condition: string; quantity: number; price: number; profiles: { username: string; display_name: string | null } | null }
+  type MarketRow = { id: string; card_set: string; card_set_name: string; card_rarity: string | null; is_foil: boolean; condition: string; quantity: number; price: number; created_at: string; profiles: { username: string; display_name: string | null } | null }
   const [marketListings, setMarketListings] = useState<MarketRow[]>([])
   const [marketLoading, setMarketLoading] = useState(false)
+  const [marketSort, setMarketSort] = useState<'price_asc' | 'price_desc' | 'date_desc'>('price_asc')
 
   useEffect(() => {
     supabase.from('binders').select('*').eq('user_id', userId).order('display_order')
@@ -166,25 +167,25 @@ function SingleCardForm({ userId }: { userId: string }) {
       // First try with profiles join
       const { data, error } = await supabase
         .from('listings')
-        .select('id, card_set, card_set_name, card_rarity, is_foil, condition, quantity, price, profiles(username, display_name)')
+        .select('id, card_set, card_set_name, card_rarity, is_foil, condition, quantity, price, created_at, profiles(username, display_name)')
         .ilike('card_name', selectedCard.name)
         .eq('status', 'listed')
         .neq('user_id', userId)
         .gt('quantity', 0)
         .order('price', { ascending: true })
-        .limit(30)
+        .limit(50)
 
       if (error || !data) {
         // Fallback: try without profiles join in case of join issue
         const { data: fallback } = await supabase
           .from('listings')
-          .select('id, card_set, card_set_name, card_rarity, is_foil, condition, quantity, price, user_id')
+          .select('id, card_set, card_set_name, card_rarity, is_foil, condition, quantity, price, created_at, user_id')
           .ilike('card_name', selectedCard.name)
           .eq('status', 'listed')
           .neq('user_id', userId)
           .gt('quantity', 0)
           .order('price', { ascending: true })
-          .limit(30)
+          .limit(50)
         setMarketListings(((fallback ?? []) as unknown as MarketRow[]))
       } else {
         setMarketListings((data as unknown as MarketRow[]))
@@ -390,78 +391,118 @@ function SingleCardForm({ userId }: { userId: string }) {
         </div>
 
         {/* Market overview */}
-        {selectedCard && (
-          <div style={{ marginTop: '4px', marginBottom: '4px' }}>
-            <p style={{ fontSize: '11px', fontWeight: 700, color: 'var(--color-subtle)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>
-              Other sellers — {selectedCard.name}
-            </p>
-            {marketLoading ? (
-              <p style={{ fontSize: '12px', color: 'var(--color-subtle)', fontStyle: 'italic' }}>Loading…</p>
-            ) : marketListings.length === 0 ? (
-              <p style={{ fontSize: '12px', color: 'var(--color-subtle)', fontStyle: 'italic' }}>No other listings yet — be the first!</p>
-            ) : (
-              <div style={{ border: '1px solid var(--color-border)', borderRadius: '10px', overflow: 'hidden' }}>
-                {/* Header row */}
-                <div style={{
-                  display: 'grid', gridTemplateColumns: '110px 1fr 52px 44px 32px 68px',
-                  padding: '7px 14px', background: 'var(--color-surface-2)',
-                  borderBottom: '1px solid var(--color-border)',
-                  fontSize: '10px', fontWeight: 700, color: 'var(--color-subtle)',
-                  textTransform: 'uppercase', letterSpacing: '0.05em', gap: '8px',
-                }}>
-                  <span>Seller</span>
-                  <span>Printing</span>
-                  <span>Cond.</span>
-                  <span>Foil</span>
-                  <span style={{ textAlign: 'right' }}>Qty</span>
-                  <span style={{ textAlign: 'right' }}>Price</span>
-                </div>
-                {/* Data rows */}
-                {marketListings.map((row, i) => {
-                  const sellerName = row.profiles?.display_name ?? row.profiles?.username ?? '—'
-                  return (
-                    <div
-                      key={row.id}
-                      style={{
-                        display: 'grid', gridTemplateColumns: '110px 1fr 52px 44px 32px 68px',
-                        padding: '8px 14px', gap: '8px', alignItems: 'center',
-                        borderBottom: i < marketListings.length - 1 ? '1px solid var(--color-border)' : 'none',
-                        background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.015)',
-                        fontSize: '12px',
-                      }}
-                    >
-                      {/* Seller */}
-                      <span style={{ color: 'var(--color-blue)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '11px', fontWeight: 600 }} title={sellerName}>
-                        {sellerName}
-                      </span>
-                      {/* Printing */}
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '5px', overflow: 'hidden' }}>
-                        <i className={`ss ss-${row.card_set.toLowerCase()} ss-${(row.card_rarity ?? 'common').toLowerCase()} ss-grad`} style={{ fontSize: '13px', flexShrink: 0 }} />
-                        <span style={{ color: 'var(--color-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={row.card_set_name}>
-                          {row.card_set_name}
-                        </span>
-                      </span>
-                      {/* Condition */}
-                      <span style={{ fontWeight: 600, fontSize: '11px', color: CONDITION_COLOR[row.condition as keyof typeof CONDITION_COLOR] ?? 'var(--color-muted)' }}>
-                        {row.condition}
-                      </span>
-                      {/* Foil */}
-                      <span style={{ fontSize: '11px', color: row.is_foil ? '#fbbf24' : 'var(--color-subtle)' }}>
-                        {row.is_foil ? '✦ Foil' : '—'}
-                      </span>
-                      {/* Qty */}
-                      <span style={{ textAlign: 'right', color: 'var(--color-muted)' }}>{row.quantity}</span>
-                      {/* Price */}
-                      <span style={{ textAlign: 'right', fontWeight: 700, color: 'var(--color-text)' }}>
-                        ₱{row.price.toLocaleString('en-PH')}
-                      </span>
-                    </div>
-                  )
-                })}
+        {selectedCard && (() => {
+          const sortedMarket = [...marketListings].sort((a, b) => {
+            if (marketSort === 'price_asc') return a.price - b.price
+            if (marketSort === 'price_desc') return b.price - a.price
+            return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+          }).slice(0, 5)
+          const daysAgo = (d: string) => {
+            const days = Math.floor((Date.now() - new Date(d).getTime()) / 86400000)
+            if (days === 0) return 'Today'
+            if (days === 1) return '1d ago'
+            return `${days}d ago`
+          }
+          return (
+            <div style={{ marginTop: '4px', marginBottom: '4px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                <p style={{ fontSize: '11px', fontWeight: 700, color: 'var(--color-subtle)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: 0 }}>
+                  Other sellers — {selectedCard.name}
+                </p>
+                {!marketLoading && marketListings.length > 0 && (
+                  <div style={{ display: 'flex', gap: '4px' }}>
+                    {([['price_asc', '₱ Low→High'], ['price_desc', '₱ High→Low'], ['date_desc', 'Newest']] as const).map(([val, label]) => (
+                      <button key={val} type="button" onClick={() => setMarketSort(val)} style={{
+                        padding: '3px 8px', borderRadius: '6px', fontSize: '10px', fontWeight: 600, cursor: 'pointer', transition: 'all 0.12s',
+                        border: `1px solid ${marketSort === val ? 'var(--color-blue)' : 'var(--color-border)'}`,
+                        background: marketSort === val ? 'rgba(59,130,246,0.1)' : 'transparent',
+                        color: marketSort === val ? 'var(--color-blue)' : 'var(--color-subtle)',
+                      }}>{label}</button>
+                    ))}
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-        )}
+              {marketLoading ? (
+                <p style={{ fontSize: '12px', color: 'var(--color-subtle)', fontStyle: 'italic' }}>Loading…</p>
+              ) : sortedMarket.length === 0 ? (
+                <p style={{ fontSize: '12px', color: 'var(--color-subtle)', fontStyle: 'italic' }}>No other listings yet — be the first!</p>
+              ) : (
+                <div style={{ border: '1px solid var(--color-border)', borderRadius: '10px', overflow: 'hidden' }}>
+                  {/* Header row */}
+                  <div style={{
+                    display: 'grid', gridTemplateColumns: '100px 1fr 48px 44px 28px 64px 52px',
+                    padding: '7px 14px', background: 'var(--color-surface-2)',
+                    borderBottom: '1px solid var(--color-border)',
+                    fontSize: '10px', fontWeight: 700, color: 'var(--color-subtle)',
+                    textTransform: 'uppercase', letterSpacing: '0.05em', gap: '8px',
+                  }}>
+                    <span>Seller</span>
+                    <span>Printing</span>
+                    <span>Cond.</span>
+                    <span>Foil</span>
+                    <span style={{ textAlign: 'right' }}>Qty</span>
+                    <span style={{ textAlign: 'right' }}>Price</span>
+                    <span style={{ textAlign: 'right' }}>Listed</span>
+                  </div>
+                  {/* Data rows */}
+                  {sortedMarket.map((row, i) => {
+                    const sellerName = row.profiles?.display_name ?? row.profiles?.username ?? '—'
+                    const sellerSlug = row.profiles?.username ?? null
+                    return (
+                      <div
+                        key={row.id}
+                        style={{
+                          display: 'grid', gridTemplateColumns: '100px 1fr 48px 44px 28px 64px 52px',
+                          padding: '8px 14px', gap: '8px', alignItems: 'center',
+                          borderBottom: i < sortedMarket.length - 1 ? '1px solid var(--color-border)' : 'none',
+                          background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.015)',
+                          fontSize: '12px',
+                        }}
+                      >
+                        {/* Seller */}
+                        {sellerSlug ? (
+                          <a href={`/profile/${sellerSlug}`} target="_blank" rel="noopener noreferrer"
+                            style={{ color: 'var(--color-blue)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '11px', fontWeight: 600, textDecoration: 'none' }}
+                            title={sellerName}
+                            onMouseEnter={e => (e.currentTarget.style.textDecoration = 'underline')}
+                            onMouseLeave={e => (e.currentTarget.style.textDecoration = 'none')}
+                          >{sellerName}</a>
+                        ) : (
+                          <span style={{ color: 'var(--color-blue)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '11px', fontWeight: 600 }}>{sellerName}</span>
+                        )}
+                        {/* Printing */}
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '5px', overflow: 'hidden' }}>
+                          <i className={`ss ss-${row.card_set.toLowerCase()} ss-${(row.card_rarity ?? 'common').toLowerCase()} ss-grad`} style={{ fontSize: '13px', flexShrink: 0 }} />
+                          <span style={{ color: 'var(--color-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={row.card_set_name}>
+                            {row.card_set_name}
+                          </span>
+                        </span>
+                        {/* Condition */}
+                        <span style={{ fontWeight: 600, fontSize: '11px', color: CONDITION_COLOR[row.condition as keyof typeof CONDITION_COLOR] ?? 'var(--color-muted)' }}>
+                          {row.condition}
+                        </span>
+                        {/* Foil */}
+                        <span style={{ fontSize: '11px', color: row.is_foil ? '#fbbf24' : 'var(--color-subtle)' }}>
+                          {row.is_foil ? '✦ Foil' : '—'}
+                        </span>
+                        {/* Qty */}
+                        <span style={{ textAlign: 'right', color: 'var(--color-muted)' }}>{row.quantity}</span>
+                        {/* Price */}
+                        <span style={{ textAlign: 'right', fontWeight: 700, color: 'var(--color-text)' }}>
+                          ₱{row.price.toLocaleString('en-PH')}
+                        </span>
+                        {/* Listed */}
+                        <span style={{ textAlign: 'right', fontSize: '10px', color: 'var(--color-subtle)' }} title={new Date(row.created_at).toLocaleDateString()}>
+                          {row.created_at ? daysAgo(row.created_at) : '—'}
+                        </span>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          )
+        })()}
 
         <FieldLabel label="Notes (optional)">
           <textarea placeholder="Any extra details — foil, signed, language, etc." value={notes} onChange={e => setNotes(e.target.value)} rows={3} style={{ resize: 'vertical' }} />
