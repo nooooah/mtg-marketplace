@@ -131,7 +131,7 @@ function SingleCardForm({ userId }: { userId: string }) {
   const [success, setSuccess] = useState(false)
 
   // Market overview — other sellers listing the same card
-  type MarketRow = { id: string; card_set: string; card_set_name: string; is_foil: boolean; condition: string; quantity: number; price: number; profiles: { username: string; display_name: string | null } | null }
+  type MarketRow = { id: string; card_set: string; card_set_name: string; card_rarity: string | null; is_foil: boolean; condition: string; quantity: number; price: number; profiles: { username: string; display_name: string | null } | null }
   const [marketListings, setMarketListings] = useState<MarketRow[]>([])
   const [marketLoading, setMarketLoading] = useState(false)
 
@@ -158,22 +158,39 @@ function SingleCardForm({ userId }: { userId: string }) {
   }, [cardQuery, selectedCard])
 
   // Fetch market listings whenever the selected card changes
+  // Uses card_name so all printings + foil variants of the same card are included
   useEffect(() => {
     if (!selectedCard) { setMarketListings([]); return }
     setMarketLoading(true)
-    supabase
-      .from('listings')
-      .select('id, card_set, card_set_name, is_foil, condition, quantity, price, profiles(username, display_name)')
-      .eq('card_id', selectedCard.id)
-      .eq('status', 'listed')
-      .neq('user_id', userId)
-      .gt('quantity', 0)
-      .order('price', { ascending: true })
-      .limit(20)
-      .then(({ data }) => {
-        setMarketListings((data as unknown as MarketRow[]) ?? [])
-        setMarketLoading(false)
-      })
+    ;(async () => {
+      // First try with profiles join
+      const { data, error } = await supabase
+        .from('listings')
+        .select('id, card_set, card_set_name, card_rarity, is_foil, condition, quantity, price, profiles(username, display_name)')
+        .ilike('card_name', selectedCard.name)
+        .eq('status', 'listed')
+        .neq('user_id', userId)
+        .gt('quantity', 0)
+        .order('price', { ascending: true })
+        .limit(30)
+
+      if (error || !data) {
+        // Fallback: try without profiles join in case of join issue
+        const { data: fallback } = await supabase
+          .from('listings')
+          .select('id, card_set, card_set_name, card_rarity, is_foil, condition, quantity, price, user_id')
+          .ilike('card_name', selectedCard.name)
+          .eq('status', 'listed')
+          .neq('user_id', userId)
+          .gt('quantity', 0)
+          .order('price', { ascending: true })
+          .limit(30)
+        setMarketListings(((fallback ?? []) as unknown as MarketRow[]))
+      } else {
+        setMarketListings((data as unknown as MarketRow[]))
+      }
+      setMarketLoading(false)
+    })()
   }, [selectedCard])
 
   const selectCard = (card: ScryfallCard) => {
@@ -386,12 +403,13 @@ function SingleCardForm({ userId }: { userId: string }) {
               <div style={{ border: '1px solid var(--color-border)', borderRadius: '10px', overflow: 'hidden' }}>
                 {/* Header row */}
                 <div style={{
-                  display: 'grid', gridTemplateColumns: '1fr 60px 48px 36px 70px',
+                  display: 'grid', gridTemplateColumns: '110px 1fr 52px 44px 32px 68px',
                   padding: '7px 14px', background: 'var(--color-surface-2)',
                   borderBottom: '1px solid var(--color-border)',
                   fontSize: '10px', fontWeight: 700, color: 'var(--color-subtle)',
                   textTransform: 'uppercase', letterSpacing: '0.05em', gap: '8px',
                 }}>
+                  <span>Seller</span>
                   <span>Printing</span>
                   <span>Cond.</span>
                   <span>Foil</span>
@@ -399,40 +417,47 @@ function SingleCardForm({ userId }: { userId: string }) {
                   <span style={{ textAlign: 'right' }}>Price</span>
                 </div>
                 {/* Data rows */}
-                {marketListings.map((row, i) => (
-                  <div
-                    key={row.id}
-                    style={{
-                      display: 'grid', gridTemplateColumns: '1fr 60px 48px 36px 70px',
-                      padding: '8px 14px', gap: '8px', alignItems: 'center',
-                      borderBottom: i < marketListings.length - 1 ? '1px solid var(--color-border)' : 'none',
-                      background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.015)',
-                      fontSize: '12px',
-                    }}
-                  >
-                    {/* Printing */}
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '5px', overflow: 'hidden' }}>
-                      <i className={`ss ss-${row.card_set.toLowerCase()} ss-grad`} style={{ fontSize: '13px', flexShrink: 0 }} />
-                      <span style={{ color: 'var(--color-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={row.card_set_name}>
-                        {row.card_set_name}
+                {marketListings.map((row, i) => {
+                  const sellerName = row.profiles?.display_name ?? row.profiles?.username ?? '—'
+                  return (
+                    <div
+                      key={row.id}
+                      style={{
+                        display: 'grid', gridTemplateColumns: '110px 1fr 52px 44px 32px 68px',
+                        padding: '8px 14px', gap: '8px', alignItems: 'center',
+                        borderBottom: i < marketListings.length - 1 ? '1px solid var(--color-border)' : 'none',
+                        background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.015)',
+                        fontSize: '12px',
+                      }}
+                    >
+                      {/* Seller */}
+                      <span style={{ color: 'var(--color-blue)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '11px', fontWeight: 600 }} title={sellerName}>
+                        {sellerName}
                       </span>
-                    </span>
-                    {/* Condition */}
-                    <span style={{ fontWeight: 600, fontSize: '11px', color: CONDITION_COLOR[row.condition as keyof typeof CONDITION_COLOR] ?? 'var(--color-muted)' }}>
-                      {row.condition}
-                    </span>
-                    {/* Foil */}
-                    <span style={{ fontSize: '11px', color: row.is_foil ? '#fbbf24' : 'var(--color-subtle)' }}>
-                      {row.is_foil ? '✦ Foil' : '—'}
-                    </span>
-                    {/* Qty */}
-                    <span style={{ textAlign: 'right', color: 'var(--color-muted)' }}>{row.quantity}</span>
-                    {/* Price */}
-                    <span style={{ textAlign: 'right', fontWeight: 700, color: 'var(--color-text)' }}>
-                      ₱{row.price.toLocaleString('en-PH')}
-                    </span>
-                  </div>
-                ))}
+                      {/* Printing */}
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '5px', overflow: 'hidden' }}>
+                        <i className={`ss ss-${row.card_set.toLowerCase()} ss-${(row.card_rarity ?? 'common').toLowerCase()} ss-grad`} style={{ fontSize: '13px', flexShrink: 0 }} />
+                        <span style={{ color: 'var(--color-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={row.card_set_name}>
+                          {row.card_set_name}
+                        </span>
+                      </span>
+                      {/* Condition */}
+                      <span style={{ fontWeight: 600, fontSize: '11px', color: CONDITION_COLOR[row.condition as keyof typeof CONDITION_COLOR] ?? 'var(--color-muted)' }}>
+                        {row.condition}
+                      </span>
+                      {/* Foil */}
+                      <span style={{ fontSize: '11px', color: row.is_foil ? '#fbbf24' : 'var(--color-subtle)' }}>
+                        {row.is_foil ? '✦ Foil' : '—'}
+                      </span>
+                      {/* Qty */}
+                      <span style={{ textAlign: 'right', color: 'var(--color-muted)' }}>{row.quantity}</span>
+                      {/* Price */}
+                      <span style={{ textAlign: 'right', fontWeight: 700, color: 'var(--color-text)' }}>
+                        ₱{row.price.toLocaleString('en-PH')}
+                      </span>
+                    </div>
+                  )
+                })}
               </div>
             )}
           </div>
