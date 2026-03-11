@@ -80,6 +80,7 @@ function MyListingsContent() {
   // Binders
   const [binders, setBinders] = useState<Binder[]>([])
   const [selectedBinderIds, setSelectedBinderIds] = useState<Set<string>>(new Set(['unsorted']))
+  const [multiSelectMode, setMultiSelectMode] = useState(false)
   const [renamingBinderId, setRenamingBinderId] = useState<string | null>(null)
   const [renameValue, setRenameValue] = useState('')
   const [editingDescId, setEditingDescId] = useState<string | null>(null)
@@ -262,6 +263,17 @@ function MyListingsContent() {
 
   const switchTab = (tab: ListingStatus) => {
     setActiveTab(tab)
+    setSelectedIds(new Set())
+    setEditingId(null)
+    setConfirmDeleteId(null)
+    setConfirmBulkDelete(false)
+    setBulkPriceMode(false)
+    setBulkPriceValue('')
+    setCurrentPage(1)
+  }
+
+  const selectBinder = (id: string) => {
+    setSelectedBinderIds(new Set([id]))
     setSelectedIds(new Set())
     setEditingId(null)
     setConfirmDeleteId(null)
@@ -472,6 +484,36 @@ function MyListingsContent() {
 
       {/* Binder Tabs */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginBottom: '20px' }}>
+        {/* Multi-select toggle */}
+        <button
+          type="button"
+          onClick={() => {
+            if (multiSelectMode) {
+              // Exit: collapse to first selected binder
+              const first = [...selectedBinderIds][0] ?? 'unsorted'
+              setSelectedBinderIds(new Set([first]))
+              setSelectedIds(new Set())
+            }
+            setMultiSelectMode(m => !m)
+          }}
+          title={multiSelectMode ? 'Exit multi-select mode' : 'Select multiple binders'}
+          style={{
+            padding: '5px 10px', borderRadius: '8px', fontSize: '11px', fontWeight: 600,
+            cursor: 'pointer', transition: 'all 0.12s ease',
+            border: `1px solid ${multiSelectMode ? 'var(--color-blue)' : 'var(--color-border)'}`,
+            background: multiSelectMode ? 'rgba(59,130,246,0.1)' : 'var(--color-surface)',
+            color: multiSelectMode ? 'var(--color-blue)' : 'var(--color-subtle)',
+            display: 'flex', alignItems: 'center', gap: '5px',
+          }}
+        >
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
+            <rect x="1" y="1" width="6" height="6" rx="1.5" opacity={multiSelectMode ? 1 : 0.5} />
+            <rect x="9" y="1" width="6" height="6" rx="1.5" />
+            <rect x="1" y="9" width="6" height="6" rx="1.5" opacity={multiSelectMode ? 1 : 0.5} />
+            <rect x="9" y="9" width="6" height="6" rx="1.5" opacity={multiSelectMode ? 1 : 0.5} />
+          </svg>
+          {multiSelectMode ? 'Multi-select on' : 'Multi-select'}
+        </button>
         {/* Unsorted */}
         {[{ id: 'unsorted', name: 'Unsorted' }, ...binders].map((b) => {
           const isUnsorted = b.id === 'unsorted'
@@ -499,7 +541,7 @@ function MyListingsContent() {
                 />
               ) : (
                 <button
-                  onClick={() => toggleBinder(b.id)}
+                  onClick={() => multiSelectMode ? toggleBinder(b.id) : selectBinder(b.id)}
                   style={{
                     display: 'flex', alignItems: 'center', gap: '6px',
                     padding: '6px 12px', borderRadius: '8px', fontSize: '13px', fontWeight: isActive ? 600 : 400,
@@ -692,7 +734,7 @@ function MyListingsContent() {
             · {binderListings.length} total cards · ₱{binderListings.reduce((s, l) => s + l.price * l.quantity, 0).toLocaleString('en-PH')} combined value
           </span>
           <button
-            onClick={() => { setSelectedBinderIds(new Set(['unsorted'])); setSelectedIds(new Set()) }}
+            onClick={() => { setSelectedBinderIds(new Set(['unsorted'])); setSelectedIds(new Set()); setMultiSelectMode(false) }}
             style={{ marginLeft: 'auto', fontSize: '11px', padding: '3px 10px', borderRadius: '6px', border: '1px solid var(--color-border)', background: 'transparent', color: 'var(--color-subtle)', cursor: 'pointer' }}
           >
             Clear selection
