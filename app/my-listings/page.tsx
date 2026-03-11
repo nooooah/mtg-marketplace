@@ -69,6 +69,10 @@ function MyListingsContent() {
   const [bulkPriceMode, setBulkPriceMode] = useState(false)
   const [bulkPriceValue, setBulkPriceValue] = useState('')
 
+  // Pagination
+  const [pageSize, setPageSize] = useState(25)
+  const [currentPage, setCurrentPage] = useState(1)
+
   // Dashboard period
   type DashPeriod = 'today' | 'week' | 'month' | 'lifetime'
   const [dashPeriod, setDashPeriod] = useState<DashPeriod>('lifetime')
@@ -190,6 +194,7 @@ function MyListingsContent() {
 
     const { data } = await q
     setListings((data as Listing[]) ?? [])
+    setCurrentPage(1)
     setLoading(false)
   }, [userId, query, sort, conditions, minPrice, maxPrice])
 
@@ -236,8 +241,16 @@ function MyListingsContent() {
     [binderListings, activeTab]
   )
 
-  const allSelected = selectedIds.size > 0 && selectedIds.size === displayedListings.length
-  const someSelected = selectedIds.size > 0 && !allSelected
+  const totalPages = Math.max(1, Math.ceil(displayedListings.length / pageSize))
+  const safePage = Math.min(currentPage, totalPages)
+  const paginatedListings = useMemo(() =>
+    displayedListings.slice((safePage - 1) * pageSize, safePage * pageSize),
+    [displayedListings, safePage, pageSize]
+  )
+
+  // Select-all scoped to current page
+  const allSelected = paginatedListings.length > 0 && paginatedListings.every(l => selectedIds.has(l.id))
+  const someSelected = paginatedListings.some(l => selectedIds.has(l.id)) && !allSelected
 
   const toggleCondition = (c: CardCondition) => {
     setConditions(prev => {
@@ -255,6 +268,7 @@ function MyListingsContent() {
     setConfirmBulkDelete(false)
     setBulkPriceMode(false)
     setBulkPriceValue('')
+    setCurrentPage(1)
   }
 
   const toggleBinder = (id: string) => {
@@ -274,6 +288,7 @@ function MyListingsContent() {
     setConfirmBulkDelete(false)
     setBulkPriceMode(false)
     setBulkPriceValue('')
+    setCurrentPage(1)
   }
 
   const toggleSelect = (id: string) => {
@@ -286,9 +301,14 @@ function MyListingsContent() {
 
   const toggleSelectAll = () => {
     if (allSelected || someSelected) {
-      setSelectedIds(new Set())
+      // deselect just this page
+      setSelectedIds(prev => {
+        const next = new Set(prev)
+        paginatedListings.forEach(l => next.delete(l.id))
+        return next
+      })
     } else {
-      setSelectedIds(new Set(displayedListings.map(l => l.id)))
+      setSelectedIds(prev => new Set([...prev, ...paginatedListings.map(l => l.id)]))
     }
   }
 
@@ -881,13 +901,32 @@ function MyListingsContent() {
             <p style={{ fontSize: '12px', color: 'var(--color-subtle)' }}>
               {selectedIds.size > 0
                 ? <span style={{ color: 'var(--color-blue)', fontWeight: 600 }}>{selectedIds.size} selected</span>
-                : <>{displayedListings.length} listing{displayedListings.length !== 1 ? 's' : ''}</>
+                : <>{displayedListings.length} listing{displayedListings.length !== 1 ? 's' : ''}{totalPages > 1 && ` · page ${safePage} of ${totalPages}`}</>
               }
             </p>
+            {/* Per-page picker */}
+            <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ fontSize: '11px', color: 'var(--color-subtle)' }}>Per page:</span>
+              {[10, 25, 50, 100].map(n => (
+                <button
+                  key={n}
+                  onClick={() => { setPageSize(n); setCurrentPage(1) }}
+                  style={{
+                    padding: '2px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: pageSize === n ? 700 : 400,
+                    border: `1px solid ${pageSize === n ? 'var(--color-blue)' : 'var(--color-border)'}`,
+                    background: pageSize === n ? 'var(--color-blue-glow)' : 'transparent',
+                    color: pageSize === n ? 'var(--color-blue)' : 'var(--color-subtle)',
+                    cursor: 'pointer',
+                  }}
+                >
+                  {n}
+                </button>
+              ))}
+            </div>
           </div>
 
           <div className="ml-list" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            {displayedListings.map(listing => (
+            {paginatedListings.map(listing => (
               <ListingRow
                 key={listing.id}
                 listing={listing}
@@ -909,6 +948,23 @@ function MyListingsContent() {
               />
             ))}
           </div>
+
+          {/* Pagination controls */}
+          {totalPages > 1 && (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', marginTop: '16px', flexWrap: 'wrap' }}>
+              <PaginationButton onClick={() => setCurrentPage(1)} disabled={safePage === 1} label="«" />
+              <PaginationButton onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={safePage === 1} label="‹" />
+              {getPaginationPages(safePage, totalPages).map((p, i) =>
+                p === '…' ? (
+                  <span key={`ellipsis-${i}`} style={{ padding: '0 4px', color: 'var(--color-subtle)', fontSize: '13px' }}>…</span>
+                ) : (
+                  <PaginationButton key={p} onClick={() => setCurrentPage(p as number)} active={safePage === p} label={String(p)} />
+                )
+              )}
+              <PaginationButton onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={safePage === totalPages} label="›" />
+              <PaginationButton onClick={() => setCurrentPage(totalPages)} disabled={safePage === totalPages} label="»" />
+            </div>
+          )}
         </>
       )}
 
@@ -1694,6 +1750,41 @@ function EditPanel({ listing, onSave, onCancel, binders, onMoveToBinder }: {
         </div>
       </div>
     </div>
+  )
+}
+
+/* ─── Pagination helpers ──────────────────────────────────────────────── */
+
+function getPaginationPages(current: number, total: number): (number | '…')[] {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1)
+  const pages: (number | '…')[] = [1]
+  if (current > 3) pages.push('…')
+  for (let p = Math.max(2, current - 1); p <= Math.min(total - 1, current + 1); p++) pages.push(p)
+  if (current < total - 2) pages.push('…')
+  pages.push(total)
+  return pages
+}
+
+function PaginationButton({ onClick, disabled, active, label }: {
+  onClick: () => void; disabled?: boolean; active?: boolean; label: string
+}) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      style={{
+        minWidth: '32px', height: '32px', padding: '0 8px', borderRadius: '7px',
+        fontSize: '13px', fontWeight: active ? 700 : 400,
+        border: `1px solid ${active ? 'var(--color-blue)' : 'var(--color-border)'}`,
+        background: active ? 'var(--color-blue-glow)' : 'transparent',
+        color: active ? 'var(--color-blue)' : disabled ? 'var(--color-subtle)' : 'var(--color-muted)',
+        cursor: disabled ? 'default' : 'pointer',
+        opacity: disabled ? 0.4 : 1,
+        transition: 'all 0.12s ease',
+      }}
+    >
+      {label}
+    </button>
   )
 }
 
