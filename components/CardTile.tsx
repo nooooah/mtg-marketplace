@@ -222,14 +222,14 @@ export default function CardTile({ listing, noPreview = false, compact = false, 
                 </span>
                 {listing.usd_price && listing.usd_price > 0 && (() => {
                   const mult = Math.round(listing.price / listing.usd_price)
-                  let bucket: number | null = null
-                  let color = 'var(--color-subtle)'
-                  if (mult <= 30)      { bucket = 30; color = '#10b981' }
-                  else if (mult <= 40) { bucket = 40; color = '#22c55e' }
-                  else if (mult <= 50) { bucket = 50; color = '#3b82f6' }
-                  else if (mult <= 60) { bucket = 60; color = 'var(--color-subtle)' }
-                  else if (mult <= 70) { bucket = 70; color = '#f97316' }
-                  if (!bucket) return null
+                  let label: string
+                  let color: string
+                  if (mult <= 30)      { label = '×30';   color = '#10b981' }
+                  else if (mult <= 40) { label = '×40';   color = '#22c55e' }
+                  else if (mult <= 50) { label = '×50';   color = '#3b82f6' }
+                  else if (mult <= 60) { label = '×60';   color = 'var(--color-subtle)' }
+                  else if (mult <= 70) { label = '×70';   color = '#f97316' }
+                  else                 { label = '>×70';  color = '#ef4444' }
                   return (
                     <span style={{
                       fontSize: '9px', fontWeight: 700,
@@ -238,7 +238,7 @@ export default function CardTile({ listing, noPreview = false, compact = false, 
                       borderRadius: '4px', padding: '1px 4px',
                       flexShrink: 0, letterSpacing: '0.01em',
                     }}>
-                      ×{bucket}
+                      {label}
                     </span>
                   )
                 })()}
