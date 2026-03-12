@@ -212,36 +212,62 @@ export default function CardTile({ listing, noPreview = false, compact = false, 
             {/* Row 1: price + condition */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '5px', minWidth: 0 }}>
-                <span style={{
-                  fontWeight: 700,
-                  fontSize: compact ? '13px' : '15px',
-                  color: 'var(--color-text)',
-                  flexShrink: 0,
-                }}>
-                  ₱{listing.price.toLocaleString('en-PH')}
-                </span>
-                {listing.usd_price && listing.usd_price > 0 && (() => {
-                  const mult = Math.round(listing.price / listing.usd_price)
-                  let label: string
-                  let color: string
-                  if (mult <= 30)      { label = '×30';   color = '#10b981' }
-                  else if (mult <= 40) { label = '×40';   color = '#22c55e' }
-                  else if (mult <= 50) { label = '×50';   color = '#3b82f6' }
-                  else if (mult <= 60) { label = '×60';   color = 'var(--color-subtle)' }
-                  else if (mult <= 70) { label = '×70';   color = '#f97316' }
-                  else                 { label = '>×70';  color = '#ef4444' }
-                  return (
+                {listing.quantity === 0 && listing.usd_price && listing.usd_price > 0 ? (
+                  // Not available — show market value at ×50
+                  <>
+                    <span style={{
+                      fontWeight: 700,
+                      fontSize: compact ? '13px' : '15px',
+                      color: 'var(--color-subtle)',
+                      flexShrink: 0,
+                    }}>
+                      ₱{Math.round(listing.usd_price * 50).toLocaleString('en-PH')}
+                    </span>
                     <span style={{
                       fontSize: '9px', fontWeight: 700,
-                      color, border: `1px solid ${color}40`,
-                      background: `${color}12`,
+                      color: '#3b82f6', border: '1px solid #3b82f640',
+                      background: '#3b82f612',
                       borderRadius: '4px', padding: '1px 4px',
                       flexShrink: 0, letterSpacing: '0.01em',
                     }}>
-                      {label}
+                      ×50
                     </span>
-                  )
-                })()}
+                  </>
+                ) : (
+                  // Available — show actual listing price with multiplier tag
+                  <>
+                    <span style={{
+                      fontWeight: 700,
+                      fontSize: compact ? '13px' : '15px',
+                      color: 'var(--color-text)',
+                      flexShrink: 0,
+                    }}>
+                      ₱{listing.price.toLocaleString('en-PH')}
+                    </span>
+                    {listing.usd_price && listing.usd_price > 0 && (() => {
+                      const mult = Math.round(listing.price / listing.usd_price)
+                      let label: string
+                      let color: string
+                      if (mult <= 30)      { label = '×30';   color = '#10b981' }
+                      else if (mult <= 40) { label = '×40';   color = '#22c55e' }
+                      else if (mult <= 50) { label = '×50';   color = '#3b82f6' }
+                      else if (mult <= 60) { label = '×60';   color = 'var(--color-subtle)' }
+                      else if (mult <= 70) { label = '×70';   color = '#f97316' }
+                      else                 { label = '>×70';  color = '#ef4444' }
+                      return (
+                        <span style={{
+                          fontSize: '9px', fontWeight: 700,
+                          color, border: `1px solid ${color}40`,
+                          background: `${color}12`,
+                          borderRadius: '4px', padding: '1px 4px',
+                          flexShrink: 0, letterSpacing: '0.01em',
+                        }}>
+                          {label}
+                        </span>
+                      )
+                    })()}
+                  </>
+                )}
               </div>
               <span className={`badge badge-${listing.condition.toLowerCase()}`} style={{ fontSize: compact ? '9px' : undefined, flexShrink: 0 }}>
                 {listing.condition}
