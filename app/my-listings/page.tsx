@@ -66,6 +66,8 @@ function MyListingsContent() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [bulkLoading, setBulkLoading] = useState(false)
   const [confirmBulkDelete, setConfirmBulkDelete] = useState(false)
+  const [soldModal, setSoldModal] = useState<{ listingId: string; maxQty: number } | null>(null)
+  const [soldQtyInput, setSoldQtyInput] = useState('1')
   const [bulkPriceMode, setBulkPriceMode] = useState(false)
   const [bulkPriceValue, setBulkPriceValue] = useState('')
 
@@ -281,6 +283,8 @@ function MyListingsContent() {
     setBulkPriceMode(false)
     setBulkPriceValue('')
     setCurrentPage(1)
+    // Default to 'listed' for real binders; unsorted only has 'unlisted'
+    if (id !== 'unsorted') setActiveTab('listed')
   }
 
   const toggleBinder = (id: string) => {
@@ -336,6 +340,34 @@ function MyListingsContent() {
       confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 }, colors: ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6'] })
     }
   }, [supabase])
+
+  const handleSoldWithQty = async (listingId: string, soldQty: number) => {
+    const listing = listings.find(l => l.id === listingId)
+    if (!listing) return
+    setBulkLoading(true)
+    if (soldQty >= listing.quantity) {
+      // Sell all copies — just mark the listing as sold
+      await supabase.from('listings').update({ status: 'sold' }).eq('id', listingId)
+      setListings(prev => prev.map(l => l.id === listingId ? { ...l, status: 'sold' } : l))
+      setAllListings(prev => prev.map(l => l.id === listingId ? { ...l, status: 'sold' } : l))
+    } else {
+      // Partial sell — reduce remaining qty, insert a new sold entry
+      const remaining = listing.quantity - soldQty
+      const { id: _id, created_at: _ca, ...rest } = listing as Listing & { created_at?: string }
+      await Promise.all([
+        supabase.from('listings').update({ quantity: remaining }).eq('id', listingId),
+        supabase.from('listings').insert({ ...rest, quantity: soldQty, status: 'sold' }),
+      ])
+      setListings(prev => prev.map(l => l.id === listingId ? { ...l, quantity: remaining } : l))
+      setAllListings(prev => prev.map(l => l.id === listingId ? { ...l, quantity: remaining } : l))
+      // Refetch to pick up the new sold row
+      await fetchListings()
+    }
+    setSoldModal(null)
+    setSoldQtyInput('1')
+    setBulkLoading(false)
+    confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 }, colors: ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6'] })
+  }
 
   const handleDelete = async (id: string) => {
     setDeletingId(id)
@@ -971,7 +1003,14 @@ function MyListingsContent() {
                 onRequestDelete={() => { setConfirmDeleteId(listing.id); setEditingId(null) }}
                 onCancelDelete={() => setConfirmDeleteId(null)}
                 onConfirmDelete={() => handleDelete(listing.id)}
-                onStatusChange={(status) => handleStatusChange([listing.id], status)}
+                onStatusChange={(status) => {
+                  if (status === 'sold' && listing.quantity > 1) {
+                    setSoldQtyInput('1')
+                    setSoldModal({ listingId: listing.id, maxQty: listing.quantity })
+                  } else {
+                    handleStatusChange([listing.id], status)
+                  }
+                }}
                 binders={binders}
                 onMoveToBinder={(binderId) => handleMoveToBinder([listing.id], binderId)}
               />
@@ -1157,6 +1196,67 @@ function MyListingsContent() {
           )}
         </div>
       )}
+
+      {/* ── Sold Quantity Modal ─────────────────────────────────────── */}
+      {soldModal && (() => {
+        const qty = parseInt(soldQtyInput) || 1
+        const clamped = Math.min(Math.max(qty, 1), soldModal.maxQty)
+        return (
+          <div style={{
+            position: 'fixed', inset: 0, zIndex: 50,
+            background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: '16px',
+          }}
+            onClick={() => setSoldModal(null)}
+          >
+            <div
+              onClick={e => e.stopPropagation()}
+              style={{
+                background: 'var(--color-surface)', border: '1px solid var(--color-border)',
+                borderRadius: '14px', padding: '28px', width: '100%', maxWidth: '340px',
+                boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
+              }}
+            >
+              <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--color-text)', margin: '0 0 6px' }}>
+                How many copies sold?
+              </h3>
+              <p style={{ fontSize: '13px', color: 'var(--color-muted)', margin: '0 0 20px' }}>
+                You have <strong style={{ color: 'var(--color-text)' }}>{soldModal.maxQty}</strong> in stock.
+              </p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
+                <button type="button" onClick={() => setSoldQtyInput(String(Math.max(1, clamped - 1)))}
+                  style={{ width: '32px', height: '32px', borderRadius: '7px', border: '1px solid var(--color-border)', background: 'var(--color-surface-2)', color: 'var(--color-text)', fontSize: '16px', cursor: 'pointer', flexShrink: 0 }}>−</button>
+                <input
+                  autoFocus type="number" min={1} max={soldModal.maxQty}
+                  value={soldQtyInput}
+                  onChange={e => setSoldQtyInput(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') handleSoldWithQty(soldModal.listingId, clamped); if (e.key === 'Escape') setSoldModal(null) }}
+                  style={{ flex: 1, textAlign: 'center', fontSize: '18px', fontWeight: 700, padding: '6px', borderRadius: '7px', border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text)' }}
+                />
+                <button type="button" onClick={() => setSoldQtyInput(String(Math.min(soldModal.maxQty, clamped + 1)))}
+                  style={{ width: '32px', height: '32px', borderRadius: '7px', border: '1px solid var(--color-border)', background: 'var(--color-surface-2)', color: 'var(--color-text)', fontSize: '16px', cursor: 'pointer', flexShrink: 0 }}>+</button>
+              </div>
+              {clamped < soldModal.maxQty && (
+                <p style={{ fontSize: '11px', color: 'var(--color-muted)', margin: '0 0 16px', fontStyle: 'italic' }}>
+                  {soldModal.maxQty - clamped} cop{soldModal.maxQty - clamped === 1 ? 'y' : 'ies'} will remain listed.
+                </p>
+              )}
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button type="button" onClick={() => handleSoldWithQty(soldModal.listingId, clamped)}
+                  disabled={bulkLoading || clamped < 1 || clamped > soldModal.maxQty}
+                  style={{ flex: 1, padding: '10px', borderRadius: '8px', fontSize: '13px', fontWeight: 700, background: '#10b981', border: 'none', color: '#fff', cursor: bulkLoading ? 'not-allowed' : 'pointer', opacity: bulkLoading ? 0.6 : 1 }}>
+                  {bulkLoading ? 'Marking…' : `Mark ${clamped} sold`}
+                </button>
+                <button type="button" onClick={() => setSoldModal(null)}
+                  style={{ padding: '10px 16px', borderRadius: '8px', fontSize: '13px', border: '1px solid var(--color-border)', background: 'transparent', color: 'var(--color-muted)', cursor: 'pointer' }}>
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
     </div>
   )
 }
