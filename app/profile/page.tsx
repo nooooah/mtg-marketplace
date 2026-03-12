@@ -90,6 +90,7 @@ function ProfileContent({ userId, initialProfile }: { userId: string; initialPro
           binders={binders}
           loading={listingsLoading}
           displayName={profile.display_name ?? profile.username}
+          username={profile.username}
           onUpdateBinder={(id, patch) => setBinders(prev => prev.map(b => b.id === id ? { ...b, ...patch } : b))}
           saveBinder={async (id, patch) => {
             await supabase.from('binders').update(patch).eq('id', id)
@@ -105,11 +106,12 @@ function ProfileContent({ userId, initialProfile }: { userId: string; initialPro
 
 const MASTER_ID = '__master__'
 
-function BindersDisplay({ listings, binders, loading, displayName, onUpdateBinder, saveBinder }: {
+function BindersDisplay({ listings, binders, loading, displayName, username, onUpdateBinder, saveBinder }: {
   listings: Listing[]
   binders: Binder[]
   loading: boolean
   displayName: string
+  username: string
   onUpdateBinder: (id: string, patch: Partial<Binder>) => void
   saveBinder: (id: string, patch: Partial<Binder>) => Promise<void>
 }) {
@@ -123,8 +125,55 @@ function BindersDisplay({ listings, binders, loading, displayName, onUpdateBinde
   const [editingBinders, setEditingBinders] = useState(false)
   const [masterTooltip, setMasterTooltip] = useState(false)
   const [hiddenNoticeBinderName, setHiddenNoticeBinderName] = useState<string | null>(null)
+  const [openMenuBinderId, setOpenMenuBinderId] = useState<string | null>(null)
+  const [copiedAction, setCopiedAction] = useState<string | null>(null)
   const saveColorTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const noticeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const menuRef = useRef<HTMLDivElement | null>(null)
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    if (!openMenuBinderId) return
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setOpenMenuBinderId(null)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [openMenuBinderId])
+
+  const flashCopied = (key: string) => {
+    setCopiedAction(key)
+    setTimeout(() => setCopiedAction(null), 1800)
+  }
+
+  const copyBinderLink = (binderId: string) => {
+    const url = `${window.location.origin}/profile/${username}?binder=${binderId}`
+    navigator.clipboard.writeText(url)
+    flashCopied(`link-${binderId}`)
+    setOpenMenuBinderId(null)
+  }
+
+  const copyBinderContents = (cards: Listing[]) => {
+    const lines = cards.map(c =>
+      `${c.quantity} - ${c.card_name} - ${c.card_set_name ?? c.card_set ?? 'Unknown'} - ${c.is_foil ? 'Foil' : 'Non-Foil'} - ${c.condition} - ₱${c.price.toLocaleString('en-PH')}`
+    ).join('\n')
+    navigator.clipboard.writeText(lines)
+    flashCopied(`contents-${cards[0]?.binder_id}`)
+    setOpenMenuBinderId(null)
+  }
+
+  const exportMoxfield = (cards: Listing[]) => {
+    const lines = cards.map(c => {
+      const set = c.card_set ? ` [${c.card_set.toUpperCase()}]` : ''
+      const foil = c.is_foil ? ' *F*' : ''
+      return `${c.quantity} ${c.card_name}${set}${foil}`
+    }).join('\n')
+    navigator.clipboard.writeText(lines)
+    flashCopied(`moxfield-${cards[0]?.binder_id}`)
+    setOpenMenuBinderId(null)
+  }
 
   // Keep selected tab valid when binders load
   const isMasterSelected = selectedBinderId === MASTER_ID
@@ -270,44 +319,90 @@ function BindersDisplay({ listings, binders, loading, displayName, onUpdateBinde
           {binderGroups.map(({ binder, cards }) => {
             const isActive = binder.id === activeGroup?.binder.id
             const hidden = binder.show_on_profile === false
+            const menuOpen = openMenuBinderId === binder.id
             return (
-              <button
-                key={binder.id}
-                onClick={() => setSelectedBinderId(binder.id)}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: '7px',
-                  padding: '8px 14px 8px 16px', borderRadius: '10px',
-                  fontSize: '14px', fontWeight: isActive ? 700 : 500,
-                  cursor: 'pointer', transition: 'all 0.12s ease',
-                  width: '100%',
-                  opacity: hidden && !isActive ? 0.55 : 1,
-                  ...binderTabStyle(binder, isActive),
-                }}
-              >
-                <span style={{ flex: 1, textAlign: 'left', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{binder.name}</span>
-                {(binder.mana_colors ?? []).map((c, i) => <ManaIcon key={i} color={c} size={15} />)}
-                <span style={{
-                  fontSize: '11px', fontWeight: 700, padding: '1px 7px', borderRadius: '10px', flexShrink: 0,
-                  background: isActive ? 'rgba(59,130,246,0.15)' : 'var(--color-surface)',
-                  color: isActive ? 'var(--color-blue)' : 'var(--color-subtle)',
-                  border: `1px solid ${isActive ? 'rgba(59,130,246,0.25)' : 'var(--color-border)'}`,
-                }}>
-                  {cards.length}
-                </span>
-                <span
-                  onClick={e => toggleShowOnProfile(e, binder)}
-                  title={hidden ? 'Show on public profile' : 'Hide from public profile'}
+              <div key={binder.id} style={{ position: 'relative' }} ref={menuOpen ? menuRef : null}>
+                <button
+                  onClick={() => setSelectedBinderId(binder.id)}
                   style={{
-                    display: 'flex', alignItems: 'center', flexShrink: 0,
-                    color: hidden ? '#f59e0b' : 'currentColor',
-                    opacity: hidden ? 1 : 0.35,
-                    marginLeft: '2px',
-                    transition: 'opacity 0.15s ease, color 0.15s ease',
+                    display: 'flex', alignItems: 'center', gap: '7px',
+                    padding: '8px 14px 8px 16px', borderRadius: '10px',
+                    fontSize: '14px', fontWeight: isActive ? 700 : 500,
+                    cursor: 'pointer', transition: 'all 0.12s ease',
+                    width: '100%',
+                    opacity: hidden && !isActive ? 0.55 : 1,
+                    ...binderTabStyle(binder, isActive),
                   }}
                 >
-                  {hidden ? <EyeSlashIcon /> : <EyeIcon size={13} />}
-                </span>
-              </button>
+                  <span style={{ flex: 1, textAlign: 'left', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{binder.name}</span>
+                  {(binder.mana_colors ?? []).map((c, i) => <ManaIcon key={i} color={c} size={15} />)}
+                  <span style={{
+                    fontSize: '11px', fontWeight: 700, padding: '1px 7px', borderRadius: '10px', flexShrink: 0,
+                    background: isActive ? 'rgba(59,130,246,0.15)' : 'var(--color-surface)',
+                    color: isActive ? 'var(--color-blue)' : 'var(--color-subtle)',
+                    border: `1px solid ${isActive ? 'rgba(59,130,246,0.25)' : 'var(--color-border)'}`,
+                  }}>
+                    {cards.length}
+                  </span>
+                  {/* Three-dot menu trigger */}
+                  <span
+                    onClick={e => { e.stopPropagation(); setOpenMenuBinderId(menuOpen ? null : binder.id) }}
+                    title="Binder options"
+                    style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      flexShrink: 0, width: '20px', height: '20px',
+                      borderRadius: '5px', marginLeft: '2px',
+                      color: menuOpen ? 'var(--color-blue)' : 'var(--color-subtle)',
+                      background: menuOpen ? 'var(--color-blue-glow)' : 'transparent',
+                      transition: 'color 0.12s ease, background 0.12s ease',
+                    }}
+                  >
+                    <DotsIcon />
+                  </span>
+                </button>
+
+                {/* Dropdown menu */}
+                {menuOpen && (
+                  <div style={{
+                    position: 'absolute', right: 0, top: 'calc(100% + 4px)', zIndex: 50,
+                    background: 'var(--color-surface)',
+                    border: '1px solid var(--color-border-2)',
+                    borderRadius: '10px',
+                    boxShadow: '0 8px 24px rgba(0,0,0,0.35)',
+                    minWidth: '220px',
+                    overflow: 'hidden',
+                    padding: '4px',
+                  }}>
+                    {/* Show / Hide */}
+                    <BinderMenuItem
+                      icon={hidden ? <EyeIcon size={13} /> : <EyeSlashIcon />}
+                      label={hidden ? 'Show in public profile' : 'Hide from public profile'}
+                      onClick={e => { toggleShowOnProfile(e, binder); setOpenMenuBinderId(null) }}
+                      accent={hidden ? 'var(--color-blue)' : '#f59e0b'}
+                    />
+                    {/* Copy link */}
+                    <BinderMenuItem
+                      icon={<LinkIcon />}
+                      label={copiedAction === `link-${binder.id}` ? 'Link copied!' : 'Copy link to binder'}
+                      onClick={() => copyBinderLink(binder.id)}
+                    />
+                    {/* Copy contents */}
+                    <BinderMenuItem
+                      icon={<CopyIcon />}
+                      label={copiedAction === `contents-${binder.id}` ? 'Copied!' : 'Copy contents with price'}
+                      sublabel="QTY · Name · Set · Foil · Cond · Price"
+                      onClick={() => copyBinderContents(cards)}
+                    />
+                    {/* Moxfield export */}
+                    <BinderMenuItem
+                      icon={<ExportIcon />}
+                      label={copiedAction === `moxfield-${binder.id}` ? 'Copied to clipboard!' : 'Export to Moxfield'}
+                      sublabel="Copies Moxfield-ready import list"
+                      onClick={() => exportMoxfield(cards)}
+                    />
+                  </div>
+                )}
+              </div>
             )
           })}
         </div>
@@ -664,4 +759,48 @@ function XIcon() {
 }
 function InfoIcon() {
   return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" /></svg>
+}
+function DotsIcon() {
+  return <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2" /><circle cx="12" cy="12" r="2" /><circle cx="19" cy="12" r="2" /></svg>
+}
+function CopyIcon() {
+  return <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>
+}
+function ExportIcon() {
+  return <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
+}
+
+function BinderMenuItem({ icon, label, sublabel, onClick, accent }: {
+  icon: React.ReactNode
+  label: string
+  sublabel?: string
+  onClick: (e: React.MouseEvent) => void
+  accent?: string
+}) {
+  const [hovering, setHovering] = useState(false)
+  return (
+    <button
+      onClick={e => { e.stopPropagation(); onClick(e) }}
+      onMouseEnter={() => setHovering(true)}
+      onMouseLeave={() => setHovering(false)}
+      style={{
+        display: 'flex', alignItems: 'center', gap: '10px',
+        width: '100%', padding: '8px 10px', borderRadius: '7px',
+        border: 'none', background: hovering ? 'var(--color-surface-2)' : 'transparent',
+        cursor: 'pointer', textAlign: 'left', transition: 'background 0.1s ease',
+      }}
+    >
+      <span style={{ color: accent ?? 'var(--color-muted)', flexShrink: 0, display: 'flex' }}>{icon}</span>
+      <span style={{ flex: 1, minWidth: 0 }}>
+        <span style={{ display: 'block', fontSize: '13px', color: accent ?? 'var(--color-text)', fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          {label}
+        </span>
+        {sublabel && (
+          <span style={{ display: 'block', fontSize: '11px', color: 'var(--color-subtle)', marginTop: '1px' }}>
+            {sublabel}
+          </span>
+        )}
+      </span>
+    </button>
+  )
 }
