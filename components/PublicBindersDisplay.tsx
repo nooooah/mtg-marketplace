@@ -11,17 +11,24 @@ export default function PublicBindersDisplay({
   listings,
   binders,
   displayName,
+  initialBinderId,
 }: {
   listings: Listing[]
   binders: Binder[]
   displayName: string
+  initialBinderId?: string
 }) {
   const binderGroups = binders
     .filter(b => b.show_on_profile !== false)
     .map(b => ({ binder: b, cards: listings.filter(l => l.binder_id === b.id) }))
     .filter(g => g.cards.length > 0)
 
-  const [selectedId, setSelectedId] = useState<string>(MASTER_ID)
+  // If a binder ID was passed via URL, default to it (if it exists and is visible)
+  const resolvedInitial = initialBinderId && binderGroups.some(g => g.binder.id === initialBinderId)
+    ? initialBinderId
+    : MASTER_ID
+
+  const [selectedId, setSelectedId] = useState<string>(resolvedInitial)
   const [masterTooltip, setMasterTooltip] = useState(false)
 
   const isMasterSelected = selectedId === MASTER_ID

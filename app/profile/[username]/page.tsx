@@ -8,8 +8,9 @@ function formatMemberSince(dateStr: string) {
   return new Date(dateStr).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
 }
 
-export default async function ProfilePage({ params }: { params: Promise<{ username: string }> }) {
+export default async function ProfilePage({ params, searchParams }: { params: Promise<{ username: string }>; searchParams: Promise<{ binder?: string }> }) {
   const { username } = await params
+  const { binder: initialBinderId } = await searchParams
   const supabase = await createClient()
 
   const { data: profile } = await supabase
@@ -95,6 +96,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
         listings={l}
         binders={b}
         displayName={p.display_name ?? p.username}
+        initialBinderId={initialBinderId}
       />
 
     </div>

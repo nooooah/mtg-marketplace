@@ -156,7 +156,8 @@ function BindersDisplay({ listings, binders, loading, displayName, username, onU
   }
 
   const copyBinderContents = (cards: Listing[]) => {
-    const lines = cards.map(c =>
+    const sorted = [...cards].sort((a, b) => a.card_name.localeCompare(b.card_name))
+    const lines = sorted.map(c =>
       `${c.quantity} - ${c.card_name} - ${c.card_set_name ?? c.card_set ?? 'Unknown'} - ${c.is_foil ? 'Foil' : 'Non-Foil'} - ${c.condition} - ₱${c.price.toLocaleString('en-PH')}`
     ).join('\n')
     navigator.clipboard.writeText(lines)
@@ -165,7 +166,8 @@ function BindersDisplay({ listings, binders, loading, displayName, username, onU
   }
 
   const exportMoxfield = (cards: Listing[]) => {
-    const lines = cards.map(c => {
+    const sorted = [...cards].sort((a, b) => a.card_name.localeCompare(b.card_name))
+    const lines = sorted.map(c => {
       const set = c.card_set ? ` [${c.card_set.toUpperCase()}]` : ''
       const foil = c.is_foil ? ' *F*' : ''
       return `${c.quantity} ${c.card_name}${set}${foil}`
