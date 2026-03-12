@@ -143,38 +143,56 @@ function BindersDisplay({ listings, binders, loading, displayName, username, onU
     return () => document.removeEventListener('mousedown', handler)
   }, [openMenuBinderId])
 
+  const writeToClipboard = (text: string) => {
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(text).catch(() => fallbackCopy(text))
+    } else {
+      fallbackCopy(text)
+    }
+  }
+
+  const fallbackCopy = (text: string) => {
+    const ta = document.createElement('textarea')
+    ta.value = text
+    ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0;pointer-events:none'
+    document.body.appendChild(ta)
+    ta.focus()
+    ta.select()
+    document.execCommand('copy')
+    document.body.removeChild(ta)
+  }
+
   const flashCopied = (key: string) => {
     setCopiedAction(key)
+    // Close menu after a short delay so user sees the "Copied!" confirmation
+    setTimeout(() => setOpenMenuBinderId(null), 900)
     setTimeout(() => setCopiedAction(null), 1800)
   }
 
   const copyBinderLink = (binderId: string) => {
     const url = `${window.location.origin}/profile/${username}?binder=${binderId}`
-    navigator.clipboard.writeText(url)
+    writeToClipboard(url)
     flashCopied(`link-${binderId}`)
-    setOpenMenuBinderId(null)
   }
 
-  const copyBinderContents = (cards: Listing[]) => {
+  const copyBinderContents = (cards: Listing[], binderId: string) => {
     const sorted = [...cards].sort((a, b) => a.card_name.localeCompare(b.card_name))
     const lines = sorted.map(c =>
       `${c.quantity} - ${c.card_name} - ${c.card_set_name ?? c.card_set ?? 'Unknown'} - ${c.is_foil ? 'Foil' : 'Non-Foil'} - ${c.condition} - ₱${c.price.toLocaleString('en-PH')}`
     ).join('\n')
-    navigator.clipboard.writeText(lines)
-    flashCopied(`contents-${cards[0]?.binder_id}`)
-    setOpenMenuBinderId(null)
+    writeToClipboard(lines)
+    flashCopied(`contents-${binderId}`)
   }
 
-  const exportMoxfield = (cards: Listing[]) => {
+  const exportMoxfield = (cards: Listing[], binderId: string) => {
     const sorted = [...cards].sort((a, b) => a.card_name.localeCompare(b.card_name))
     const lines = sorted.map(c => {
       const set = c.card_set ? ` [${c.card_set.toUpperCase()}]` : ''
       const foil = c.is_foil ? ' *F*' : ''
       return `${c.quantity} ${c.card_name}${set}${foil}`
     }).join('\n')
-    navigator.clipboard.writeText(lines)
-    flashCopied(`moxfield-${cards[0]?.binder_id}`)
-    setOpenMenuBinderId(null)
+    writeToClipboard(lines)
+    flashCopied(`moxfield-${binderId}`)
   }
 
   // Keep selected tab valid when binders load
@@ -393,14 +411,14 @@ function BindersDisplay({ listings, binders, loading, displayName, username, onU
                       icon={<CopyIcon />}
                       label={copiedAction === `contents-${binder.id}` ? 'Copied!' : 'Copy contents with price'}
                       sublabel="QTY · Name · Set · Foil · Cond · Price"
-                      onClick={() => copyBinderContents(cards)}
+                      onClick={() => copyBinderContents(cards, binder.id)}
                     />
                     {/* Moxfield export */}
                     <BinderMenuItem
                       icon={<ExportIcon />}
                       label={copiedAction === `moxfield-${binder.id}` ? 'Copied to clipboard!' : 'Export to Moxfield'}
                       sublabel="Copies Moxfield-ready import list"
-                      onClick={() => exportMoxfield(cards)}
+                      onClick={() => exportMoxfield(cards, binder.id)}
                     />
                   </div>
                 )}
