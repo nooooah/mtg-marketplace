@@ -484,37 +484,6 @@ function MyListingsContent() {
 
       {/* Binder Tabs */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginBottom: '20px' }}>
-        {/* Multi-select toggle */}
-        <button
-          type="button"
-          onClick={() => {
-            if (multiSelectMode) {
-              // Exit: collapse to first selected binder
-              const first = [...selectedBinderIds][0] ?? 'unsorted'
-              setSelectedBinderIds(new Set([first]))
-              setSelectedIds(new Set())
-            }
-            setMultiSelectMode(m => !m)
-          }}
-          title={multiSelectMode ? 'Exit multi-select mode' : 'Select multiple binders'}
-          style={{
-            padding: '5px 10px', borderRadius: '8px', fontSize: '11px', fontWeight: 600,
-            cursor: 'pointer', transition: 'all 0.12s ease',
-            border: `1px solid ${multiSelectMode ? 'var(--color-blue)' : 'var(--color-border)'}`,
-            background: multiSelectMode ? 'rgba(59,130,246,0.1)' : 'var(--color-surface)',
-            color: multiSelectMode ? 'var(--color-blue)' : 'var(--color-subtle)',
-            display: 'flex', alignItems: 'center', gap: '5px',
-          }}
-        >
-          <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
-            <rect x="1" y="1" width="6" height="6" rx="1.5" opacity={multiSelectMode ? 1 : 0.5} />
-            <rect x="9" y="1" width="6" height="6" rx="1.5" />
-            <rect x="1" y="9" width="6" height="6" rx="1.5" opacity={multiSelectMode ? 1 : 0.5} />
-            <rect x="9" y="9" width="6" height="6" rx="1.5" opacity={multiSelectMode ? 1 : 0.5} />
-          </svg>
-          {multiSelectMode ? 'Multi-select on' : 'Multi-select'}
-        </button>
-        {/* Unsorted */}
         {[{ id: 'unsorted', name: 'Unsorted' }, ...binders].map((b) => {
           const isUnsorted = b.id === 'unsorted'
           const isActive = selectedBinderIds.has(b.id)
@@ -541,7 +510,7 @@ function MyListingsContent() {
                 />
               ) : (
                 <button
-                  onClick={() => multiSelectMode ? toggleBinder(b.id) : selectBinder(b.id)}
+                  onClick={() => selectBinder(b.id)}
                   style={{
                     display: 'flex', alignItems: 'center', gap: '6px',
                     padding: '6px 12px', borderRadius: '8px', fontSize: '13px', fontWeight: isActive ? 600 : 400,
@@ -551,6 +520,24 @@ function MyListingsContent() {
                     color: isActive ? 'var(--color-blue)' : 'var(--color-muted)',
                   }}
                 >
+                  {/* Checkbox for multi-select */}
+                  <span
+                    onClick={e => { e.stopPropagation(); toggleBinder(b.id) }}
+                    title="Add to multi-select"
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                      width: '14px', height: '14px', borderRadius: '3px', flexShrink: 0,
+                      border: `1.5px solid ${selectedBinderIds.has(b.id) && selectedBinderIds.size > 1 ? 'var(--color-blue)' : 'var(--color-border)'}`,
+                      background: selectedBinderIds.has(b.id) && selectedBinderIds.size > 1 ? 'var(--color-blue)' : 'transparent',
+                      transition: 'all 0.12s ease', cursor: 'pointer',
+                    }}
+                  >
+                    {selectedBinderIds.has(b.id) && selectedBinderIds.size > 1 && (
+                      <svg width="9" height="9" viewBox="0 0 9 9" fill="none">
+                        <path d="M1.5 4.5L3.5 6.5L7.5 2.5" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    )}
+                  </span>
                   {b.name}
                   <span style={{
                     fontSize: '10px', fontWeight: 700, padding: '1px 5px', borderRadius: '8px',
@@ -734,7 +721,7 @@ function MyListingsContent() {
             · {binderListings.length} total cards · ₱{binderListings.reduce((s, l) => s + l.price * l.quantity, 0).toLocaleString('en-PH')} combined value
           </span>
           <button
-            onClick={() => { setSelectedBinderIds(new Set(['unsorted'])); setSelectedIds(new Set()); setMultiSelectMode(false) }}
+            onClick={() => { setSelectedBinderIds(new Set(['unsorted'])); setSelectedIds(new Set()) }}
             style={{ marginLeft: 'auto', fontSize: '11px', padding: '3px 10px', borderRadius: '6px', border: '1px solid var(--color-border)', background: 'transparent', color: 'var(--color-subtle)', cursor: 'pointer' }}
           >
             Clear selection
