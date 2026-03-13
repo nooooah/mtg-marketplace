@@ -36,8 +36,8 @@ export default function PriceCheckerPage() {
   const [phpRate, setPhpRate]                 = useState<number | null>(null)
   const [rateLoading, setRateLoading]         = useState(false)
 
-  // Multiplier selection
-  const [activeMult, setActiveMult]           = useState<number | 'custom' | null>(null)
+  // Multiplier selection — default to ×50
+  const [activeMult, setActiveMult]           = useState<number | 'custom' | null>(50)
   const [customMult, setCustomMult]           = useState('')
 
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -72,7 +72,7 @@ export default function PriceCheckerPage() {
     setSearchResults([])
     setShowPrintings(false)
     setPrintingResults([])
-    setActiveMult(null)
+    setActiveMult(50)
     setCustomMult('')
     setIsFoil(false)
   }
@@ -83,7 +83,7 @@ export default function PriceCheckerPage() {
     setSearchResults([])
     setShowPrintings(false)
     setPrintingResults([])
-    setActiveMult(null)
+    setActiveMult(50)
     setCustomMult('')
     setIsFoil(false)
   }

@@ -43,9 +43,11 @@ export default function Navbar() {
       <style>{`
         .nb-desktop { display: flex; }
         .nb-hamburger { display: none; }
+        .nb-mobile-pc { display: none; }
         @media (max-width: 680px) {
-          .nb-desktop  { display: none !important; }
+          .nb-desktop   { display: none !important; }
           .nb-hamburger { display: flex !important; }
+          .nb-mobile-pc { display: flex !important; }
         }
       `}</style>
 
@@ -95,6 +97,11 @@ export default function Navbar() {
             ) : (
               <GuestButtons />
             )}
+          </div>
+
+          {/* Price Checker — visible in bar on mobile, hidden on desktop (already in nb-desktop) */}
+          <div className="nb-mobile-pc" style={{ alignItems: 'center', flexShrink: 0 }}>
+            <NavLink href="/price-checker" active={isActive('/price-checker')}>Price Checker</NavLink>
           </div>
 
           {/* Hamburger (mobile only) */}
