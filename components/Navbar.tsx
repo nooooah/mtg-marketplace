@@ -85,9 +85,9 @@ export default function Navbar() {
 
           {/* Desktop nav links + auth */}
           <div className="nb-desktop" style={{ alignItems: 'center', gap: '2px', flexShrink: 0 }}>
+            <NavLink href="/price-checker"  active={isActive('/price-checker')}>Price Checker</NavLink>
             <NavLink href="/buy"            active={isActive('/buy')}>Buy</NavLink>
             <NavLink href="/sell"           active={isActive('/sell')}>Sell</NavLink>
-            <NavLink href="/price-checker"  active={isActive('/price-checker')}>Price Checker</NavLink>
             <NavLink href="/donate"         active={isActive('/donate')}>Donate</NavLink>
 
             <div style={{ width: '1px', height: '16px', background: 'var(--color-border)', margin: '0 8px' }} />
@@ -128,9 +128,9 @@ export default function Navbar() {
             padding: '12px 1.25rem 20px',
             display: 'flex', flexDirection: 'column', gap: '4px',
           }}>
+            <MobileNavLink href="/price-checker" active={isActive('/price-checker')} onClick={() => setMobileOpen(false)}>Price Checker</MobileNavLink>
             <MobileNavLink href="/buy"           active={isActive('/buy')}           onClick={() => setMobileOpen(false)}>Buy</MobileNavLink>
             <MobileNavLink href="/sell"          active={isActive('/sell')}          onClick={() => setMobileOpen(false)}>Sell</MobileNavLink>
-            <MobileNavLink href="/price-checker" active={isActive('/price-checker')} onClick={() => setMobileOpen(false)}>Price Checker</MobileNavLink>
             <MobileNavLink href="/donate"        active={isActive('/donate')}        onClick={() => setMobileOpen(false)}>Donate</MobileNavLink>
 
             <div style={{ borderTop: '1px solid var(--color-border)', margin: '8px 0' }} />
