@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import type { ScryfallCard } from '@/types'
+import { useCardHover, HoverCardImage } from '@/components/CardHoverPreview'
 
 /* ─── Constants ────────────────────────────────────────────── */
 
@@ -21,32 +22,32 @@ function fmt(n: number) {
 
 export default function PriceCheckerPage() {
   // Card search
-  const [cardQuery, setCardQuery]           = useState('')
-  const [searchResults, setSearchResults]   = useState<ScryfallCard[]>([])
-  const [selectedCard, setSelectedCard]     = useState<ScryfallCard | null>(null)
-  const [isFoil, setIsFoil]                 = useState(false)
+  const [cardQuery, setCardQuery]             = useState('')
+  const [searchResults, setSearchResults]     = useState<ScryfallCard[]>([])
+  const [selectedCard, setSelectedCard]       = useState<ScryfallCard | null>(null)
+  const [isFoil, setIsFoil]                   = useState(false)
 
   // Printings panel
-  const [showPrintings, setShowPrintings]   = useState(false)
+  const [showPrintings, setShowPrintings]     = useState(false)
   const [printingResults, setPrintingResults] = useState<ScryfallCard[]>([])
   const [printingsLoading, setPrintingsLoading] = useState(false)
 
-  // Exchange rate
-  const [phpRate, setPhpRate]               = useState<number | null>(null)
-  const [rateLoading, setRateLoading]       = useState(false)
+  // Exchange rate (informational only)
+  const [phpRate, setPhpRate]                 = useState<number | null>(null)
+  const [rateLoading, setRateLoading]         = useState(false)
 
   // Multiplier selection
-  const [activeMult, setActiveMult]         = useState<number | 'custom' | null>(null)
-  const [customMult, setCustomMult]         = useState('')
+  const [activeMult, setActiveMult]           = useState<number | 'custom' | null>(null)
+  const [customMult, setCustomMult]           = useState('')
 
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // Fetch exchange rate once on mount
+  // Fetch exchange rate once — shown as informational reference only
   useEffect(() => {
     setRateLoading(true)
     fetch('https://open.er-api.com/v6/latest/USD')
       .then(r => r.json())
-      .then(data => { setPhpRate(data?.rates?.PHP ?? null) })
+      .then(data => setPhpRate(data?.rates?.PHP ?? null))
       .catch(() => setPhpRate(null))
       .finally(() => setRateLoading(false))
   }, [])
@@ -110,15 +111,19 @@ export default function PriceCheckerPage() {
         : selectedCard.prices?.usd) ?? '0') || null
     : null
 
+  // PHP at spot rate (informational)
   const phpSpot = usdPrice && phpRate ? usdPrice * phpRate : null
 
+  // Multiplier result: USD × multiplier only (multiplier replaces the rate)
   const activeMult_num = activeMult === 'custom'
     ? (parseFloat(customMult) || null)
     : activeMult
 
-  const resultPrice = usdPrice && phpRate && activeMult_num
-    ? usdPrice * phpRate * activeMult_num
+  const resultPrice = usdPrice && activeMult_num
+    ? usdPrice * activeMult_num
     : null
+
+  const imgUrl = selectedCard ? getCardImage(selectedCard) : null
 
   return (
     <div style={{ maxWidth: '680px', margin: '0 auto', padding: '40px 1.25rem 80px' }}>
@@ -147,11 +152,11 @@ export default function PriceCheckerPage() {
               display: 'flex', gap: '12px', alignItems: 'flex-start',
               background: 'var(--color-surface-2)', borderRadius: '10px', padding: '12px',
             }}>
-              {getCardImage(selectedCard) && (
-                <img
-                  src={getCardImage(selectedCard)!}
+              {imgUrl && (
+                <HoverCardImage
+                  src={imgUrl}
                   alt={selectedCard.name}
-                  style={{ width: '56px', borderRadius: '6px', flexShrink: 0 }}
+                  style={{ width: '56px', borderRadius: '6px', flexShrink: 0, cursor: 'default' }}
                 />
               )}
               <div style={{ flex: 1, minWidth: 0 }}>
@@ -262,12 +267,12 @@ export default function PriceCheckerPage() {
                 sub="USD"
                 color="#10b981"
               />
-              {/* PHP spot */}
+              {/* PHP spot — informational */}
               {phpSpot && (
                 <PricePill
-                  label={rateLoading ? 'Loading rate…' : `At ₱${phpRate?.toFixed(2)} / $1`}
+                  label={rateLoading ? 'Fetching rate…' : `Spot rate ₱${phpRate?.toFixed(2)} / $1`}
                   value={`₱${fmt(phpSpot)}`}
-                  sub="PHP spot"
+                  sub="PHP at spot rate"
                   color="var(--color-blue)"
                 />
               )}
@@ -286,10 +291,10 @@ export default function PriceCheckerPage() {
       )}
 
       {/* ── Multiplier Grid ──────────────────────────────────── */}
-      {selectedCard && usdPrice && phpRate && (
+      {selectedCard && usdPrice && (
         <Section label="Multiplier calculator">
           <p style={{ fontSize: '13px', color: 'var(--color-muted)', margin: '0 0 14px', lineHeight: 1.5 }}>
-            Pick a multiplier to see the suggested local price.
+            Pick a multiplier — result is <strong>USD price × multiplier</strong>, shown in PHP.
           </p>
 
           {/* Result display */}
@@ -307,7 +312,7 @@ export default function PriceCheckerPage() {
                 ₱{fmt(resultPrice)}
               </p>
               <p style={{ fontSize: '12px', color: 'var(--color-subtle)', margin: '4px 0 0' }}>
-                ${usdPrice.toFixed(2)} × {phpRate?.toFixed(2)} × {activeMult === 'custom' ? (customMult || '?') : activeMult}
+                ${usdPrice.toFixed(2)} × {activeMult === 'custom' ? (customMult || '?') : activeMult}
               </p>
             </div>
           )}
@@ -319,7 +324,7 @@ export default function PriceCheckerPage() {
             gap: '8px',
           }}>
             {MULTIPLIERS.map(m => {
-              const price = usdPrice * phpRate * m
+              const price = usdPrice * m
               const isActive = activeMult === m
               return (
                 <button
@@ -345,7 +350,7 @@ export default function PriceCheckerPage() {
 
             {/* Custom button */}
             <button
-              onClick={() => { setActiveMult(activeMult === 'custom' ? null : 'custom') }}
+              onClick={() => setActiveMult(activeMult === 'custom' ? null : 'custom')}
               style={{
                 display: 'flex', flexDirection: 'column', alignItems: 'center',
                 gap: '2px', padding: '10px 6px', borderRadius: '10px',
@@ -363,7 +368,7 @@ export default function PriceCheckerPage() {
 
           {/* Custom input */}
           {activeMult === 'custom' && (
-            <div style={{ marginTop: '12px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{ marginTop: '12px', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
               <label style={{ fontSize: '13px', color: 'var(--color-muted)', whiteSpace: 'nowrap' }}>Custom multiplier:</label>
               <input
                 type="number"
@@ -375,9 +380,9 @@ export default function PriceCheckerPage() {
                 autoFocus
                 style={{ width: '100px' }}
               />
-              {customMult && usdPrice && phpRate && (
+              {customMult && usdPrice && (
                 <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--color-text)' }}>
-                  = ₱{fmt(usdPrice * phpRate * parseFloat(customMult))}
+                  = ₱{fmt(usdPrice * parseFloat(customMult))}
                 </span>
               )}
             </div>
@@ -431,11 +436,13 @@ function ScryfallRow({ card, onSelect }: { card: ScryfallCard; onSelect: (c: Scr
   const [hov, setHov] = useState(false)
   const img = getCardImage(card)
   const usd = card.prices?.usd_foil ?? card.prices?.usd
+  const { onMouseMove, onMouseLeave: onPreviewLeave, preview } = useCardHover(img)
+
   return (
     <button
       onClick={() => onSelect(card)}
       onMouseEnter={() => setHov(true)}
-      onMouseLeave={() => setHov(false)}
+      onMouseLeave={() => { setHov(false); onPreviewLeave() }}
       style={{
         display: 'flex', alignItems: 'center', gap: '10px',
         width: '100%', padding: '8px 12px', border: 'none',
@@ -443,8 +450,9 @@ function ScryfallRow({ card, onSelect }: { card: ScryfallCard; onSelect: (c: Scr
         textAlign: 'left', cursor: 'pointer', transition: 'background 0.1s ease',
       }}
     >
+      {preview}
       {img
-        ? <img src={img} alt={card.name} style={{ width: '32px', height: '44px', objectFit: 'cover', borderRadius: '4px', flexShrink: 0 }} />
+        ? <img src={img} alt={card.name} onMouseMove={onMouseMove} style={{ width: '32px', height: '44px', objectFit: 'cover', borderRadius: '4px', flexShrink: 0 }} />
         : <div style={{ width: '32px', height: '44px', borderRadius: '4px', background: 'var(--color-surface-2)', flexShrink: 0 }} />
       }
       <div style={{ flex: 1, minWidth: 0 }}>
