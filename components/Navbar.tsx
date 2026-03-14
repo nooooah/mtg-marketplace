@@ -17,8 +17,19 @@ export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false)      // account dropdown
   const [mobileOpen, setMobileOpen] = useState(false)  // mobile hamburger
 
-  // Close mobile menu on route change
-  useEffect(() => { setMobileOpen(false) }, [pathname])
+  // Close mobile menu on route change + reset iOS Safari zoom
+  useEffect(() => {
+    setMobileOpen(false)
+    // Reset viewport zoom on navigation (fixes iOS Safari zoom persisting after input focus)
+    const viewport = document.querySelector('meta[name="viewport"]')
+    if (viewport) {
+      viewport.setAttribute('content', 'width=device-width, initial-scale=1, maximum-scale=1')
+      // Remove maximum-scale constraint after a tick so pinch-zoom still works
+      setTimeout(() => {
+        viewport.setAttribute('content', 'width=device-width, initial-scale=1')
+      }, 300)
+    }
+  }, [pathname])
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => setUser(user))
