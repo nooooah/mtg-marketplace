@@ -252,6 +252,20 @@ export default function PriceCheckerPage() {
         )}
       </Section>
 
+      {/* ── Card Image ───────────────────────────────────────── */}
+      {selectedCard && imgUrl && (
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
+          <div style={{
+            borderRadius: '16px', overflow: 'hidden',
+            border: '1px solid var(--color-border)',
+            boxShadow: '0 12px 40px rgba(0,0,0,0.35)',
+            width: '100%', maxWidth: '300px', flexShrink: 0,
+          }}>
+            <img src={imgUrl} alt={selectedCard.name} style={{ width: '100%', display: 'block' }} />
+          </div>
+        </div>
+      )}
+
       {/* ── Price Display ────────────────────────────────────── */}
       {selectedCard && (
         <Section label="Current price">
