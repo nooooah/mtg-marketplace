@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import type { Listing } from '@/types'
 import { useCardHover } from './CardHoverPreview'
+import { daysAgo } from '@/lib/utils'
 
 const CONDITION_LABELS: Record<string, string> = {
   NM: 'Near Mint',
@@ -20,13 +21,6 @@ interface CardTileProps {
   compact?: boolean
   href?: string
   sellerCount?: number
-}
-
-function daysAgo(dateStr: string): string {
-  const days = Math.floor((Date.now() - new Date(dateStr).getTime()) / (1000 * 60 * 60 * 24))
-  if (days === 0) return 'today'
-  if (days === 1) return '1d ago'
-  return `${days}d ago`
 }
 
 export default function CardTile({ listing, noPreview = false, compact = false, href, sellerCount = 1 }: CardTileProps) {

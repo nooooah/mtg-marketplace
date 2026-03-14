@@ -274,7 +274,7 @@ function MyListingsContent() {
     setCurrentPage(1)
   }
 
-  const selectBinder = (id: string) => {
+  const selectBinder = useCallback((id: string) => {
     setSelectedBinderIds(new Set([id]))
     setSelectedIds(new Set())
     setEditingId(null)
@@ -285,9 +285,9 @@ function MyListingsContent() {
     setCurrentPage(1)
     // Default to 'listed' for real binders; unsorted only has 'unlisted'
     if (id !== 'unsorted') setActiveTab('listed')
-  }
+  }, [])
 
-  const toggleBinder = (id: string) => {
+  const toggleBinder = useCallback((id: string) => {
     setSelectedBinderIds(prev => {
       const next = new Set(prev)
       if (next.has(id)) {
@@ -305,7 +305,7 @@ function MyListingsContent() {
     setBulkPriceMode(false)
     setBulkPriceValue('')
     setCurrentPage(1)
-  }
+  }, [])
 
   const toggleSelect = (id: string) => {
     setSelectedIds(prev => {

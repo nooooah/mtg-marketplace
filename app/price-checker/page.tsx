@@ -3,16 +3,13 @@
 import { useState, useEffect, useRef } from 'react'
 import type { ScryfallCard } from '@/types'
 import { useCardHover, HoverCardImage } from '@/components/CardHoverPreview'
+import { getCardImage } from '@/lib/utils'
 
 /* ─── Constants ────────────────────────────────────────────── */
 
 const MULTIPLIERS = [30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80] as const
 
 /* ─── Helpers ──────────────────────────────────────────────── */
-
-function getCardImage(card: ScryfallCard): string | null {
-  return card.image_uris?.normal ?? card.card_faces?.[0]?.image_uris?.normal ?? null
-}
 
 function fmt(n: number) {
   return Math.round(n).toLocaleString('en-PH')

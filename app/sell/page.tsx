@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import type { ScryfallCard, CardCondition, Binder } from '@/types'
 import { useCardHover, HoverCardImage } from '@/components/CardHoverPreview'
+import { daysAgo, getCardImage } from '@/lib/utils'
 
 const CONDITIONS: { value: CardCondition; label: string }[] = [
   { value: 'NM',  label: 'Near Mint (NM)' },
@@ -361,7 +362,7 @@ function SingleCardForm({ userId }: { userId: string }) {
   const [success, setSuccess] = useState(false)
 
   // Market overview — other sellers listing the same card
-  type MarketRow = { id: string; card_set: string; card_set_name: string; card_rarity: string | null; is_foil: boolean; condition: string; quantity: number; price: number; created_at: string; profiles: { username: string; display_name: string | null } | null }
+  type MarketRow = { id: string; card_set: string; card_set_name: string; card_rarity: string | null; is_foil: boolean; condition: string; quantity: number; price: number; created_at: string; profiles?: { username: string; display_name: string | null } | null }
   const [marketListings, setMarketListings] = useState<MarketRow[]>([])
   const [marketLoading, setMarketLoading] = useState(false)
   const [marketSort, setMarketSort] = useState<'price_asc' | 'price_desc' | 'date_desc' | 'date_asc'>('price_asc')
@@ -436,9 +437,10 @@ function SingleCardForm({ userId }: { userId: string }) {
           .gt('quantity', 0)
           .order('price', { ascending: true })
           .limit(50)
-        setMarketListings(((fallback ?? []) as unknown as MarketRow[]))
+        setMarketListings((fallback ?? []) as MarketRow[])
       } else {
-        setMarketListings((data as unknown as MarketRow[]))
+        // Supabase infers profiles as array from the join; cast through unknown
+        setMarketListings((data as unknown) as MarketRow[])
       }
       setMarketLoading(false)
     })()
@@ -457,9 +459,6 @@ function SingleCardForm({ userId }: { userId: string }) {
     setPrice(String(Math.round(parseFloat(basePrice) * rate)))
   }
   const clearCard = () => { setSelectedCard(null); setCardQuery(''); setPrice(''); setIsFoil(false) }
-  const getCardImage = (card: ScryfallCard) =>
-    card.image_uris?.normal ?? card.card_faces?.[0]?.image_uris?.normal ?? null
-
   const handleCreateBinder = async () => {
     const name = newBinderName.trim()
     if (!name) return
@@ -695,12 +694,6 @@ function SingleCardForm({ userId }: { userId: string }) {
             return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
           })
           const sortedMarket = marketSortPicked ? allSortedMarket : allSortedMarket.slice(0, 5)
-          const daysAgo = (d: string) => {
-            const days = Math.floor((Date.now() - new Date(d).getTime()) / 86400000)
-            if (days === 0) return 'Today'
-            if (days === 1) return '1d ago'
-            return `${days}d ago`
-          }
           return (
             <div style={{ marginTop: '4px', marginBottom: '4px' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
