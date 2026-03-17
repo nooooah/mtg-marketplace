@@ -1,7 +1,22 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
+const ADMIN_COOKIE = 'admin_session'
+const ADMIN_VALUE  = 'mtgbinder_admin_authenticated'
+
 export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl
+
+  // ── Admin route protection ─────────────────────────────
+  // Allow /admin/login through; all other /admin/* require the cookie
+  if (pathname.startsWith('/admin') && pathname !== '/admin/login') {
+    const session = request.cookies.get(ADMIN_COOKIE)?.value
+    if (session !== ADMIN_VALUE) {
+      return NextResponse.redirect(new URL('/admin/login', request.url))
+    }
+  }
+
+  // ── Supabase session refresh ───────────────────────────
   let supabaseResponse = NextResponse.next({ request })
 
   const supabase = createServerClient(
@@ -26,7 +41,7 @@ export async function middleware(request: NextRequest) {
   )
 
   // Refresh session if expired
-  const { data: { user } } = await supabase.auth.getUser()
+  await supabase.auth.getUser()
 
   return supabaseResponse
 }

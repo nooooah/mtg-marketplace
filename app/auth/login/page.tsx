@@ -4,7 +4,7 @@ import { useState, Suspense } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { AuthLayout, ErrorAlert } from '../signup/page'
+import { AuthLayout, ErrorAlert } from '../signup/SignUpForm'
 
 function LoginForm() {
   const supabase = createClient()
@@ -110,6 +110,18 @@ function LoginForm() {
           {loading ? 'Signing in…' : 'Sign in'}
         </button>
       </form>
+
+      <div style={{ borderTop: '1px solid var(--color-border)', marginTop: '24px', paddingTop: '18px', textAlign: 'center' }}>
+        <Link
+          href="/admin/login"
+          style={{ fontSize: '12px', color: 'var(--color-subtle)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+          </svg>
+          Admin sign in
+        </Link>
+      </div>
     </AuthLayout>
   )
 }

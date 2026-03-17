@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { AuthLayout } from '../signup/page'
+import { AuthLayout } from '../signup/SignUpForm'
 
 function VerifyContent() {
   const searchParams = useSearchParams()
