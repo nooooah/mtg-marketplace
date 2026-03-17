@@ -22,6 +22,7 @@ export default function UsersView({ users, total, page, perPage, q }: Props) {
   // Modals
   const [passwordModal, setPasswordModal] = useState<UserRow | null>(null)
   const [editModal, setEditModal]         = useState<UserRow | null>(null)
+  const [inviteOpen, setInviteOpen]       = useState(false)
 
   const nav = (params: Record<string, string | number>) => {
     const sp = new URLSearchParams()
@@ -50,13 +51,28 @@ export default function UsersView({ users, total, page, perPage, q }: Props) {
   return (
     <div>
       {/* Header */}
-      <div style={{ marginBottom: '28px' }}>
-        <h1 style={{ fontSize: '26px', fontWeight: 700, color: 'var(--color-text)', margin: '0 0 6px', letterSpacing: '-0.02em' }}>
-          Users
-        </h1>
-        <p style={{ fontSize: '13px', color: 'var(--color-muted)', margin: 0 }}>
-          {total.toLocaleString()} registered {total === 1 ? 'user' : 'users'}
-        </p>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '28px', gap: '16px', flexWrap: 'wrap' }}>
+        <div>
+          <h1 style={{ fontSize: '26px', fontWeight: 700, color: 'var(--color-text)', margin: '0 0 6px', letterSpacing: '-0.02em' }}>
+            Users
+          </h1>
+          <p style={{ fontSize: '13px', color: 'var(--color-muted)', margin: 0 }}>
+            {total.toLocaleString()} registered {total === 1 ? 'user' : 'users'}
+          </p>
+        </div>
+        <button
+          onClick={() => setInviteOpen(true)}
+          style={{
+            display: 'flex', alignItems: 'center', gap: '7px',
+            padding: '9px 16px', borderRadius: '9px', border: 'none',
+            background: 'var(--color-blue)', color: '#fff',
+            fontSize: '13px', fontWeight: 600, cursor: 'pointer',
+            flexShrink: 0,
+          }}
+        >
+          <PlusIcon />
+          Invite user
+        </button>
       </div>
 
       {/* Toolbar */}
@@ -212,6 +228,11 @@ export default function UsersView({ users, total, page, perPage, q }: Props) {
           </span>
           <PagBtn disabled={page >= totalPages} onClick={() => nav({ page: page + 1 })}>Next →</PagBtn>
         </div>
+      )}
+
+      {/* Invite modal */}
+      {inviteOpen && (
+        <InviteModal onClose={() => { setInviteOpen(false); router.refresh() }} />
       )}
 
       {/* Password modal */}
@@ -470,7 +491,91 @@ function PagBtn({ disabled, onClick, children }: { disabled: boolean; onClick: (
   )
 }
 
+/* ─── Invite Modal ─────────────────────────────────────── */
+function InviteModal({ onClose }: { onClose: () => void }) {
+  const [email, setEmail]     = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError]     = useState<string | null>(null)
+  const [success, setSuccess] = useState(false)
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError(null)
+    setLoading(true)
+
+    const res = await fetch('/api/admin/users/invite', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    })
+    const data = await res.json()
+    setLoading(false)
+
+    if (!res.ok) { setError(data.error ?? 'Failed to send invitation.'); return }
+    setSuccess(true)
+  }
+
+  return (
+    <Modal title="Invite user" onClose={onClose}>
+      {success ? (
+        <div style={{ textAlign: 'center', padding: '12px 0 4px' }}>
+          <div style={{
+            width: '48px', height: '48px', borderRadius: '14px',
+            background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.25)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            margin: '0 auto 14px',
+          }}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#34d399" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+              <polyline points="22,6 12,13 2,6"/>
+            </svg>
+          </div>
+          <p style={{ fontWeight: 700, fontSize: '15px', color: 'var(--color-text)', margin: '0 0 6px' }}>
+            Invitation sent!
+          </p>
+          <p style={{ fontSize: '13px', color: 'var(--color-muted)', margin: '0 0 20px' }}>
+            An invite email has been sent to <strong style={{ color: 'var(--color-text)' }}>{email}</strong>. They&apos;ll receive a link to set their password and join.
+          </p>
+          <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+            <button
+              onClick={() => { setEmail(''); setSuccess(false); setError(null) }}
+              style={cancelBtnStyle}
+            >
+              Invite another
+            </button>
+            <button onClick={onClose} style={primaryBtnStyle(false)}>Done</button>
+          </div>
+        </div>
+      ) : (
+        <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          <p style={{ fontSize: '13px', color: 'var(--color-muted)', margin: 0 }}>
+            Enter the email address of the person you want to invite. They&apos;ll receive an email with a link to set their password and access the platform.
+          </p>
+          <ModalField label="Email address">
+            <input
+              type="email"
+              placeholder="user@example.com"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              required
+              autoFocus
+            />
+          </ModalField>
+          {error && <ErrBox msg={error} />}
+          <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '4px' }}>
+            <button type="button" onClick={onClose} style={cancelBtnStyle}>Cancel</button>
+            <button type="submit" disabled={loading} style={primaryBtnStyle(loading)}>
+              {loading ? 'Sending…' : 'Send invitation'}
+            </button>
+          </div>
+        </form>
+      )}
+    </Modal>
+  )
+}
+
 // Icons
+function PlusIcon()    { return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> }
 function SearchIcon()  { return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> }
 function EditIcon()    { return <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> }
 function LockIcon()    { return <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> }
