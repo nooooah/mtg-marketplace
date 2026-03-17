@@ -1,5 +1,6 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import AdminShell from './AdminShell'
+import DashboardView from './DashboardView'
 
 export default async function AdminDashboard() {
   const admin = createAdminClient()
@@ -23,7 +24,10 @@ export default async function AdminDashboard() {
   const settings: Record<string, string> = {}
   for (const row of settingsRes.data ?? []) settings[row.key] = row.value
 
-  const registrationEnabled = settings['registration_enabled'] !== 'false'
+  const registrationEnabled  = settings['registration_enabled'] !== 'false'
+  const adminUsername        = settings['admin_username'] ?? 'admin'
+  const adminEmail           = settings['admin_email'] ?? 'noah.loyola@gmail.com'
+  const waitlistNotifyEmail  = settings['waitlist_notify_email'] ?? ''
 
   return (
     <AdminShell activePage="dashboard">
@@ -37,10 +41,10 @@ export default async function AdminDashboard() {
           waitlistCount,
           registrationEnabled,
         }}
+        adminUsername={adminUsername}
+        adminEmail={adminEmail}
+        waitlistNotifyEmail={waitlistNotifyEmail}
       />
     </AdminShell>
   )
 }
-
-/* ─── Client island for registration toggle ────────────── */
-import DashboardView from './DashboardView'

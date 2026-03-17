@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import type { UserRow } from './page'
 
 interface Props {
@@ -146,9 +147,15 @@ export default function UsersView({ users, total, page, perPage, q }: Props) {
                 }
               </div>
               <div style={{ minWidth: 0 }}>
-                <p style={{ fontWeight: 600, fontSize: '13px', color: 'var(--color-text)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {user.username}
-                </p>
+                <Link
+                  href={`/profile/${user.username}`}
+                  target="_blank"
+                  style={{ fontWeight: 600, fontSize: '13px', color: 'var(--color-text)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textDecoration: 'none', display: 'block' }}
+                  onMouseEnter={e => (e.currentTarget.style.color = 'var(--color-blue)')}
+                  onMouseLeave={e => (e.currentTarget.style.color = 'var(--color-text)')}
+                >
+                  {user.username} ↗
+                </Link>
                 <p style={{ fontSize: '11px', color: 'var(--color-subtle)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {user.display_name ?? <span style={{ fontStyle: 'italic' }}>No display name</span>}
                 </p>
@@ -278,11 +285,12 @@ function PasswordModal({ user, onClose }: { user: UserRow; onClose: () => void }
 /* ─── Edit Profile Modal ───────────────────────────────── */
 function EditProfileModal({ user, onClose }: { user: UserRow; onClose: () => void }) {
   const [form, setForm] = useState({
-    username:     user.username,
-    display_name: user.display_name ?? '',
-    bio:          user.bio ?? '',
-    location:     user.location ?? '',
-    avatar_url:   user.avatar_url ?? '',
+    username:       user.username,
+    display_name:   user.display_name ?? '',
+    bio:            user.bio ?? '',
+    location:       user.location ?? '',
+    avatar_url:     user.avatar_url ?? '',
+    messenger_link: user.messenger_link ?? '',
   })
   const [loading, setLoading] = useState(false)
   const [error, setError]     = useState<string | null>(null)
@@ -327,6 +335,9 @@ function EditProfileModal({ user, onClose }: { user: UserRow; onClose: () => voi
           </ModalField>
           <ModalField label="Avatar URL">
             <input value={form.avatar_url} onChange={up('avatar_url')} placeholder="https://…" />
+          </ModalField>
+          <ModalField label="Messenger link">
+            <input value={form.messenger_link} onChange={up('messenger_link')} placeholder="e.g. https://m.me/username" />
           </ModalField>
           <ModalField label="Bio">
             <textarea
