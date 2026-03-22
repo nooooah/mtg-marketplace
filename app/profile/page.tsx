@@ -624,9 +624,23 @@ function ProfileCard({ profile, listingCount, binderCount, soldCount, onSave }: 
 
             {/* Name + stats (shown beside avatar on desktop, below on mobile) */}
             <div className="profile-card-name-block">
-              <h1 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--color-text)', letterSpacing: '-0.02em', margin: '0 0 4px' }}>
-                {profile.display_name ?? profile.username}
-              </h1>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '4px' }}>
+                <h1 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--color-text)', letterSpacing: '-0.02em', margin: 0 }}>
+                  {profile.display_name ?? profile.username}
+                </h1>
+                {profile.emblems && profile.emblems.length > 0 && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+                    {profile.emblems.map((e, i) => (
+                      <i
+                        key={i}
+                        className={`ss ss-${e.set} ss-${e.rarity} ss-grad`}
+                        title={`${e.set.toUpperCase()} · ${e.rarity}`}
+                        style={{ fontSize: '20px', lineHeight: 1 }}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
               {profile.display_name && (
                 <div style={{ fontSize: '12px', color: 'var(--color-subtle)', marginBottom: '6px' }}>@{profile.username}</div>
               )}

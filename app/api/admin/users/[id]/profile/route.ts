@@ -12,8 +12,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const body = await req.json()
 
   // Only allow safe profile fields to be updated
-  const allowed = ['username', 'bio', 'avatar_url', 'display_name', 'location', 'preferred_lgs', 'messenger_link']
-  const updates: Record<string, string> = {}
+  const allowed = ['username', 'bio', 'avatar_url', 'display_name', 'location', 'preferred_lgs', 'messenger_link', 'emblems']
+  const updates: Record<string, unknown> = {}
   for (const key of allowed) {
     if (key in body) updates[key] = body[key]
   }

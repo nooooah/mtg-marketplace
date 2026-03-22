@@ -16,7 +16,7 @@ export default async function AdminUsersPage(
 
   let query = admin
     .from('profiles')
-    .select('id, username, bio, avatar_url, display_name, location, messenger_link, restricted, created_at', { count: 'exact' })
+    .select('id, username, bio, avatar_url, display_name, location, messenger_link, restricted, emblems, created_at', { count: 'exact' })
     .order('created_at', { ascending: false })
     .range(from, to)
 
@@ -46,5 +46,6 @@ export interface UserRow {
   location: string | null
   messenger_link: string | null
   restricted: boolean
+  emblems: { set: string; rarity: string }[]
   created_at: string
 }

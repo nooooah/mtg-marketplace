@@ -1,3 +1,8 @@
+export interface Emblem {
+  set: string
+  rarity: 'common' | 'uncommon' | 'rare' | 'mythic'
+}
+
 export interface Profile {
   id: string
   username: string
@@ -7,6 +12,7 @@ export interface Profile {
   location: string | null
   preferred_lgs: string | null
   messenger_link: string | null
+  emblems: Emblem[]
   created_at: string
 }
 

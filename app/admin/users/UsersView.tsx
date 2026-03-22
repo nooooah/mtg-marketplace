@@ -22,6 +22,7 @@ export default function UsersView({ users, total, page, perPage, q }: Props) {
   // Modals
   const [passwordModal, setPasswordModal] = useState<UserRow | null>(null)
   const [editModal, setEditModal]         = useState<UserRow | null>(null)
+  const [emblemModal, setEmblemModal]     = useState<UserRow | null>(null)
   const [inviteOpen, setInviteOpen]       = useState(false)
 
   const nav = (params: Record<string, string | number>) => {
@@ -119,12 +120,12 @@ export default function UsersView({ users, total, page, perPage, q }: Props) {
         {/* Table header */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: '1fr 140px 100px 130px',
+          gridTemplateColumns: '1fr 160px 140px 100px 130px',
           padding: '10px 16px',
           borderBottom: '1px solid var(--color-border)',
           background: 'var(--color-surface-2)',
         }}>
-          {['User', 'Joined', 'Status', 'Actions'].map(h => (
+          {['User', 'Emblems', 'Joined', 'Status', 'Actions'].map(h => (
             <span key={h} style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--color-muted)' }}>
               {h}
             </span>
@@ -140,7 +141,7 @@ export default function UsersView({ users, total, page, perPage, q }: Props) {
             key={user.id}
             style={{
               display: 'grid',
-              gridTemplateColumns: '1fr 140px 100px 130px',
+              gridTemplateColumns: '1fr 160px 140px 100px 130px',
               padding: '12px 16px',
               alignItems: 'center',
               borderBottom: idx < users.length - 1 ? '1px solid var(--color-border)' : 'none',
@@ -176,6 +177,34 @@ export default function UsersView({ users, total, page, perPage, q }: Props) {
                   {user.display_name ?? <span style={{ fontStyle: 'italic' }}>No display name</span>}
                 </p>
               </div>
+            </div>
+
+            {/* Emblems */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
+              {(user.emblems ?? []).map((e, i) => (
+                <i
+                  key={i}
+                  className={`ss ss-${e.set} ss-${e.rarity} ss-grad`}
+                  title={`${e.set.toUpperCase()} · ${e.rarity}`}
+                  style={{ fontSize: '18px', lineHeight: 1 }}
+                />
+              ))}
+              <button
+                onClick={() => setEmblemModal(user)}
+                title="Manage emblems"
+                style={{
+                  width: '22px', height: '22px', borderRadius: '6px',
+                  border: '1px dashed var(--color-border)',
+                  background: 'transparent', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  color: 'var(--color-subtle)', fontSize: '14px', lineHeight: 1,
+                  flexShrink: 0,
+                }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--color-blue)'; e.currentTarget.style.color = 'var(--color-blue)' }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--color-border)'; e.currentTarget.style.color = 'var(--color-subtle)' }}
+              >
+                +
+              </button>
             </div>
 
             {/* Joined */}
@@ -243,6 +272,11 @@ export default function UsersView({ users, total, page, perPage, q }: Props) {
       {/* Edit profile modal */}
       {editModal && (
         <EditProfileModal user={editModal} onClose={() => { setEditModal(null); router.refresh() }} />
+      )}
+
+      {/* Emblems modal */}
+      {emblemModal && (
+        <EmblemModal user={emblemModal} onClose={() => { setEmblemModal(null); router.refresh() }} />
       )}
     </div>
   )
@@ -570,6 +604,317 @@ function InviteModal({ onClose }: { onClose: () => void }) {
           </div>
         </form>
       )}
+    </Modal>
+  )
+}
+
+/* ─── Keyrune sets list ────────────────────────────────────── */
+const KEYRUNE_SETS = [
+  // Early/Classic
+  { code: 'lea', name: 'Alpha' }, { code: 'leb', name: 'Beta' }, { code: '2ed', name: 'Unlimited' },
+  { code: '3ed', name: 'Revised' }, { code: '4ed', name: 'Fourth Edition' }, { code: '5ed', name: 'Fifth Edition' },
+  { code: '6ed', name: 'Classic Sixth Edition' }, { code: '7ed', name: 'Seventh Edition' },
+  { code: '8ed', name: 'Eighth Edition' }, { code: '9ed', name: 'Ninth Edition' }, { code: '10e', name: 'Tenth Edition' },
+  { code: 'arn', name: 'Arabian Nights' }, { code: 'atq', name: 'Antiquities' }, { code: 'leg', name: 'Legends' },
+  { code: 'drk', name: 'The Dark' }, { code: 'fem', name: 'Fallen Empires' },
+  // Ice Age block
+  { code: 'ice', name: 'Ice Age' }, { code: 'all', name: 'Alliances' }, { code: 'hml', name: 'Homelands' }, { code: 'csp', name: 'Coldsnap' },
+  // Mirage block
+  { code: 'mir', name: 'Mirage' }, { code: 'vis', name: 'Visions' }, { code: 'wth', name: 'Weatherlight' },
+  // Tempest block
+  { code: 'tmp', name: 'Tempest' }, { code: 'sth', name: 'Stronghold' }, { code: 'exo', name: 'Exodus' },
+  // Urza block
+  { code: 'usg', name: "Urza's Saga" }, { code: 'ulg', name: "Urza's Legacy" }, { code: 'uds', name: "Urza's Destiny" },
+  // Masques block
+  { code: 'mmq', name: 'Mercadian Masques' }, { code: 'nem', name: 'Nemesis' }, { code: 'pcy', name: 'Prophecy' },
+  // Invasion block
+  { code: 'inv', name: 'Invasion' }, { code: 'pls', name: 'Planeshift' }, { code: 'apc', name: 'Apocalypse' },
+  // Odyssey block
+  { code: 'ody', name: 'Odyssey' }, { code: 'tor', name: 'Torment' }, { code: 'jud', name: 'Judgment' },
+  // Onslaught block
+  { code: 'ons', name: 'Onslaught' }, { code: 'lgn', name: 'Legions' }, { code: 'scg', name: 'Scourge' },
+  // Mirrodin block
+  { code: 'mrd', name: 'Mirrodin' }, { code: 'dst', name: 'Darksteel' }, { code: '5dn', name: 'Fifth Dawn' },
+  // Kamigawa block
+  { code: 'chk', name: 'Champions of Kamigawa' }, { code: 'bok', name: 'Betrayers of Kamigawa' }, { code: 'sok', name: 'Saviors of Kamigawa' },
+  // Ravnica block
+  { code: 'rav', name: 'Ravnica: City of Guilds' }, { code: 'gpt', name: 'Guildpact' }, { code: 'dis', name: 'Dissension' },
+  // Time Spiral block
+  { code: 'tsp', name: 'Time Spiral' }, { code: 'plc', name: 'Planar Chaos' }, { code: 'fut', name: 'Future Sight' },
+  // Lorwyn/Shadowmoor
+  { code: 'lrw', name: 'Lorwyn' }, { code: 'mor', name: 'Morningtide' }, { code: 'shm', name: 'Shadowmoor' }, { code: 'eve', name: 'Eventide' },
+  // Alara block
+  { code: 'ala', name: 'Shards of Alara' }, { code: 'con', name: 'Conflux' }, { code: 'arb', name: 'Alara Reborn' },
+  // Zendikar block
+  { code: 'zen', name: 'Zendikar' }, { code: 'wwk', name: 'Worldwake' }, { code: 'roe', name: 'Rise of the Eldrazi' },
+  // Scars of Mirrodin block
+  { code: 'som', name: 'Scars of Mirrodin' }, { code: 'mbs', name: 'Mirrodin Besieged' }, { code: 'nph', name: 'New Phyrexia' },
+  // Innistrad block
+  { code: 'isd', name: 'Innistrad' }, { code: 'dka', name: 'Dark Ascension' }, { code: 'avr', name: 'Avacyn Restored' },
+  // Return to Ravnica block
+  { code: 'rtr', name: 'Return to Ravnica' }, { code: 'gtc', name: 'Gatecrash' }, { code: 'dgm', name: "Dragon's Maze" },
+  // Theros block
+  { code: 'ths', name: 'Theros' }, { code: 'bng', name: 'Born of the Gods' }, { code: 'jou', name: 'Journey into Nyx' },
+  // Khans block
+  { code: 'ktk', name: 'Khans of Tarkir' }, { code: 'frf', name: 'Fate Reforged' }, { code: 'dtk', name: 'Dragons of Tarkir' },
+  // Battle for Zendikar block
+  { code: 'bfz', name: 'Battle for Zendikar' }, { code: 'ogw', name: 'Oath of the Gatewatch' },
+  // Shadows over Innistrad block
+  { code: 'soi', name: 'Shadows over Innistrad' }, { code: 'emn', name: 'Eldritch Moon' },
+  // Kaladesh block
+  { code: 'kld', name: 'Kaladesh' }, { code: 'aer', name: 'Aether Revolt' },
+  // Amonkhet block
+  { code: 'akh', name: 'Amonkhet' }, { code: 'hou', name: 'Hour of Devastation' },
+  // Ixalan block
+  { code: 'xln', name: 'Ixalan' }, { code: 'rix', name: 'Rivals of Ixalan' },
+  // Core sets (M10–M21)
+  { code: 'm10', name: 'Magic 2010' }, { code: 'm11', name: 'Magic 2011' }, { code: 'm12', name: 'Magic 2012' },
+  { code: 'm13', name: 'Magic 2013' }, { code: 'm14', name: 'Magic 2014' }, { code: 'm15', name: 'Magic 2015' },
+  { code: 'ori', name: 'Magic Origins' }, { code: 'm19', name: 'Core Set 2019' }, { code: 'm20', name: 'Core Set 2020' }, { code: 'm21', name: 'Core Set 2021' },
+  // Standard-era sets
+  { code: 'dom', name: 'Dominaria' }, { code: 'grn', name: 'Guilds of Ravnica' }, { code: 'rna', name: 'Ravnica Allegiance' },
+  { code: 'war', name: 'War of the Spark' }, { code: 'eld', name: 'Throne of Eldraine' }, { code: 'thb', name: 'Theros Beyond Death' },
+  { code: 'iko', name: 'Ikoria: Lair of Behemoths' }, { code: 'znr', name: 'Zendikar Rising' }, { code: 'khm', name: 'Kaldheim' },
+  { code: 'stx', name: 'Strixhaven: School of Mages' }, { code: 'afr', name: 'Adventures in the Forgotten Realms' },
+  { code: 'mid', name: 'Innistrad: Midnight Hunt' }, { code: 'vow', name: 'Innistrad: Crimson Vow' },
+  { code: 'neo', name: 'Kamigawa: Neon Dynasty' }, { code: 'snc', name: 'Streets of New Capenna' },
+  { code: 'dmu', name: 'Dominaria United' }, { code: 'bro', name: "The Brothers' War" },
+  { code: 'one', name: 'Phyrexia: All Will Be One' }, { code: 'mom', name: 'March of the Machine' },
+  { code: 'woe', name: 'Wilds of Eldraine' }, { code: 'lci', name: 'The Lost Caverns of Ixalan' },
+  { code: 'mkm', name: 'Murders at Karlov Manor' }, { code: 'otj', name: 'Outlaws of Thunder Junction' },
+  { code: 'blb', name: 'Bloomburrow' }, { code: 'dsk', name: 'Duskmourn: House of Horror' }, { code: 'fdn', name: 'Foundations' },
+  // Special / Masters
+  { code: 'cmd', name: 'Commander' }, { code: 'mma', name: 'Modern Masters' }, { code: 'mm2', name: 'Modern Masters 2015' },
+  { code: 'mm3', name: 'Modern Masters 2017' }, { code: 'ema', name: 'Eternal Masters' }, { code: 'ima', name: 'Iconic Masters' },
+  { code: 'a25', name: 'Masters 25' }, { code: 'uma', name: 'Ultimate Masters' },
+  { code: '2xm', name: 'Double Masters' }, { code: '2x2', name: 'Double Masters 2022' },
+  { code: 'dmr', name: 'Dominaria Remastered' }, { code: 'moc', name: 'March of the Machine Commander' },
+]
+
+const RARITIES = ['common', 'uncommon', 'rare', 'mythic'] as const
+type EmblemRarity = typeof RARITIES[number]
+const RARITY_COLORS: Record<EmblemRarity, string> = {
+  common:   '#aaa',
+  uncommon: '#8c9dc0',
+  rare:     '#c5a84e',
+  mythic:   '#e8834a',
+}
+
+/* ─── Emblem Modal ─────────────────────────────────────────── */
+function EmblemModal({ user, onClose }: { user: UserRow; onClose: () => void }) {
+  const [emblems, setEmblems] = useState<{ set: string; rarity: string }[]>(user.emblems ?? [])
+  const [setSearch, setSetSearch] = useState('')
+  const [selectedSet, setSelectedSet] = useState<string>('')
+  const [selectedRarity, setSelectedRarity] = useState<EmblemRarity>('mythic')
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [showSetDropdown, setShowSetDropdown] = useState(false)
+  const setDropdownRef = useRef<HTMLDivElement>(null)
+
+  const filteredSets = KEYRUNE_SETS.filter(s =>
+    s.name.toLowerCase().includes(setSearch.toLowerCase()) ||
+    s.code.toLowerCase().includes(setSearch.toLowerCase())
+  ).slice(0, 60)
+
+  // Close set dropdown on outside click
+  useEffect(() => {
+    if (!showSetDropdown) return
+    const handler = (e: MouseEvent) => {
+      if (setDropdownRef.current && !setDropdownRef.current.contains(e.target as Node)) setShowSetDropdown(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [showSetDropdown])
+
+  const addEmblem = () => {
+    if (!selectedSet) return
+    // Avoid exact duplicates
+    if (emblems.some(e => e.set === selectedSet && e.rarity === selectedRarity)) return
+    setEmblems(prev => [...prev, { set: selectedSet, rarity: selectedRarity }])
+  }
+
+  const removeEmblem = (idx: number) => {
+    setEmblems(prev => prev.filter((_, i) => i !== idx))
+  }
+
+  const save = async () => {
+    setSaving(true); setError(null)
+    const res = await fetch(`/api/admin/users/${user.id}/profile`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ emblems }),
+    })
+    setSaving(false)
+    if (!res.ok) { setError('Failed to save emblems.'); return }
+    onClose()
+  }
+
+  const selectedSetObj = KEYRUNE_SETS.find(s => s.code === selectedSet)
+
+  return (
+    <Modal title={`Emblems — ${user.username}`} onClose={onClose} wide>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+
+        {/* Current emblems */}
+        <div>
+          <p style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '10px' }}>
+            Current emblems
+          </p>
+          {emblems.length === 0 ? (
+            <p style={{ fontSize: '13px', color: 'var(--color-subtle)', fontStyle: 'italic' }}>No emblems yet.</p>
+          ) : (
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              {emblems.map((e, i) => {
+                const setObj = KEYRUNE_SETS.find(s => s.code === e.set)
+                return (
+                  <div key={i} style={{
+                    display: 'flex', alignItems: 'center', gap: '6px',
+                    padding: '5px 9px', borderRadius: '8px',
+                    background: 'var(--color-surface-2)', border: '1px solid var(--color-border)',
+                  }}>
+                    <i className={`ss ss-${e.set} ss-${e.rarity} ss-grad`} style={{ fontSize: '20px', lineHeight: 1 }} />
+                    <div>
+                      <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-text)', lineHeight: 1.2 }}>
+                        {setObj?.name ?? e.set.toUpperCase()}
+                      </div>
+                      <div style={{ fontSize: '10px', color: RARITY_COLORS[e.rarity as EmblemRarity] ?? 'var(--color-muted)', textTransform: 'capitalize', lineHeight: 1.2 }}>
+                        {e.rarity}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => removeEmblem(i)}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-subtle)', padding: '2px', lineHeight: 1, marginLeft: '2px' }}
+                      onMouseEnter={e => (e.currentTarget.style.color = '#f87171')}
+                      onMouseLeave={e => (e.currentTarget.style.color = 'var(--color-subtle)')}
+                    >
+                      <CloseIcon />
+                    </button>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Add emblem */}
+        <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: '16px' }}>
+          <p style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '12px' }}>
+            Add emblem
+          </p>
+
+          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'flex-start' }}>
+            {/* Set picker */}
+            <div style={{ flex: '1 1 200px', minWidth: 0 }} ref={setDropdownRef}>
+              <label style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-muted)', display: 'block', marginBottom: '5px' }}>Set</label>
+              <div style={{ position: 'relative' }}>
+                <input
+                  value={selectedSet ? `${selectedSetObj?.name ?? selectedSet} (${selectedSet})` : setSearch}
+                  placeholder="Search set name or code…"
+                  onFocus={() => { setShowSetDropdown(true); if (selectedSet) { setSelectedSet(''); setSetSearch('') } }}
+                  onChange={e => { setSetSearch(e.target.value); setSelectedSet(''); setShowSetDropdown(true) }}
+                  style={{ width: '100%', boxSizing: 'border-box' }}
+                />
+                {showSetDropdown && filteredSets.length > 0 && (
+                  <div style={{
+                    position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0,
+                    background: 'var(--color-surface)', border: '1px solid var(--color-border)',
+                    borderRadius: '10px', boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
+                    maxHeight: '220px', overflowY: 'auto', zIndex: 200,
+                  }}>
+                    {filteredSets.map(s => (
+                      <button
+                        key={s.code}
+                        onMouseDown={e => {
+                          e.preventDefault()
+                          setSelectedSet(s.code)
+                          setSetSearch('')
+                          setShowSetDropdown(false)
+                        }}
+                        style={{
+                          width: '100%', textAlign: 'left', padding: '8px 12px',
+                          background: 'transparent', border: 'none', cursor: 'pointer',
+                          display: 'flex', alignItems: 'center', gap: '10px',
+                          color: 'var(--color-text)', fontSize: '13px',
+                        }}
+                        onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-surface-2)')}
+                        onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                      >
+                        <i className={`ss ss-${s.code} ss-${selectedRarity} ss-grad`} style={{ fontSize: '18px', lineHeight: 1, flexShrink: 0 }} />
+                        <span style={{ minWidth: 0 }}>
+                          <span style={{ fontWeight: 600 }}>{s.name}</span>
+                          <span style={{ color: 'var(--color-subtle)', fontSize: '11px', marginLeft: '5px' }}>{s.code}</span>
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Rarity picker */}
+            <div style={{ flexShrink: 0 }}>
+              <label style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-muted)', display: 'block', marginBottom: '5px' }}>Rarity</label>
+              <div style={{ display: 'flex', gap: '4px' }}>
+                {RARITIES.map(r => (
+                  <button
+                    key={r}
+                    onClick={() => setSelectedRarity(r)}
+                    style={{
+                      padding: '6px 10px', borderRadius: '7px', fontSize: '12px', fontWeight: 600,
+                      border: `1px solid ${selectedRarity === r ? RARITY_COLORS[r] : 'var(--color-border)'}`,
+                      background: selectedRarity === r ? `${RARITY_COLORS[r]}18` : 'transparent',
+                      color: selectedRarity === r ? RARITY_COLORS[r] : 'var(--color-muted)',
+                      cursor: 'pointer', textTransform: 'capitalize',
+                      transition: 'all 0.12s ease',
+                    }}
+                  >
+                    {r}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Preview + Add */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '14px' }}>
+            {selectedSet ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px', borderRadius: '9px', background: 'var(--color-surface-2)', border: '1px solid var(--color-border)' }}>
+                <i className={`ss ss-${selectedSet} ss-${selectedRarity} ss-grad`} style={{ fontSize: '28px', lineHeight: 1 }} />
+                <div>
+                  <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--color-text)' }}>{selectedSetObj?.name}</div>
+                  <div style={{ fontSize: '11px', color: RARITY_COLORS[selectedRarity], textTransform: 'capitalize' }}>{selectedRarity}</div>
+                </div>
+              </div>
+            ) : (
+              <div style={{ padding: '8px 12px', borderRadius: '9px', background: 'var(--color-surface-2)', border: '1px dashed var(--color-border)', color: 'var(--color-subtle)', fontSize: '13px' }}>
+                Select a set to preview
+              </div>
+            )}
+            <button
+              onClick={addEmblem}
+              disabled={!selectedSet}
+              style={{
+                padding: '9px 18px', borderRadius: '8px', fontSize: '13px', fontWeight: 600,
+                background: selectedSet ? 'var(--color-blue)' : 'var(--color-surface-2)',
+                color: selectedSet ? '#fff' : 'var(--color-subtle)',
+                border: 'none', cursor: selectedSet ? 'pointer' : 'not-allowed',
+                transition: 'all 0.12s ease',
+              }}
+            >
+              Add emblem
+            </button>
+          </div>
+        </div>
+
+        {/* Footer */}
+        {error && <ErrBox msg={error} />}
+        <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', borderTop: '1px solid var(--color-border)', paddingTop: '16px' }}>
+          <button onClick={onClose} style={cancelBtnStyle}>Cancel</button>
+          <button onClick={save} disabled={saving} style={primaryBtnStyle(saving)}>
+            {saving ? 'Saving…' : 'Save emblems'}
+          </button>
+        </div>
+      </div>
     </Modal>
   )
 }

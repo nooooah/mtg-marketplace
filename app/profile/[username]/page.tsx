@@ -57,9 +57,23 @@ export default async function ProfilePage({ params, searchParams }: { params: Pr
 
           {/* Name + stats */}
           <div className="profile-card-name-block">
-            <h1 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--color-text)', letterSpacing: '-0.02em', margin: '0 0 4px' }}>
-              {p.display_name ?? p.username}
-            </h1>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '4px' }}>
+              <h1 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--color-text)', letterSpacing: '-0.02em', margin: 0 }}>
+                {p.display_name ?? p.username}
+              </h1>
+              {p.emblems && p.emblems.length > 0 && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+                  {p.emblems.map((e: { set: string; rarity: string }, i: number) => (
+                    <i
+                      key={i}
+                      className={`ss ss-${e.set} ss-${e.rarity} ss-grad`}
+                      title={`${e.set.toUpperCase()} · ${e.rarity}`}
+                      style={{ fontSize: '20px', lineHeight: 1 }}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
             {p.display_name && (
               <div style={{ fontSize: '12px', color: 'var(--color-subtle)', marginBottom: '6px' }}>@{p.username}</div>
             )}
