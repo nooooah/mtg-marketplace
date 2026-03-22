@@ -14,6 +14,7 @@ export default function Navbar() {
   const pathname = usePathname()
   const supabase = createClient()
   const [user, setUser] = useState<User | null>(null)
+  const [isAdmin, setIsAdmin] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)      // account dropdown
   const [mobileOpen, setMobileOpen] = useState(false)  // mobile hamburger
 
@@ -39,12 +40,25 @@ export default function Navbar() {
     return () => listener.subscription.unsubscribe()
   }, [])
 
+  // Check admin session (httpOnly cookie — must go via API)
+  useEffect(() => {
+    fetch('/api/admin/me').then(r => r.json()).then(d => setIsAdmin(!!d.isAdmin)).catch(() => {})
+  }, [pathname])
+
   const handleSignOut = async () => {
     await supabase.auth.signOut()
     setMenuOpen(false)
     setMobileOpen(false)
     router.push('/')
     router.refresh()
+  }
+
+  const handleAdminSignOut = async () => {
+    await fetch('/api/admin/logout', { method: 'POST' })
+    setIsAdmin(false)
+    setMenuOpen(false)
+    setMobileOpen(false)
+    router.push('/admin/login')
   }
 
   const isActive = (path: string) => pathname === path
@@ -103,7 +117,9 @@ export default function Navbar() {
 
             <div style={{ width: '1px', height: '16px', background: 'var(--color-border)', margin: '0 8px' }} />
 
-            {user ? (
+            {isAdmin ? (
+              <AdminMenu menuOpen={menuOpen} setMenuOpen={setMenuOpen} handleAdminSignOut={handleAdminSignOut} />
+            ) : user ? (
               <AccountMenu user={user} menuOpen={menuOpen} setMenuOpen={setMenuOpen} handleSignOut={handleSignOut} />
             ) : (
               <GuestButtons />
@@ -146,7 +162,21 @@ export default function Navbar() {
 
             <div style={{ borderTop: '1px solid var(--color-border)', margin: '8px 0' }} />
 
-            {user ? (
+            {isAdmin ? (
+              <>
+                <MobileNavLink href="/admin" active={isActive('/admin')} onClick={() => setMobileOpen(false)}>Admin Dashboard</MobileNavLink>
+                <button
+                  onClick={handleAdminSignOut}
+                  style={{
+                    marginTop: '4px', padding: '10px 14px', borderRadius: '8px',
+                    background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)',
+                    color: '#ef4444', fontSize: '14px', fontWeight: 500, textAlign: 'left',
+                  }}
+                >
+                  Sign out (Admin)
+                </button>
+              </>
+            ) : user ? (
               <>
                 <MobileNavLink href="/profile"     active={isActive('/profile')}     onClick={() => setMobileOpen(false)}>My Profile</MobileNavLink>
                 <MobileNavLink href="/messages"    active={isActive('/messages')}    onClick={() => setMobileOpen(false)}>Messages</MobileNavLink>
@@ -251,6 +281,77 @@ function AccountMenu({ user, menuOpen, setMenuOpen, handleSignOut }: {
               display: 'block', width: '100%', textAlign: 'left',
               padding: '7px 10px', borderRadius: '6px',
               background: 'transparent', color: '#ef4444', fontSize: '13px',
+            }}
+            onMouseEnter={e => (e.currentTarget.style.background = 'rgba(239,68,68,0.08)')}
+            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+          >
+            Sign out
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+/* ── Admin account menu ───────────────────────────────────── */
+function AdminMenu({ menuOpen, setMenuOpen, handleAdminSignOut }: {
+  menuOpen: boolean
+  setMenuOpen: (v: boolean) => void
+  handleAdminSignOut: () => void
+}) {
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setMenuOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [setMenuOpen])
+
+  return (
+    <div ref={ref} style={{ position: 'relative' }}>
+      <button
+        onClick={() => setMenuOpen(!menuOpen)}
+        style={{
+          display: 'flex', alignItems: 'center', gap: '8px',
+          padding: '6px 10px', borderRadius: '8px',
+          background: 'var(--color-surface)', border: '1px solid var(--color-border)',
+          color: 'var(--color-text)', fontSize: '13px',
+        }}
+      >
+        <span style={{
+          width: '22px', height: '22px', borderRadius: '50%',
+          background: '#7c3aed', display: 'flex',
+          alignItems: 'center', justifyContent: 'center',
+          fontSize: '10px', fontWeight: 700, color: '#fff', flexShrink: 0,
+        }}>
+          A
+        </span>
+        <ChevronDown size={12} />
+      </button>
+
+      {menuOpen && (
+        <div style={{
+          position: 'absolute', right: 0, top: 'calc(100% + 6px)', minWidth: '170px',
+          background: 'var(--color-surface)', border: '1px solid var(--color-border)',
+          borderRadius: '10px', padding: '4px',
+          boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
+        }}>
+          <div style={{ padding: '6px 10px 4px', fontSize: '11px', fontWeight: 600, color: '#7c3aed', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            Admin
+          </div>
+          <DropdownItem href="/admin" onClick={() => setMenuOpen(false)}>Dashboard</DropdownItem>
+          <DropdownItem href="/admin/users" onClick={() => setMenuOpen(false)}>Users</DropdownItem>
+          <DropdownItem href="/admin/settings" onClick={() => setMenuOpen(false)}>Settings</DropdownItem>
+          <hr style={{ border: 'none', borderTop: '1px solid var(--color-border)', margin: '4px 0' }} />
+          <button
+            onClick={handleAdminSignOut}
+            style={{
+              display: 'block', width: '100%', textAlign: 'left',
+              padding: '7px 10px', borderRadius: '6px',
+              background: 'transparent', color: '#ef4444', fontSize: '13px',
+              border: 'none', cursor: 'pointer',
             }}
             onMouseEnter={e => (e.currentTarget.style.background = 'rgba(239,68,68,0.08)')}
             onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
