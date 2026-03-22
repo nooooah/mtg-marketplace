@@ -89,6 +89,9 @@ function MyListingsContent() {
   const [descValue, setDescValue] = useState('')
   const [confirmDeleteBinderId, setConfirmDeleteBinderId] = useState<string | null>(null)
   const [deletingBinderId, setDeletingBinderId] = useState<string | null>(null)
+  const [openMenuBinderId, setOpenMenuBinderId] = useState<string | null>(null)
+  const [duplicatingBinderId, setDuplicatingBinderId] = useState<string | null>(null)
+  const binderMenuRef = useRef<HTMLDivElement>(null)
 
   // Auth guard
   useEffect(() => {
@@ -161,6 +164,50 @@ function MyListingsContent() {
     setBinders(prev => prev.map(b => b.id === id ? { ...b, description: trimmed } : b))
     setEditingDescId(null)
   }
+
+  const handleDuplicateBinder = async (id: string) => {
+    if (!userId) return
+    setDuplicatingBinderId(id)
+    setOpenMenuBinderId(null)
+    const source = binders.find(b => b.id === id)
+    if (!source) { setDuplicatingBinderId(null); return }
+    // Create new binder
+    const display_order = binders.length
+    const { data: newBinder } = await supabase
+      .from('binders')
+      .insert({ user_id: userId, name: `Copy of ${source.name}`, display_order })
+      .select().single()
+    if (!newBinder) { setDuplicatingBinderId(null); return }
+    // Copy all listings from source binder, set to unlisted
+    const { data: srcListings } = await supabase
+      .from('listings')
+      .select('*')
+      .eq('binder_id', id)
+    if (srcListings && srcListings.length > 0) {
+      const copies = srcListings.map(({ id: _id, created_at: _c, updated_at: _u, views: _v, ...rest }: Record<string, unknown>) => ({
+        ...rest,
+        binder_id: newBinder.id,
+        status: 'unlisted',
+      }))
+      await supabase.from('listings').insert(copies)
+    }
+    setBinders(prev => [...prev, newBinder as Binder])
+    // Refresh listings so the new binder shows counts
+    fetchListings()
+    setDuplicatingBinderId(null)
+  }
+
+  // Close binder menu on outside click
+  useEffect(() => {
+    if (!openMenuBinderId) return
+    const handler = (e: MouseEvent) => {
+      if (binderMenuRef.current && !binderMenuRef.current.contains(e.target as Node)) {
+        setOpenMenuBinderId(null)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [openMenuBinderId])
 
   const handleMoveToBinder = async (ids: string[], binderId: string | null) => {
     setBulkLoading(true)
@@ -591,40 +638,84 @@ function MyListingsContent() {
                   )}
                 </button>
               )}
-              {!isUnsorted && !isRenaming && confirmDeleteBinderId !== b.id && (
-                <>
+              {!isUnsorted && !isRenaming && (
+                <div ref={openMenuBinderId === b.id ? binderMenuRef : null} style={{ position: 'relative' }}>
                   <button
-                    onClick={() => { setRenamingBinderId(b.id); setRenameValue(b.name) }}
-                    title="Rename binder"
-                    style={{ background: 'transparent', border: 'none', color: 'var(--color-subtle)', cursor: 'pointer', padding: '4px', lineHeight: 1 }}
+                    onClick={e => { e.stopPropagation(); setOpenMenuBinderId(openMenuBinderId === b.id ? null : b.id) }}
+                    title="Binder options"
+                    style={{
+                      background: openMenuBinderId === b.id ? 'var(--color-surface-2)' : 'transparent',
+                      border: 'none', color: 'var(--color-subtle)', cursor: 'pointer',
+                      padding: '4px 5px', lineHeight: 1, borderRadius: '5px',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}
                   >
-                    <TrashPencilIcon type="pencil" />
+                    <DotsIcon />
                   </button>
-                  <button
-                    onClick={() => setConfirmDeleteBinderId(b.id)}
-                    title="Delete binder"
-                    style={{ background: 'transparent', border: 'none', color: 'var(--color-subtle)', cursor: 'pointer', padding: '4px', lineHeight: 1 }}
-                  >
-                    <TrashPencilIcon type="trash" />
-                  </button>
-                </>
-              )}
-              {!isUnsorted && !isRenaming && confirmDeleteBinderId === b.id && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '4px 8px', borderRadius: '8px', background: 'var(--color-surface)', border: '1px solid #f87171' }}>
-                  <span style={{ fontSize: '11px', color: '#f87171', fontWeight: 600, whiteSpace: 'nowrap' }}>Delete + all cards?</span>
-                  <button
-                    onClick={() => handleDeleteBinder(b.id)}
-                    disabled={deletingBinderId === b.id}
-                    style={{ fontSize: '11px', fontWeight: 700, padding: '2px 8px', borderRadius: '5px', border: 'none', background: '#ef4444', color: '#fff', cursor: 'pointer', opacity: deletingBinderId === b.id ? 0.6 : 1 }}
-                  >
-                    {deletingBinderId === b.id ? '…' : 'Yes'}
-                  </button>
-                  <button
-                    onClick={() => setConfirmDeleteBinderId(null)}
-                    style={{ fontSize: '11px', fontWeight: 600, padding: '2px 8px', borderRadius: '5px', border: '1px solid var(--color-border)', background: 'transparent', color: 'var(--color-muted)', cursor: 'pointer' }}
-                  >
-                    Cancel
-                  </button>
+                  {openMenuBinderId === b.id && (
+                    <div style={{
+                      position: 'absolute', top: 'calc(100% + 4px)', right: 0,
+                      zIndex: 100,
+                      background: 'var(--color-surface)',
+                      border: '1px solid var(--color-border)',
+                      borderRadius: '10px',
+                      boxShadow: '0 8px 24px rgba(0,0,0,0.25)',
+                      minWidth: '160px',
+                      overflow: 'hidden',
+                    }}>
+                      <button
+                        onClick={() => { setRenamingBinderId(b.id); setRenameValue(b.name); setOpenMenuBinderId(null) }}
+                        style={{
+                          width: '100%', textAlign: 'left', padding: '10px 14px',
+                          background: 'transparent', border: 'none',
+                          color: 'var(--color-text)', fontSize: '13px',
+                          cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px',
+                        }}
+                        onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-surface-2)')}
+                        onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                      >
+                        <TrashPencilIcon type="pencil" /> Edit Name
+                      </button>
+                      <button
+                        onClick={() => handleDuplicateBinder(b.id)}
+                        disabled={duplicatingBinderId === b.id}
+                        style={{
+                          width: '100%', textAlign: 'left', padding: '10px 14px',
+                          background: 'transparent', border: 'none',
+                          color: 'var(--color-text)', fontSize: '13px',
+                          cursor: duplicatingBinderId === b.id ? 'not-allowed' : 'pointer',
+                          opacity: duplicatingBinderId === b.id ? 0.6 : 1,
+                          display: 'flex', alignItems: 'center', gap: '8px',
+                        }}
+                        onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-surface-2)')}
+                        onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                      >
+                        <DuplicateIcon />
+                        <span>
+                          {duplicatingBinderId === b.id ? 'Duplicating…' : 'Duplicate Binder'}
+                          {duplicatingBinderId !== b.id && (
+                            <span style={{ display: 'block', fontSize: '10px', color: 'var(--color-subtle)', marginTop: '1px' }}>
+                              Contents auto-unlisted
+                            </span>
+                          )}
+                        </span>
+                      </button>
+                      <div style={{ height: '1px', background: 'var(--color-border)', margin: '2px 0' }} />
+                      <button
+                        onClick={() => { setConfirmDeleteBinderId(b.id); setOpenMenuBinderId(null) }}
+                        style={{
+                          width: '100%', textAlign: 'left', padding: '10px 14px',
+                          background: 'transparent', border: 'none',
+                          color: '#ef4444', fontSize: '13px',
+                          cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px',
+                        }}
+                        onMouseEnter={e => (e.currentTarget.style.background = 'rgba(239,68,68,0.08)')}
+                        onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                      >
+                        <TrashPencilIcon type="trash" /> Delete Binder
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -1196,6 +1287,63 @@ function MyListingsContent() {
           )}
         </div>
       )}
+
+      {/* ── Delete Binder Confirmation Modal ────────────────────────── */}
+      {confirmDeleteBinderId && (() => {
+        const targetBinder = binders.find(b => b.id === confirmDeleteBinderId)
+        if (!targetBinder) return null
+        return (
+          <div
+            style={{
+              position: 'fixed', inset: 0, zIndex: 50,
+              background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              padding: '16px',
+            }}
+            onClick={() => setConfirmDeleteBinderId(null)}
+          >
+            <div
+              onClick={e => e.stopPropagation()}
+              style={{
+                background: 'var(--color-surface)', border: '1px solid rgba(239,68,68,0.35)',
+                borderRadius: '14px', padding: '28px', width: '100%', maxWidth: '360px',
+                boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
+              }}
+            >
+              <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--color-text)', margin: '0 0 8px' }}>
+                Delete "{targetBinder.name}"?
+              </h3>
+              <p style={{ fontSize: '13px', color: 'var(--color-muted)', margin: '0 0 24px', lineHeight: 1.5 }}>
+                This will permanently delete the binder and <strong style={{ color: '#ef4444' }}>all its cards</strong>. This action cannot be undone.
+              </p>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button
+                  onClick={() => handleDeleteBinder(confirmDeleteBinderId)}
+                  disabled={deletingBinderId === confirmDeleteBinderId}
+                  style={{
+                    flex: 1, padding: '10px', borderRadius: '8px', fontSize: '13px', fontWeight: 700,
+                    background: '#ef4444', border: 'none', color: '#fff',
+                    cursor: deletingBinderId === confirmDeleteBinderId ? 'not-allowed' : 'pointer',
+                    opacity: deletingBinderId === confirmDeleteBinderId ? 0.6 : 1,
+                  }}
+                >
+                  {deletingBinderId === confirmDeleteBinderId ? 'Deleting…' : 'Yes, delete binder'}
+                </button>
+                <button
+                  onClick={() => setConfirmDeleteBinderId(null)}
+                  style={{
+                    padding: '10px 16px', borderRadius: '8px', fontSize: '13px',
+                    border: '1px solid var(--color-border)', background: 'transparent',
+                    color: 'var(--color-muted)', cursor: 'pointer',
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
 
       {/* ── Sold Quantity Modal ─────────────────────────────────────── */}
       {soldModal && (() => {
@@ -1982,6 +2130,20 @@ function SparkleIcon() {
 }
 function XSmallIcon() {
   return <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+}
+function DotsIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+      <circle cx="5" cy="12" r="2" /><circle cx="12" cy="12" r="2" /><circle cx="19" cy="12" r="2" />
+    </svg>
+  )
+}
+function DuplicateIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+    </svg>
+  )
 }
 
 export default function MyListingsPage() {
