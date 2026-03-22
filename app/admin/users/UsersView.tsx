@@ -422,6 +422,10 @@ function Modal({ title, onClose, wide, children }: { title: string; onClose: () 
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
+      // If the clicked element was removed from the DOM by a React re-render
+      // (e.g. a dropdown closing) before this handler fires, ignore the event —
+      // otherwise contains() returns false on the detached node and wrongly closes the modal.
+      if (!document.body.contains(e.target as Node)) return
       if (ref.current && !ref.current.contains(e.target as Node)) onClose()
     }
     const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
