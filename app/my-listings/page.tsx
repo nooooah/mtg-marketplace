@@ -610,70 +610,83 @@ function MyListingsContent() {
                   style={{ width: '110px', fontSize: '13px', padding: '5px 9px', borderRadius: '8px' }}
                 />
               ) : (
-                <button
-                  onClick={() => selectBinder(b.id)}
+                /* Pill container — div so dots button can live inside */
+                <div
                   style={{
-                    display: 'flex', alignItems: 'center', gap: '6px',
-                    padding: '6px 12px', borderRadius: '8px', fontSize: '13px', fontWeight: isActive ? 600 : 400,
-                    cursor: 'pointer', transition: 'all 0.12s ease',
+                    display: 'flex', alignItems: 'center',
+                    borderRadius: '8px', fontSize: '13px', fontWeight: isActive ? 600 : 400,
                     border: `1px solid ${isActive ? 'var(--color-blue)' : 'var(--color-border)'}`,
                     background: isActive ? 'var(--color-blue-glow)' : 'var(--color-surface)',
                     color: isActive ? 'var(--color-blue)' : 'var(--color-muted)',
+                    transition: 'all 0.12s ease',
                   }}
                 >
-                  {/* Checkbox for multi-select */}
-                  <span
-                    onClick={e => { e.stopPropagation(); toggleBinder(b.id) }}
-                    title="Add to multi-select"
+                  {/* Left clickable area — selects the binder */}
+                  <button
+                    onClick={() => selectBinder(b.id)}
                     style={{
-                      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                      width: '14px', height: '14px', borderRadius: '3px', flexShrink: 0,
-                      border: `1.5px solid ${selectedBinderIds.has(b.id) && selectedBinderIds.size > 1 ? 'var(--color-blue)' : 'var(--color-border)'}`,
-                      background: selectedBinderIds.has(b.id) && selectedBinderIds.size > 1 ? 'var(--color-blue)' : 'transparent',
-                      transition: 'all 0.12s ease', cursor: 'pointer',
+                      display: 'flex', alignItems: 'center', gap: '6px',
+                      padding: isUnsorted ? '6px 12px' : '6px 6px 6px 12px',
+                      background: 'transparent', border: 'none',
+                      color: 'inherit', fontSize: '13px', fontWeight: isActive ? 600 : 400,
+                      cursor: 'pointer',
                     }}
                   >
-                    {selectedBinderIds.has(b.id) && selectedBinderIds.size > 1 && (
-                      <svg width="9" height="9" viewBox="0 0 9 9" fill="none">
-                        <path d="M1.5 4.5L3.5 6.5L7.5 2.5" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                    )}
-                  </span>
-                  {b.name}
-                  <span style={{
-                    fontSize: '10px', fontWeight: 700, padding: '1px 5px', borderRadius: '8px',
-                    background: isActive ? 'rgba(59,130,246,0.15)' : 'var(--color-surface-2)',
-                    color: isActive ? 'var(--color-blue)' : 'var(--color-subtle)',
-                    border: `1px solid ${isActive ? 'rgba(59,130,246,0.25)' : 'var(--color-border)'}`,
-                  }}>{count}</span>
-                  {unlistedCount > 0 && (
+                    {/* Checkbox for multi-select */}
                     <span
-                      title={`${unlistedCount} unlisted ${unlistedCount === 1 ? 'card' : 'cards'} in this binder`}
+                      onClick={e => { e.stopPropagation(); toggleBinder(b.id) }}
+                      title="Add to multi-select"
                       style={{
                         display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                        width: '16px', height: '16px', borderRadius: '50%',
-                        background: '#f59e0b', color: '#fff',
-                        fontSize: '10px', fontWeight: 800, lineHeight: 1,
-                        flexShrink: 0, cursor: 'default',
+                        width: '14px', height: '14px', borderRadius: '3px', flexShrink: 0,
+                        border: `1.5px solid ${selectedBinderIds.has(b.id) && selectedBinderIds.size > 1 ? 'var(--color-blue)' : 'var(--color-border)'}`,
+                        background: selectedBinderIds.has(b.id) && selectedBinderIds.size > 1 ? 'var(--color-blue)' : 'transparent',
+                        transition: 'all 0.12s ease', cursor: 'pointer',
                       }}
-                    >!</span>
-                  )}
-                </button>
-              )}
-              {!isUnsorted && !isRenaming && (
-                <div ref={openMenuBinderId === b.id ? binderMenuRef : null} style={{ position: 'relative' }}>
-                  <button
-                    onClick={e => { e.stopPropagation(); setOpenMenuBinderId(openMenuBinderId === b.id ? null : b.id) }}
-                    title="Binder options"
-                    style={{
-                      background: openMenuBinderId === b.id ? 'var(--color-surface-2)' : 'transparent',
-                      border: 'none', color: 'var(--color-subtle)', cursor: 'pointer',
-                      padding: '4px 5px', lineHeight: 1, borderRadius: '5px',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    }}
-                  >
-                    <DotsIcon />
+                    >
+                      {selectedBinderIds.has(b.id) && selectedBinderIds.size > 1 && (
+                        <svg width="9" height="9" viewBox="0 0 9 9" fill="none">
+                          <path d="M1.5 4.5L3.5 6.5L7.5 2.5" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      )}
+                    </span>
+                    {b.name}
+                    <span style={{
+                      fontSize: '10px', fontWeight: 700, padding: '1px 5px', borderRadius: '8px',
+                      background: isActive ? 'rgba(59,130,246,0.15)' : 'var(--color-surface-2)',
+                      color: isActive ? 'var(--color-blue)' : 'var(--color-subtle)',
+                      border: `1px solid ${isActive ? 'rgba(59,130,246,0.25)' : 'var(--color-border)'}`,
+                    }}>{count}</span>
+                    {unlistedCount > 0 && (
+                      <span
+                        title={`${unlistedCount} unlisted ${unlistedCount === 1 ? 'card' : 'cards'} in this binder`}
+                        style={{
+                          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                          width: '16px', height: '16px', borderRadius: '50%',
+                          background: '#f59e0b', color: '#fff',
+                          fontSize: '10px', fontWeight: 800, lineHeight: 1,
+                          flexShrink: 0, cursor: 'default',
+                        }}
+                      >!</span>
+                    )}
                   </button>
+
+                  {/* Dots button — inside the pill, right edge */}
+                  {!isUnsorted && (
+                    <div ref={openMenuBinderId === b.id ? binderMenuRef : null} style={{ position: 'relative', display: 'flex', alignItems: 'center', paddingRight: '5px' }}>
+                      <button
+                        onClick={e => { e.stopPropagation(); setOpenMenuBinderId(openMenuBinderId === b.id ? null : b.id) }}
+                        title="Binder options"
+                        style={{
+                          background: openMenuBinderId === b.id ? 'rgba(0,0,0,0.12)' : 'transparent',
+                          border: 'none', color: 'inherit', cursor: 'pointer',
+                          padding: '3px 4px', lineHeight: 1, borderRadius: '4px',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          opacity: 0.65,
+                        }}
+                      >
+                        <DotsIcon />
+                      </button>
                   {openMenuBinderId === b.id && (
                     <div style={{
                       position: 'absolute', top: 'calc(100% + 4px)', right: 0,
@@ -738,6 +751,8 @@ function MyListingsContent() {
                       </button>
                     </div>
                   )}
+                </div>
+              )}
                 </div>
               )}
             </div>
