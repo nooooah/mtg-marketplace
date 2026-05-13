@@ -91,6 +91,7 @@ function MyListingsContent() {
   const [deletingBinderId, setDeletingBinderId] = useState<string | null>(null)
   const [openMenuBinderId, setOpenMenuBinderId] = useState<string | null>(null)
   const [duplicatingBinderId, setDuplicatingBinderId] = useState<string | null>(null)
+  const [bulkBinderStatusLoading, setBulkBinderStatusLoading] = useState(false)
   const binderMenuRef = useRef<HTMLDivElement>(null)
 
   // Auth guard
@@ -156,6 +157,27 @@ function MyListingsContent() {
     setConfirmDeleteBinderId(null)
     setDeletingBinderId(null)
     setSelectedBinderIds(new Set(['unsorted']))
+  }
+
+  const handleBulkBinderStatus = async (newStatus: 'listed' | 'unlisted') => {
+    if (!userId) return
+    setBulkBinderStatusLoading(true)
+    // Collect listing IDs from all selected binders (excluding 'unsorted' virtual binder)
+    const binderIds = [...selectedBinderIds].filter(id => id !== 'unsorted')
+    const listingIds = listings
+      .filter(l => {
+        if (selectedBinderIds.has('unsorted') && !l.binder_id) return true
+        return l.binder_id !== null && selectedBinderIds.has(l.binder_id)
+      })
+      .filter(l => l.status !== 'sold') // never touch sold listings
+      .map(l => l.id)
+    if (listingIds.length > 0) {
+      await supabase.from('listings').update({ status: newStatus }).in('id', listingIds)
+      setListings(prev => prev.map(l => listingIds.includes(l.id) ? { ...l, status: newStatus } : l))
+      setAllListings(prev => prev.map(l => listingIds.includes(l.id) ? { ...l, status: newStatus } : l))
+    }
+    setBulkBinderStatusLoading(false)
+    void binderIds // suppress unused warning
   }
 
   const handleDescribeBinder = async (id: string, description: string) => {
@@ -843,12 +865,47 @@ function MyListingsContent() {
           <span style={{ fontSize: '12px', color: 'var(--color-muted)' }}>
             · {binderListings.length} total cards · ₱{binderListings.reduce((s, l) => s + l.price * l.quantity, 0).toLocaleString('en-PH')} combined value
           </span>
-          <button
-            onClick={() => { setSelectedBinderIds(new Set(['unsorted'])); setSelectedIds(new Set()) }}
-            style={{ marginLeft: 'auto', fontSize: '11px', padding: '3px 10px', borderRadius: '6px', border: '1px solid var(--color-border)', background: 'transparent', color: 'var(--color-subtle)', cursor: 'pointer' }}
-          >
-            Clear selection
-          </button>
+
+          {/* Bulk status actions */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginLeft: 'auto' }}>
+            <button
+              onClick={() => handleBulkBinderStatus('listed')}
+              disabled={bulkBinderStatusLoading}
+              title="List all cards in selected binders"
+              style={{
+                fontSize: '11px', fontWeight: 600, padding: '4px 12px', borderRadius: '7px',
+                border: '1px solid rgba(16,185,129,0.4)',
+                background: 'rgba(16,185,129,0.08)', color: '#34d399',
+                cursor: bulkBinderStatusLoading ? 'not-allowed' : 'pointer',
+                opacity: bulkBinderStatusLoading ? 0.6 : 1,
+                transition: 'all 0.12s ease',
+              }}
+            >
+              {bulkBinderStatusLoading ? '…' : 'List all'}
+            </button>
+            <button
+              onClick={() => handleBulkBinderStatus('unlisted')}
+              disabled={bulkBinderStatusLoading}
+              title="Unlist all cards in selected binders"
+              style={{
+                fontSize: '11px', fontWeight: 600, padding: '4px 12px', borderRadius: '7px',
+                border: '1px solid rgba(251,191,36,0.4)',
+                background: 'rgba(251,191,36,0.08)', color: '#fbbf24',
+                cursor: bulkBinderStatusLoading ? 'not-allowed' : 'pointer',
+                opacity: bulkBinderStatusLoading ? 0.6 : 1,
+                transition: 'all 0.12s ease',
+              }}
+            >
+              {bulkBinderStatusLoading ? '…' : 'Unlist all'}
+            </button>
+            <div style={{ width: '1px', height: '16px', background: 'var(--color-border)' }} />
+            <button
+              onClick={() => { setSelectedBinderIds(new Set(['unsorted'])); setSelectedIds(new Set()) }}
+              style={{ fontSize: '11px', padding: '4px 10px', borderRadius: '7px', border: '1px solid var(--color-border)', background: 'transparent', color: 'var(--color-subtle)', cursor: 'pointer' }}
+            >
+              Clear
+            </button>
+          </div>
         </div>
       )}
 
