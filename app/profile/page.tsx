@@ -178,7 +178,7 @@ function BindersDisplay({ listings, binders, loading, displayName, username, onU
   const copyBinderContents = (cards: Listing[], binderId: string) => {
     const sorted = [...cards].sort((a, b) => a.card_name.localeCompare(b.card_name))
     const lines = sorted.map(c =>
-      `${c.quantity} - ${c.card_name} - ${c.card_set_name ?? c.card_set ?? 'Unknown'} - ${c.is_foil ? 'Foil' : 'Non-Foil'} - ${c.condition} - ₱${c.price.toLocaleString('en-PH')}`
+      `${c.quantity} - ${c.card_name} - ${c.card_set?.toUpperCase() ?? 'UNK'} - ${c.is_foil ? 'F' : 'NF'} - ${c.condition} - ₱${c.price.toLocaleString('en-PH')}`
     ).join('\n')
     writeToClipboard(lines)
     flashCopied(`contents-${binderId}`)
@@ -410,7 +410,7 @@ function BindersDisplay({ listings, binders, loading, displayName, username, onU
                     <BinderMenuItem
                       icon={<CopyIcon />}
                       label={copiedAction === `contents-${binder.id}` ? 'Copied!' : 'Copy contents with price'}
-                      sublabel="QTY · Name · Set · Foil · Cond · Price"
+                      sublabel="QTY · Name · SET · F/NF · NM/LP… · Price"
                       onClick={() => copyBinderContents(cards, binder.id)}
                     />
                     {/* Moxfield export */}
